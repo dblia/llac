@@ -1,3 +1,4 @@
+%{
 (***************************************************************
  *
  * Parser for Llama Language
@@ -8,11 +9,10 @@
 ****************************************************************)
 
 (* Header Section *)
-%{
-
-}%
+    open Printf
+%}
    
-(* Ocamlyacc declarations  *)
+/* Ocamlyacc declarations  */
 %token T_eof
 
 %token<int> T_intnum      
@@ -60,7 +60,7 @@
 
 %%
 
-(* Grammar rules  *)
+/* Grammar rules  */
 
 %%
 
