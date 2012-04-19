@@ -9,7 +9,6 @@
 .PHONY: all
 
 # OS type: Linux/Win DJGPP
-
 ifdef OS
    EXE=.exe
 else
@@ -56,7 +55,7 @@ depend: $(ML_FILES) $(MLI_FILES)
 	$(OCAMLDEP) $^ > .depend
 
 clean:
-	$(RM) -f Lexer.ml Parser.ml Parser.output $(CMO_FILES) $(CMI_FILES) *~
+	$(RM) -f Lexer.ml Parser.ml src/parser/Parser.output $(CMO_FILES) $(CMI_FILES) *~
 
 distclean: clean
 	$(RM) -f $(EXE_FILES) .depend
