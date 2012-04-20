@@ -41,7 +41,10 @@ all: llama$(EXE)
 Lexer.ml: src/parser/Lexer.mll
 	ocamllex -o $@ $<
 
-llama$(EXE): Lexer.cmo 
+Parser.ml Parser.mli: src/parser/Parser.mly 
+	ocamlyacc -v $<
+
+llama$(EXE): Lexer.cmo Parser.cmo main.cmo
 	$(OCAMLC) $(OCAMLC_FLAGS) -o $@ $^
 
 .PHONY: clean distclean
