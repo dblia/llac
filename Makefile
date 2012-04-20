@@ -19,9 +19,9 @@ RM = /bin/rm
 
 OCAMLC = ocamlc
 OCAMLC_FLAGS = -g
-OCMALDEP=ocamldep
+OCMALDEP = ocamldep
 
-PATH=src/parser/
+PATH = src/parser/
 
 EXE_FILES = llama$(EXE)
 ML_FILES = Lexer.ml $(PATH)Parser.ml main.ml
