@@ -43,14 +43,10 @@ all: llama$(EXE)
 Lexer.ml: $(PATH)Lexer.mll
 	ocamllex -o $@ $<
 
-<<<<<<< HEAD
 Parser.ml Parser.mli: $(PATH)Parser.mly 
 	ocamlyacc -v $<
 
 llama$(EXE): Lexer.cmo Parser.cmo main.cmo
-=======
-llama$(EXE): Lexer.cmo 
->>>>>>> parent of 10b84c3... Finished Grammar rules. Corrected name.
 	$(OCAMLC) $(OCAMLC_FLAGS) -o $@ $^
 
 .PHONY: clean distclean
