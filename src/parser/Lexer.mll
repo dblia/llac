@@ -1,7 +1,7 @@
 (***************************************************************
  *
  * Lexical Analyzer for Llama Language
- * Authors: Bliablias Dimitrios, Koukoutos Emmanouil
+ * Authors: Bliablias Dimitrios, Koukoutos Emmanouhl
  *
  * This file is part of Llamac project.
  *
