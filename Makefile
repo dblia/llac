@@ -40,7 +40,7 @@ all: llama$(EXE)
 %.cmo %.cmi: %.ml
 	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
 
-Lexer.ml: $(PATH)Lexer.mll
+Lexer.ml: src/parser/Lexer.mll
 	ocamllex -o $@ $<
 
 Parser.ml Parser.mli: $(PATH)Parser.mly 

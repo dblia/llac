@@ -151,18 +151,3 @@ and comment level = parse
   | eof        { print_endline "Comments are not closed\n"; T_eof }
 
 
-(* Trailer Section *)
-{
-let main =
-  let input = 
-    if Array.length Sys.argv > 1 then open_in Sys.argv.(1)
-    else stdin 
-  in
-  let lexbuf = Lexing.from_channel input in
-  let rec loop () = 
-    let token = lexer lexbuf in 
-      Printf.printf "lexeme: \"%s\", lineno: %d\n" (Lexing.lexeme lexbuf)
-      (lexbuf.lex_curr_p.pos_lnum);
-    if token <> T_eof then loop () in 
-  loop ()
-}
