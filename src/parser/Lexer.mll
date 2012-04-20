@@ -1,7 +1,7 @@
 (***************************************************************
  *
  * Lexical Analyzer for Llama Language
- * Authors: Bliablias Dimitrios, Koukoutos Emmanouhl
+ * Authors: Bliablias Dimitrios, Koukoutos Emmanouil
  *
  * This file is part of Llamac project.
  *
@@ -149,5 +149,4 @@ and comment level = parse
   | "(*"       { comment (level+1) lexbuf }            (* nested comment found *)
   | _          { comment level lexbuf }                (* skip comments *)
   | eof        { print_endline "Comments are not closed\n"; T_eof }
-
 

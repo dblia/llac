@@ -9,7 +9,6 @@
 ****************************************************************)
 
 (* Header Section *)
-  open Lexer
 %}
    
 /* (* Ocamlyacc declarations *) */
@@ -43,6 +42,16 @@
 
 %token T_comma
 %token T_colon
+
+%left T_semicolon
+
+%nonassoc T_assign
+%left T_orlogic
+%left T_andlogic 
+%nonassoc T_eq T_differ T_lt T_gt T_le T_ge T_equal T_nequal
+%left T_plus T_minus T_fplus T_fminus 
+%left T_mul T_div T_fmul T_fdiv T_mod
+%right T_pow
 
 %start program
 %type <unit> program
@@ -139,10 +148,8 @@ expr  /* (* constants *) */
      | T_true { () }
      | T_false { () }
      | T_lparen T_rparen { () }
-
      /* (* parentheses *) */
      | T_lparen expr T_rparen { () }
-
      /* (* unary operators *) */
      | T_plus expr { () }
      | T_minus expr { () }
@@ -150,7 +157,6 @@ expr  /* (* constants *) */
      | T_fminus expr { () }
      | T_bar expr { () }
      | T_not expr { () }
-
      /* (* binary operators *) */
      | expr T_plus expr { () }
      | expr T_minus expr { () }
@@ -174,12 +180,10 @@ expr  /* (* constants *) */
      | expr T_orlogic expr { () }
      | expr T_semicolon expr { () }
      | expr T_assign expr { () }
-
      /* (* ids *) */
      | T_cname expr_list { () }
      | T_constructor expr_list { () }
      | T_cname T_lbrack expr expr_comm_list T_rbrack { () }
-     
      /* (* keyword-oriented *) */
      | T_dim T_intnum T_cname { () }
      | T_dim T_cname  { () }
@@ -215,14 +219,4 @@ pattern : T_plus T_intnum { () }
 
 pattern_list : /* nothing */ { () }
              | pattern pattern_list { () }
-
-
-
-%%
-
-(* Trailer - additional Ocaml code *)
-
-
-
-
 
