@@ -9,6 +9,7 @@
 ****************************************************************)
 
 (* Header Section *)
+  open Lexer
 %}
    
 /* (* Ocamlyacc declarations *) */
@@ -45,6 +46,27 @@
 
 %start program
 %type <unit> program
+%type <unit> pdef_list
+%type <unit> letdef 
+%type <unit> def_list
+%type <unit> tdef_list
+%type <unit> def
+%type <unit> par_list
+%type <unit> expr_comm_list
+%type <unit> typedef
+%type <unit> tdef 
+%type <unit> constr_list
+%type <unit> constr
+%type <unit> typ_list
+%type <unit> par
+%type <unit> typ
+%type <unit> mul_list
+%type <unit> expr
+%type <unit> expr_list
+%type <unit> clause_list
+%type <unit> clause
+%type <unit> pattern
+%type <unit> pattern_list
  
 
 %%

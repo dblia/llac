@@ -9,80 +9,8 @@
 
 (* Header Section *)
 {
+  open Parser
   open Lexing     (* for lex_curr_p field *)
-
-  type token 
-    = T_and 
-    | T_array 
-    | T_begin 
-    | T_bool
-    | T_char
-    | T_delete
-    | T_dim
-    | T_do
-    | T_done
-    | T_downto
-    | T_else 
-    | T_end 
-    | T_false 
-    | T_float 
-    | T_for 
-    | T_if 
-    | T_in 
-    | T_int 
-    | T_let 
-    | T_match 
-    | T_mod 
-    | T_mutable 
-    | T_new 
-    | T_not 
-    | T_of 
-    | T_rec 
-    | T_ref 
-    | T_then 
-    | T_to 
-    | T_true 
-    | T_type 
-    | T_unit 
-    | T_while 
-    | T_with 
-    | T_gives 
-    | T_eq 
-    | T_pipe 
-    | T_plus 
-    | T_minus 
-    | T_mul 
-    | T_div 
-    | T_fplus
-    | T_fminus 
-    | T_fmul 
-    | T_fdiv 
-    | T_pow  
-    | T_bar 
-    | T_semicolon 
-    | T_andlogic
-    | T_orlogic
-    | T_differ 
-    | T_lt  
-    | T_gt  
-    | T_le  
-    | T_ge  
-    | T_equal  
-    | T_nequal
-    | T_assign
-    | T_lparen 
-    | T_rparen
-    | T_lbrack 
-    | T_rbrack
-    | T_comma
-    | T_colon
-    | T_intnum        of int
-    | T_floatnum      of float 
-    | T_cname         of string 
-    | T_constructor   of string
-    | T_cchar         of char
-    | T_string        of string
-    | T_eof
 
   (* Update the line number (pos_lnum field) and the offset of the line beggining,
    * (pos_bol field). Field pos_cnum managed by the lexing engine.
