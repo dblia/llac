@@ -125,7 +125,7 @@ let constr = lbig(letter|digit|"_")*  (* Cunstructor names *)
 let hex = digit | ['a'-'f' 'A'-'F']   (* Hex numbers *)
 let xnn = "x" hex hex                 (* Char with nn ASCII code in hexademical *)
 let esc = xnn | ['n' 't' 'r' '0' '\\' '\'' '"']                 (* Escape chars *)
-let chars = "'"( [^ ''' '"' '\\'] | "\\"esc )"'"
+let chars = "'"( [^ '\'' '"' '\\'] | "\\"esc )"'"
 let str = '"'( [^ '\n' '\\' '"'] | "\\"esc )+'"'
 let whiteSet = [' ' '\t' '\n' '\r']      (* White Spaces *)
 let white  = whiteSet # ['\n']           (* Ignore white spaces *)
@@ -206,8 +206,8 @@ rule lexer = parse
   (* Names *)
   | cnames as name     { T_cname (name) }
   | constr as con      { T_constructor (con) }
-  | chars as c { T_cchar (char_of_string c) }
-  | str as s   { T_string s }                          (* Strings *)
+  | chars as c { Printf.printf "%c" (char_of_string c); T_cchar (char_of_string c) }
+  | str as s   { Printf.printf "%s" s ; T_string s }                          (* Strings *)
   | '\n'       { incr_lineno lexbuf; lexer lexbuf }    (* newline *)
   | white      { lexer lexbuf }                        (* Ignore white spaces *)
   | comm       { lexer lexbuf }                        (* One line comment *)

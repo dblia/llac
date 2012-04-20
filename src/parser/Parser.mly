@@ -43,12 +43,126 @@
 %token T_comma
 %token T_colon
 
-%token T_eof
+%start program
+%type <unit> program
+ 
 
 %%
 
 /* (* Grammar rules *) */
+program : pdef_list T_eof
 
+pdef_list : /*nothing*/       { () }
+          | letdef pdef_list   { () }
+          | typedef pdef_list  { () }
+
+letdef : T_let T_rec def def_list { () }
+       | T_let def def_list { () }
+
+def_list  : /* nothing */ { () }
+          | T_and def def_list { () }
+
+tdef_list : /* nothing */
+          | T_and tdef tdef_list
+
+def : T_cname par_list T_colon typ T_eq expr
+    | T_cname par_list T_eq expr
+    | T_mutable T_cname T_lbrack expr expr_list T_rbrack T_colon typ
+    | T_mutable T_cname T_colon typ
+    | T_mutable T_cname T_lbrack expr expr_list T_rbrack 
+    | T_mutable T_cname 
+
+par_list : /* nothing */
+         | par par_list
+
+expr_list : /* nothing */
+          | T_comma expr expr_list
+
+typedef : T_type tdef tdef_list
+
+tdef : T_cname T_eq constr constr_list
+
+constr_list : /* nothing */
+            |  T_pipe constr constr_list
+
+constr : T_constructor T_of typ typ_list
+       | T_constructor
+
+typ_list : /* nothing */
+         | typ typ_list
+
+par : T_cname
+    | T_lparen T_cname T_colon typ T_rparen
+
+typ : T_unit
+    | T_int 
+    | T_char
+    | T_bool
+    | T_float
+    | T_lparen typ T_rparen
+    | typ T_gives typ 
+    | typ T_ref 
+    | T_array T_lbrack T_mul mul_list T_rbrack T_of typ
+    | T_array T_of typ
+    | T_cname
+
+mul_list : /* nothing */
+         | T_comma T_mul mul_list
+
+expr  /* (* constants *) */
+     : T_intnum
+     | T_floatnum
+     | T_cchar
+     | T_string
+     | T_true
+     | T_false
+     | T_lparen T_rparen
+
+     /* (* parentheses *) */
+     | T_lparen expr T_rparen
+
+     /* (* unary operators *) */
+     | T_plus expr 
+     | T_minus expr 
+     | T_fplus expr
+     | T_fminus expr
+     | T_bar expr 
+     | T_not expr
+
+     /* (* binary operators *) */
+     | expr T_plus expr
+     | expr T_minus expr
+     | expr T_mul expr
+     | expr T_div expr
+     | expr T_fplus expr
+     | expr T_fminus expr
+     | expr T_fmul expr
+     | expr T_fdiv expr
+     | expr T_mod expr
+     | expr T_pow expr
+     | expr T_eq expr
+     | expr T_differ expr
+     | expr T_lt expr
+     | expr T_gt expr
+     | expr T_le expr
+     | expr T_ge expr
+     | expr T_equal expr
+     | expr T_nequal expr
+     | expr T_andlogic expr
+     | expr T_orlogic expr
+     | expr T_semicolon expr
+     | expr T_assign expr
+
+     /* (* unary operators *) */
+       
+
+     /* (* unary operators *) */
+     /* (* unary operators *) */
 %%
 
 (* Trailer - additional Ocaml code *)
+
+
+
+
+
