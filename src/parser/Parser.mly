@@ -9,6 +9,7 @@
 ****************************************************************)
 
 (* Header Section *)
+  open Lexer
 %}
    
 /* (* Ocamlyacc declarations *) */
@@ -43,6 +44,11 @@
 %token T_comma
 %token T_colon
 
+/* (*predecence for type defs. completely arbitary... *) */
+%nonassoc T_array
+%right T_gives
+%nonassoc T_ref
+
 %left T_semicolon
 
 %nonassoc T_assign
@@ -53,6 +59,8 @@
 %left T_mul T_div T_fmul T_fdiv T_mod
 %right T_pow
 
+
+
 %start program
 %type <unit> program
 %type <unit> pdef_list
@@ -61,7 +69,12 @@
 %type <unit> tdef_list
 %type <unit> def
 %type <unit> par_list
-%type <unit> expr_comm_list
+%type <unit> let_expr_comm_list
+%type <unit> let_expr
+%type <unit> stmt_list
+%type <unit> stmt
+%type <unit> if_stmt
+%type <unit> full_stmt
 %type <unit> typedef
 %type <unit> tdef 
 %type <unit> constr_list
@@ -71,7 +84,14 @@
 %type <unit> typ
 %type <unit> mul_list
 %type <unit> expr
-%type <unit> expr_list
+%type <unit> unary_expr 
+%type <unit> app 
+%type <unit> atom_list
+%type <unit> atom 
+%type <unit> array_el 
+%type <unit> new_stmt 
+%type <unit> simple_expr 
+/* (* %type <unit> expr_list *) */
 %type <unit> clause_list
 %type <unit> clause
 %type <unit> pattern
@@ -96,18 +116,18 @@ def_list  : /* nothing */ { () }
 tdef_list : /* nothing */ { () }
           | T_and tdef tdef_list { () }
 
-def : T_cname par_list T_colon typ T_eq expr { () }
-    | T_cname par_list T_eq expr { () }
-    | T_mutable T_cname T_lbrack expr expr_comm_list T_rbrack T_colon typ { () }
+def : T_cname par_list T_colon typ T_eq let_expr { () }
+    | T_cname par_list T_eq let_expr { () }
+    | T_mutable T_cname T_lbrack let_expr let_expr_comm_list T_rbrack T_colon typ { () }
     | T_mutable T_cname T_colon typ { () }
-    | T_mutable T_cname T_lbrack expr expr_comm_list T_rbrack { () }
+    | T_mutable T_cname T_lbrack let_expr let_expr_comm_list T_rbrack { () }
     | T_mutable T_cname { () }
 
 par_list : /* nothing */ { () }
          | par par_list { () }
 
-expr_comm_list : /* nothing */ { () }
-          | T_comma expr expr_comm_list { () }
+let_expr_comm_list : /* nothing */ { () }
+          | T_comma let_expr let_expr_comm_list { () }
 
 typedef : T_type tdef tdef_list { () }
 
@@ -140,25 +160,23 @@ typ : T_unit { () }
 mul_list : /* nothing */ { () }
          | T_comma T_mul mul_list { () }
 
-expr  /* (* constants *) */ 
-     : T_intnum { () }
-     | T_floatnum { () }
-     | T_cchar { () }
-     | T_string { () }
-     | T_true { () }
-     | T_false { () }
-     | T_lparen T_rparen { () }
-     /* (* parentheses *) */
-     | T_lparen expr T_rparen { () }
-     /* (* unary operators *) */
-     | T_plus expr { () }
-     | T_minus expr { () }
-     | T_fplus expr { () }
-     | T_fminus expr { () }
-     | T_bar expr { () }
-     | T_not expr { () }
-     /* (* binary operators *) */
-     | expr T_plus expr { () }
+let_expr: letdef T_in let_expr { () }
+        | stmt stmt_list { () }
+
+stmt_list : /* nothing */ { () }
+          | T_semicolon stmt stmt_list { () }
+
+stmt: if_stmt { () }
+    | expr { () }
+
+if_stmt : T_if stmt T_then full_stmt T_else stmt { () }  /* (* stmt or expr or what ??? *) */
+        | T_if stmt T_then stmt { () }
+
+full_stmt : T_if stmt T_then full_stmt T_else full_stmt { () }
+          | expr { () }
+
+expr /* (* binary operators *) */
+     : expr T_plus expr { () }
      | expr T_minus expr { () }
      | expr T_mul expr { () }
      | expr T_div expr { () }
@@ -178,28 +196,54 @@ expr  /* (* constants *) */
      | expr T_nequal expr { () }
      | expr T_andlogic expr { () }
      | expr T_orlogic expr { () }
-     | expr T_semicolon expr { () }
      | expr T_assign expr { () }
-     /* (* ids *) */
-     | T_cname expr_list { () }
-     | T_constructor expr_list { () }
-     | T_cname T_lbrack expr expr_comm_list T_rbrack { () }
-     /* (* keyword-oriented *) */
-     | T_dim T_intnum T_cname { () }
-     | T_dim T_cname  { () }
-     | T_new typ{ () }
-     | T_delete expr { () }
-     | letdef T_in expr { () }
-     | T_begin expr T_end { () }
-     | T_if expr T_then expr T_else expr { () }
-     | T_if expr T_then expr { () }
-     | T_while expr T_do expr T_done { () }
-     | T_for T_cname T_eq expr T_to expr T_do expr T_done { () }
-     | T_for T_cname T_eq expr T_downto expr T_do expr T_done { () }
-     | T_match expr T_with clause clause_list T_end { () }
+     | unary_expr { () }
 
-expr_list : /* nothing */ { () }
-          | expr expr_comm_list { () }
+unary_expr : T_plus unary_expr { () }
+           | T_minus unary_expr { () }
+           | T_fplus unary_expr { () }
+           | T_fminus unary_expr { () }
+           | T_not unary_expr { () }
+           | T_delete unary_expr { () }
+           | app { () }
+
+app : T_cname atom_list { () } /* (* seperate app from simple ids??? *) */
+    | T_constructor atom_list { () }
+    | atom { () }
+
+atom_list: /* nothing */ { () }
+         | atom atom_list { () }
+
+atom : T_bar atom { () }
+     | array_el { () }
+
+array_el : T_cname T_lbrack let_expr let_expr_comm_list T_rbrack { () }
+         | new_stmt { () }
+
+new_stmt : T_new typ { () }
+         | simple_expr { () }
+
+simple_expr /* (* constants *) */ 
+           : T_intnum { () }
+           | T_floatnum { () }
+           | T_cchar { () }
+           | T_string { () }
+           | T_true { () }
+           | T_false { () }
+           | T_lparen T_rparen { () }
+           /* (* keyword-oriented *) */
+           | T_dim T_intnum T_cname { () }
+           | T_dim T_cname  { () }
+           | T_begin let_expr T_end { () }
+           | T_while let_expr T_do let_expr T_done { () }
+           | T_for T_cname T_eq let_expr T_to let_expr T_do let_expr T_done { () }
+           | T_for T_cname T_eq let_expr T_downto let_expr T_do let_expr T_done { () }
+           | T_match let_expr T_with clause clause_list T_end { () }
+           /* (* parentheses *) */
+           | T_lparen let_expr T_rparen { () }
+
+/*  expr_list :  nothing { () } */            /* (*what was this for???? *)*/
+/*          | expr let_expr_comm_list { () }  */
 
 clause_list : /* nothing */ { () }
             | T_pipe clause clause_list { () }
