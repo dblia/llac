@@ -1,7 +1,7 @@
 (***************************************************************
  *
  * Lexical Analyzer for Llama Language
- * Authors: Bliablias Dimitrios, Koukoutos Emmanouil
+ * Authors: Bliablias Dimitrios, Koukoutos Emmanouhl
  *
  * This file is part of Llamac project.
  *
@@ -9,6 +9,7 @@
 
 (* Header Section *)
 {
+  open String
   open Parser
   open Lexing     (* for lex_curr_p field *)
 
@@ -25,9 +26,9 @@
       pos_bol = pos.pos_cnum;       (* update the offset of the line beginning *)
   }
 
-  let char_of_string str = 
-    if String.length str = 3 then String.get str 1
-    else match String.get str 2 with
+  let char_of_string str =  (* Parse an (escape) character *)
+    if String.length str = 1 then String.get str 0
+    else match String.get str 1 with
       | 'n'   ->  '\n'
       | 't'   ->  '\t'
       | 'r'   ->  '\r'
@@ -35,8 +36,8 @@
       | '\\'  ->  '\\'
       | '\''  ->  '\''
       | '"'   ->  '"'
-      | 'x'   -> let sub = String.sub str 3 2 in
-                 Char.chr (int_of_string (String.concat "" (["0x"; sub])))
+      | 'x'   -> let sub = String.sub str 2 2 in
+                 Char.chr ( int_of_string ("0x" ^ sub) )
       | _ as err  -> err
 
 }
@@ -53,8 +54,8 @@ let constr = lbig(letter|digit|"_")*  (* Cunstructor names *)
 let hex = digit | ['a'-'f' 'A'-'F']   (* Hex numbers *)
 let xnn = "x" hex hex                 (* Char with nn ASCII code in hexademical *)
 let esc = xnn | ['n' 't' 'r' '0' '\\' '\'' '"']                 (* Escape chars *)
-let chars = "'"( [^ '\'' '"' '\\'] | "\\"esc )"'"
-let str = '"'( [^ '\n' '\\' '"'] | "\\"esc )+'"'
+let chars = ( [^ '\'' '"' '\\' '\t' '\n' '\r' '\x00'] | "\\"esc ) (* fixed *)
+
 let whiteSet = [' ' '\t' '\n' '\r']      (* White Spaces *)
 let white  = whiteSet # ['\n']           (* Ignore white spaces *)
 let comm   = "--" [^ '\n']+            (* One line comment *)
@@ -134,8 +135,11 @@ rule lexer = parse
   (* Names *)
   | cnames as name     { T_cname (name) }
   | constr as con      { T_constructor (con) }
-  | chars as c { Printf.printf "%c" (char_of_string c); T_cchar (char_of_string c) }
-  | str as s   { Printf.printf "%s" s ; T_string s }                          (* Strings *)
+  (* Characters and strings *)
+  | "'"chars"'" as c { Printf.printf "%c" (char_of_string (sub c 1 ( length c - 2))); 
+                       T_cchar (char_of_string (sub c 1 (length c - 2) ) )}
+  | '"'        { string_state "" lexbuf }  
+  
   | '\n'       { incr_lineno lexbuf; lexer lexbuf }    (* newline *)
   | white      { lexer lexbuf }                        (* Ignore white spaces *)
   | comm       { lexer lexbuf }                        (* One line comment *)
@@ -143,10 +147,19 @@ rule lexer = parse
   | eof        { T_eof }                        
   | _ as err   { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n" err 
                   (Char.code err); lexer lexbuf; }
+
+(* inside comment *)
 and comment level = parse
   | "*)"       { if level = 0 then lexer lexbuf
                  else comment (level-1) lexbuf }       (* goto the lexer rule *)
   | "(*"       { comment (level+1) lexbuf }            (* nested comment found *)
   | _          { comment level lexbuf }                (* skip comments *)
   | eof        { print_endline "Comments are not closed\n"; T_eof }
+
+(* inside string literal *)
+and string_state acc = parse 
+  | chars as c { string_state (acc ^ (make 1 (char_of_string c)) ) lexbuf }
+  | '"' { Printf.printf "%s" acc; T_string acc }
+  | _ as err { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n" err 
+                  (Char.code err); lexer lexbuf; } 
 
