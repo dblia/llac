@@ -8,5 +8,5 @@ let main =
     Parser.program Lexer.lexer lexbuf;
     exit 0
   with Parsing.Parse_error ->
-    Printf.eprintf "syntax error\n";
+    Printf.eprintf "syntax error in line %d, char %d\n" (lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum) (lexbuf.Lexing.lex_curr_p.Lexing.pos_cnum - lexbuf.Lexing.lex_curr_p.Lexing.pos_bol) ;
     exit 1

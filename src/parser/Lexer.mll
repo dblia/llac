@@ -136,7 +136,7 @@ rule lexer = parse
   | cnames as name     { T_cname (name) }
   | constr as con      { T_constructor (con) }
   (* Characters and strings *)
-  | "'"chars"'" as c { Printf.printf "%c" (char_of_string (sub c 1 ( length c - 2))); 
+  | "'"chars"'" as c { (*Printf.printf "%c" (char_of_string (sub c 1 ( length c - 2))); *)
                        T_cchar (char_of_string (sub c 1 (length c - 2) ) )}
   | '"'        { string_state "" lexbuf }  
   
@@ -159,7 +159,7 @@ and comment level = parse
 (* inside string literal *)
 and string_state acc = parse 
   | chars as c { string_state (acc ^ (make 1 (char_of_string c)) ) lexbuf }
-  | '"' { Printf.printf "%s" acc; T_string acc }
+  | '"' { (*Printf.printf "%s" acc;*) T_string acc }
   | _ as err { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n" err 
                   (Char.code err); lexer lexbuf; } 
 

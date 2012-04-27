@@ -17,14 +17,14 @@ endif
 
 RM = /bin/rm
 
-ROOT = ~/Desktop/compilers
+ROOT = ~/Documents/llac
 
 OCAMLC = ocamlc
 OCAMLC_FLAGS = -g
 OCAMLDEP = ocamldep
 
 EXE_FILE = llama$(EXE)
-ML_FILES = Lexer.ml Parser.ml $(ROOT)/main.ml
+ML_FILES = Lexer.ml Parser.ml ../../main.ml
 MLI_FILES = Lexer.mli Parser.mli
 CMO_FILES = $(patsubst %.ml, %.cmo, $(ML_FILES))
 CMI_FILES = $(patsubst %.ml, %.cmi, $(ML_FILES))
@@ -53,7 +53,7 @@ $(EXE_FILE): $(CMO_FILES)
 
 -include .depend
 
-depend: Lexer.ml Lexer.mli Parser.ml Parser.mli $(ROOT)/main.ml
+depend: Lexer.ml Lexer.mli Parser.ml Parser.mli ../../main.ml
 	$(OCAMLDEP)  $^ > .depend
 
 clean:
