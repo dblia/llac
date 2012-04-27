@@ -17,7 +17,7 @@ endif
 
 RM = /bin/rm
 
-ROOT = ~/Desktop/compilers
+ROOT = ../..
 
 OCAMLC = ocamlc
 OCAMLC_FLAGS = -g
