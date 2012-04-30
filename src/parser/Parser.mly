@@ -53,13 +53,18 @@ type Def_list =
 %token T_comma
 %token T_colon
 
+%token T_err
+
 /* (* predecence for type defs *) */
 %right T_gives
-%nonassoc T_of
+%nonassoc T_of T_array
 %left T_ref
 
+/* (* predecence for expressions *) */
+%nonassoc T_in
 %left T_semicolon
-
+%left T_if T_then 
+%nonassoc T_else 
 %nonassoc T_assign
 %left T_orlogic
 %left T_andlogic 
@@ -78,11 +83,6 @@ type Def_list =
 %type <unit> def
 %type <unit> par_list
 %type <unit> let_expr_comm_list
-%type <unit> let_expr
-%type <unit> stmt_list
-%type <unit> stmt
-%type <unit> if_stmt
-%type <unit> full_stmt
 %type <unit> typedef
 %type <unit> tdef 
 %type <unit> constr_list
@@ -120,18 +120,18 @@ letdef : T_let T_rec def def_list { () }
 def_list  : /* nothing */ { () }
           | T_and def def_list { () }
 
-def : T_cname par_list T_colon typ T_eq let_expr { () }
-    | T_cname par_list T_eq let_expr { () }
-    | T_mutable T_cname T_lbrack let_expr let_expr_comm_list T_rbrack T_colon typ { () }
+def : T_cname par_list T_colon typ T_eq expr { () }
+    | T_cname par_list T_eq expr { () }
+    | T_mutable T_cname T_lbrack expr let_expr_comm_list T_rbrack T_colon typ { () }
     | T_mutable T_cname T_colon typ { () }
-    | T_mutable T_cname T_lbrack let_expr let_expr_comm_list T_rbrack { () }
+    | T_mutable T_cname T_lbrack expr let_expr_comm_list T_rbrack { () }
     | T_mutable T_cname { () }
 
 par_list : /* nothing */ { () }
          | par par_list { () }
 
 let_expr_comm_list : /* nothing */ { () }
-          | T_comma let_expr let_expr_comm_list { () }
+          | T_comma expr let_expr_comm_list { () }
 
 typedef : T_type tdef tdef_list { () }
 
@@ -152,9 +152,14 @@ typ_list : /* nothing */ { () }
 par : T_cname { () }
     | T_lparen T_cname T_colon typ T_rparen { () }
 
-typ : T_array T_lbrack T_mul mul_list T_rbrack T_of simple_typ { () }
-    | T_array T_of simple_typ { () }
-    
+/* (*
+typ : T_array T_lbrack T_mul mul_list T_rbrack T_of fun_typ { () }
+    | T_array T_of fun_typ { () }
+    | T_lparen typ T_rparen { () }
+    | fun_typ { () }
+
+fun_typ : simple_typ T_gives typ { () }
+        | simple_typ { () }
 
 simple_typ: 
       T_unit { () }
@@ -162,35 +167,32 @@ simple_typ:
     | T_char { () }
     | T_bool { () }
     | T_float { () }
-    | T_lparen simple_typ T_rparen { () }
-    | typ T_gives typ { () } 
+    | T_lparen fun_typ T_rparen { () }
     | simple_typ T_ref { () }    
+    | T_cname { () } *)
+*/
+
+typ : T_array T_lbrack T_mul mul_list T_rbrack T_of typ { () }
+    | T_array T_of typ { () }
+    | typ T_gives typ { () }
+    | T_unit { () }
+    | T_int  { () }
+    | T_char { () }
+    | T_bool { () }
+    | T_float { () }
+    | T_lparen typ T_rparen { () }
+    | typ T_ref { () }    
     | T_cname { () }
 
 mul_list : /* nothing */ { () }
          | T_comma T_mul mul_list { () }
 
-let_expr: letdef T_in let_expr { () }
-        | stmt stmt_list { () }
-
-stmt_list : /* nothing */ { () }
-          | T_semicolon stmt stmt_list { () }
-
-stmt: if_stmt { () }
-    | T_begin let_expr T_end { () }
-    | T_while let_expr T_do let_expr T_done { () }
-    | T_for T_cname T_eq let_expr T_to let_expr T_do let_expr T_done { () }
-    | T_for T_cname T_eq let_expr T_downto let_expr T_do let_expr T_done { () }
-    | expr { () }
-
-if_stmt : T_if stmt T_then full_stmt T_else stmt { () }  /* (* stmt or expr or what ??? *) */
-        | T_if stmt T_then stmt { () }
-
-full_stmt : T_if stmt T_then full_stmt T_else full_stmt { () } 
-          | expr { () }
-
-expr /* (* binary operators *) */
-     : expr T_plus expr { () }
+expr : letdef T_in expr { () }
+     | expr T_semicolon expr { () }
+     | T_if expr T_then expr T_else expr { () }
+     | T_if expr T_then expr { () }
+     /* (* binary operators *) */
+     | expr T_plus expr { () }
      | expr T_minus expr { () }
      | expr T_mul expr { () }
      | expr T_div expr { () }
@@ -221,8 +223,8 @@ unary_expr : T_plus unary_expr { () }
            | T_delete unary_expr { () }
            | app { () }
 
-app : T_cname atom_list { () } /* (* seperate app from simple ids??? *) */
-    | T_constructor atom_list { () }
+app : T_cname atom atom_list { () } /* (* seperate app from simple ids??? *) */
+    | T_constructor atom atom_list { () }
     | atom { () }
 
 atom_list: /* nothing */ { () }
@@ -231,7 +233,7 @@ atom_list: /* nothing */ { () }
 atom : T_bar atom { () }
      | array_el { () }
 
-array_el : T_cname T_lbrack let_expr let_expr_comm_list T_rbrack { () }
+array_el : T_cname T_lbrack expr let_expr_comm_list T_rbrack { () }
          | new_stmt { () }
 
 new_stmt : T_new typ { () }
@@ -248,14 +250,24 @@ simple_expr /* (* constants *) */
            /* (* keyword-oriented *) */
            | T_dim T_intnum T_cname { () }
            | T_dim T_cname  { () }        
-           | T_match let_expr T_with clause clause_list T_end { () }
-           /* (* parentheses *) */
-           | T_lparen let_expr T_rparen { () }
+           | T_match expr T_with clause clause_list T_end { () }
+           /* (* parentheses and imperative sructures *) */
+           | T_lparen expr T_rparen { () }
+           | T_begin expr T_end { () }
+           | T_while expr T_do expr T_done { () }
+           | T_for T_cname T_eq expr T_to expr T_do expr T_done { () }
+           | T_for T_cname T_eq expr T_downto expr T_do expr T_done { () }
+
+           /* (* simple names *) */
+           | T_cname   { () }
+           | T_constructor { () }
+
+
 
 clause_list : /* nothing */ { () }
             | T_pipe clause clause_list { () }
 
-clause : pattern T_gives let_expr { () }
+clause : pattern T_gives expr { () }
 
 pattern : T_constructor simple_pattern_list { () }
         | simple_pattern { () }
@@ -275,7 +287,5 @@ simple_pattern
 
 simple_pattern_list : /* nothing */ { () }
              | simple_pattern simple_pattern_list { () }
-
-
 
 

@@ -20,8 +20,10 @@ let main =
 			hanoi (rings-1) source auxil target;
 			move source target;
 			hanoi (rings-1) auxil target source
-		end in
-	print_string "Please, give the number of rings: ";
-	let n = read_int () in
-	hanoi n Left Right Middle
+		end 
+    in
+		print_string "Please, give the number of rings: ";
+		let n = read_int () 
+		in
+			hanoi n Left Right Middle
 

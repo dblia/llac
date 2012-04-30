@@ -15,7 +15,7 @@ let bsort x =
 					changed := true
 				end
 			done
-		done
+		
 
 let main = 
 	let print_array msg x = 
