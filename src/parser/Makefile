@@ -17,8 +17,6 @@ endif
 
 RM = /bin/rm
 
-ROOT = ~/Documents/llac
-
 OCAMLC = ocamlc
 OCAMLC_FLAGS = -g
 OCAMLDEP = ocamldep

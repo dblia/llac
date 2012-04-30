@@ -53,11 +53,14 @@ type Def_list =
 %token T_comma
 %token T_colon
 
+%token T_err
+
 /* (* predecence for type defs *) */
 %right T_gives
-%nonassoc T_of
+%nonassoc T_of T_array
 %left T_ref
 
+/* (* predecence for expressions *) */
 %nonassoc T_in
 %left T_semicolon
 %left T_if T_then 
@@ -149,10 +152,15 @@ typ_list : /* nothing */ { () }
 par : T_cname { () }
     | T_lparen T_cname T_colon typ T_rparen { () }
 
-typ : T_array T_lbrack T_mul mul_list T_rbrack T_of simple_typ { () }
-    | T_array T_of simple_typ { () }
+
+/* (*
+typ : T_array T_lbrack T_mul mul_list T_rbrack T_of fun_typ { () }
+    | T_array T_of fun_typ { () }
     | T_lparen typ T_rparen { () }
-    | simple_typ { () }
+    | fun_typ { () }
+
+fun_typ : simple_typ T_gives typ { () }
+        | simple_typ { () }
 
 simple_typ: 
       T_unit { () }
@@ -160,9 +168,21 @@ simple_typ:
     | T_char { () }
     | T_bool { () }
     | T_float { () }
-    | T_lparen simple_typ T_rparen { () }
-    | typ T_gives typ { () } 
+    | T_lparen fun_typ T_rparen { () }
     | simple_typ T_ref { () }    
+    | T_cname { () } *)
+*/
+
+typ : T_array T_lbrack T_mul mul_list T_rbrack T_of typ { () }
+    | T_array T_of typ { () }
+    | typ T_gives typ { () }
+    | T_unit { () }
+    | T_int  { () }
+    | T_char { () }
+    | T_bool { () }
+    | T_float { () }
+    | T_lparen typ T_rparen { () }
+    | typ T_ref { () }    
     | T_cname { () }
 
 mul_list : /* nothing */ { () }
@@ -268,7 +288,5 @@ simple_pattern
 
 simple_pattern_list : /* nothing */ { () }
              | simple_pattern simple_pattern_list { () }
-
-
 
 

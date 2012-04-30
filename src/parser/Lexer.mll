@@ -19,6 +19,16 @@
    * Print (lexbuf.lex_curr_p.pos_cnum-lexbuf.lex_curr_p.pos_bol) for the relative 
    * offset in current line. 
    *)
+
+	let reverse str =
+		let len = String.length str in	
+		let res = String.create len in
+		for i = 0 to pred len do
+			let j = pred len - i in
+			res.[i] <- str.[j]
+		done;
+	(res)
+
   let incr_lineno lexbuf =
     let pos = lexbuf.lex_curr_p in
     lexbuf.lex_curr_p <- { pos with
@@ -146,7 +156,7 @@ rule lexer = parse
   | "(*"       { comment 0 lexbuf }                    (* Multiline comments start *)
   | eof        { T_eof }                        
   | _ as err   { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n" err 
-                  (Char.code err); lexer lexbuf; }
+                  (Char.code err); T_err }
 
 (* inside comment *)
 and comment level = parse
@@ -158,8 +168,8 @@ and comment level = parse
 
 (* inside string literal *)
 and string_state acc = parse 
-  | chars as c { string_state (acc ^ (make 1 (char_of_string c)) ) lexbuf }
-  | '"' { (*Printf.printf "%s" acc;*) T_string acc }
+  | chars as c { string_state ((make 1 (char_of_string c)) ^ acc ) lexbuf }
+  | '"' { T_string (reverse acc) }
   | _ as err { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n" err 
-                  (Char.code err); lexer lexbuf; } 
+                  (Char.code err); T_err } 
 
