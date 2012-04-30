@@ -11,19 +11,73 @@
 (* Header Section *)
 
 open Lexer
-(*
-type Program =
-    | Defs of Def_list
 
-type Def_list = 
-	| Nothing
-    | De
-*)
+type program = let_Type_Def list
+
+type let_type_def = Letdef of def list
+				  | Typedef of tdef list
+
+type def = Invariable of string * (par list) * typ * expr
+         | Mutable of string * (expr list) * typ
+
+type tdef = Tdef of string * (constr list)
+
+type constr = Constr of string * (typ list)
+
+type par = Par of ( (string * typ) list )
+
+type typ = Unit
+         | Int
+         | Char
+         | Bool
+	     | Float
+         | Fun of typ * typ
+         | Ref of typ
+         | Array of int * typ
+         | Id of string
+
+type expr = Int_const of int
+          | Float_const of float 
+          | Char_const of char
+          | String of string
+          | True
+          | False 
+          | Unit
+
+          | Unary_minus of expr
+          | Unary_fminus of expr
+          | Deref of expr 
+          | Not of expr
+
+          | Plus of expr * expr
+          | Minus of expr * expr
+          | Times of expr * expr
+          | Div of expr * expr 
+          | Fplus of expr * expr 
+          | Fminus of expr * expr 
+          | Ftimes of expr * expr 
+          | Fdiv of expr * expr 
+          | Mod of expr * expr 
+          | Pow of expr * expr 
+          | Eq of expr * expr 
+          | Differ of expr * expr 
+          | Lt of expr * expr 
+          | Gt of expr * expr 
+          | Le of expr * expr 
+          | Ge of expr * expr 
+          | Equal of expr * expr 
+          | Nequal of expr * expr 
+          | Assign of expr * expr 
+          | 
+
+
+%token T_andlogic T_orlogic T_differ T_lt T_gt T_le T_ge T_equal T_nequal
+
+
 %}
    
 /* (* Ocamlyacc declarations *) */
 %token T_eof
-%token T_err
 
 %token<int> T_intnum      
 %token<char> T_cchar   
@@ -54,8 +108,7 @@ type Def_list =
 %token T_comma
 %token T_colon
 
-/* (* Precedences: The lower the declaration the greater 
-    * the precedence is. *) */
+%token T_err
 
 /* (* predecence for type defs *) */
 %right T_gives
@@ -154,7 +207,6 @@ typ_list : /* nothing */ { () }
 par : T_cname { () }
     | T_lparen T_cname T_colon typ T_rparen { () }
 
-<<<<<<< HEAD
 
 /* (*
 typ : T_array T_lbrack T_mul mul_list T_rbrack T_of fun_typ { () }
@@ -176,8 +228,6 @@ simple_typ:
     | T_cname { () } *)
 */
 
-=======
->>>>>>> c832a2fe601c081709d034162d890740854e1f1f
 typ : T_array T_lbrack T_mul mul_list T_rbrack T_of typ { () }
     | T_array T_of typ { () }
     | typ T_gives typ { () }
@@ -236,17 +286,13 @@ app : T_cname atom atom_list { () } /* (* seperate app from simple ids??? *) */
 atom_list: /* nothing */ { () }
          | atom atom_list { () }
 
-atom : /* (* un-reference *) */
-     | T_bar atom { () }
+atom : T_bar atom { () }
      | array_el { () }
 
-array_el : /* (* array element *) */
-         | T_cname T_lbrack expr let_expr_comm_list T_rbrack { () }
+array_el : T_cname T_lbrack expr let_expr_comm_list T_rbrack { () }
          | new_stmt { () }
 
-
-new_stmt : /* (* new: dynamic memory allocation *) */
-         | T_new typ { () }
+new_stmt : T_new typ { () }
          | simple_expr { () }
 
 simple_expr /* (* constants *) */ 
@@ -272,6 +318,8 @@ simple_expr /* (* constants *) */
            | T_cname   { () }
            | T_constructor { () }
 
+
+
 clause_list : /* nothing */ { () }
             | T_pipe clause clause_list { () }
 
@@ -295,4 +343,5 @@ simple_pattern
 
 simple_pattern_list : /* nothing */ { () }
              | simple_pattern simple_pattern_list { () }
+
 
