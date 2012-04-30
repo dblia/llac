@@ -23,6 +23,7 @@ type Def_list =
    
 /* (* Ocamlyacc declarations *) */
 %token T_eof
+%token T_err
 
 %token<int> T_intnum      
 %token<char> T_cchar   
@@ -53,7 +54,8 @@ type Def_list =
 %token T_comma
 %token T_colon
 
-%token T_err
+/* (* Precedences: The lower the declaration the greater 
+    * the precedence is. *) */
 
 /* (* predecence for type defs *) */
 %right T_gives
@@ -152,26 +154,6 @@ typ_list : /* nothing */ { () }
 par : T_cname { () }
     | T_lparen T_cname T_colon typ T_rparen { () }
 
-/* (*
-typ : T_array T_lbrack T_mul mul_list T_rbrack T_of fun_typ { () }
-    | T_array T_of fun_typ { () }
-    | T_lparen typ T_rparen { () }
-    | fun_typ { () }
-
-fun_typ : simple_typ T_gives typ { () }
-        | simple_typ { () }
-
-simple_typ: 
-      T_unit { () }
-    | T_int  { () }
-    | T_char { () }
-    | T_bool { () }
-    | T_float { () }
-    | T_lparen fun_typ T_rparen { () }
-    | simple_typ T_ref { () }    
-    | T_cname { () } *)
-*/
-
 typ : T_array T_lbrack T_mul mul_list T_rbrack T_of typ { () }
     | T_array T_of typ { () }
     | typ T_gives typ { () }
@@ -230,13 +212,17 @@ app : T_cname atom atom_list { () } /* (* seperate app from simple ids??? *) */
 atom_list: /* nothing */ { () }
          | atom atom_list { () }
 
-atom : T_bar atom { () }
+atom : /* (* un-reference *) */
+     | T_bar atom { () }
      | array_el { () }
 
-array_el : T_cname T_lbrack expr let_expr_comm_list T_rbrack { () }
+array_el : /* (* array element *) */
+         | T_cname T_lbrack expr let_expr_comm_list T_rbrack { () }
          | new_stmt { () }
 
-new_stmt : T_new typ { () }
+
+new_stmt : /* (* new: dynamic memory allocation *) */
+         | T_new typ { () }
          | simple_expr { () }
 
 simple_expr /* (* constants *) */ 
@@ -262,8 +248,6 @@ simple_expr /* (* constants *) */
            | T_cname   { () }
            | T_constructor { () }
 
-
-
 clause_list : /* nothing */ { () }
             | T_pipe clause clause_list { () }
 
@@ -287,5 +271,4 @@ simple_pattern
 
 simple_pattern_list : /* nothing */ { () }
              | simple_pattern simple_pattern_list { () }
-
 
