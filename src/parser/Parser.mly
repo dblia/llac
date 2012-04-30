@@ -12,21 +12,23 @@
 
 open Lexer
 
-type program = let_Type_Def list
+type program = let_type_def list
 
-type let_type_def = Letdef of def list
+and let_type_def = Letdef of def list
 				  | Typedef of tdef list
 
-type def = Invariable of string * (par list) * typ * expr
+
+
+and def = Invariable of string * (par list) * typ * expr
          | Mutable of string * (expr list) * typ
 
-type tdef = Tdef of string * (constr list)
+and tdef = Tdef of string * (constr list)
 
-type constr = Constr of string * (typ list)
+and constr = Constr of string * (typ list)
 
-type par = Par of ( (string * typ) list )
+and par = Par of ( (string * typ) list )
 
-type typ = Unit
+and typ = Unit_type
          | Int
          | Char
          | Bool
@@ -36,7 +38,7 @@ type typ = Unit
          | Array of int * typ
          | Id of string
 
-type expr = Int_const of int
+and expr = Int_const of int
           | Float_const of float 
           | Char_const of char
           | String of string
@@ -68,11 +70,7 @@ type expr = Int_const of int
           | Equal of expr * expr 
           | Nequal of expr * expr 
           | Assign of expr * expr 
-          | 
-
-
-%token T_andlogic T_orlogic T_differ T_lt T_gt T_le T_ge T_equal T_nequal
-
+          
 
 %}
    
