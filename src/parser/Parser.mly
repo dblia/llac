@@ -11,6 +11,47 @@
 (* Header Section *)
 
   open Lexer
+(*
+  type expr =
+    (* Terminal Symbols  *) 
+    | Unit
+    | True
+    | False
+    | Int_Const of int
+    | Float_Const of float
+    | Char_Const of char
+    | String_Const of string
+    (* Unary expressions *)
+    | Uplus of expr
+    | Uminus of expr
+    | UFplus of expr
+    | UFminus of expr
+    | Unref of expr
+    | Not of expr
+    (* Binary expressions *)
+    | Plus of expr * expr
+    | Minus of expr * expr 
+    | Times of expr * expr
+    | Div of expr * epxr
+    | FPlus of expr * expr
+    | FMinus of expr * expr 
+    | FTimes of expr * expr
+    | FDiv of expr * epxr
+    | Mod of expr * expr
+    | Pow of expr * expr
+    | Eq of expr * expr
+    | Differ of expr * expr
+    | Lt of expr * expr
+    | Gt of expr * expr
+    | Le of expr * expr
+    | Ge of expr * expr
+    | Equal of expr * expr
+    | NEqual of expr * expr
+    | Andlogic of expxr * expr
+    | Orlogic of expr * expr
+    | Sequence of expr * expr
+    | Assign of expr * expr
+*)
 
 %}
    

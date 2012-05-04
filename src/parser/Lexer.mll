@@ -24,6 +24,7 @@
     lexbuf.lex_curr_p <- { pos with
       pos_lnum = pos.pos_lnum + 1;                 (* increase newline counter *)
       pos_bol = pos.pos_cnum;       (* update the offset of the line beginning *)
+    }
 
 	let reverse str =
 		let len = String.length str in	
@@ -33,8 +34,6 @@
 			res.[i] <- str.[j]
 		done;
 	(res)
-
-  }
 
   (* Parse an (escape) characer *)
   let char_of_string str = 
