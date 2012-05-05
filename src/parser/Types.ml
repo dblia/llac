@@ -3,7 +3,6 @@ type typ =
   | TYPE_int
   | TYPE_float
   | TYPE_char
-  | TYPE_string
   | TYPE_bool
   | TYPE_ref of typ
   | TYPE_array of typ * int
@@ -13,7 +12,10 @@ type typ =
 let rec sizeOfType t =
    match t with
    | TYPE_int            -> 2
-   | TYPE_byte           -> 1
+   | TYPE_float          -> 2
+   | TYPE_char           -> 1
+   | TYPE_bool           -> 1
+   | TYPE_ref (et)       -> 2
    | TYPE_array (et, sz) -> sz * sizeOfType et
    | _                   -> 0
 
