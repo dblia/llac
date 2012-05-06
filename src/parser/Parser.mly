@@ -21,7 +21,6 @@
     | Int_Const of int
     | Float_Const of float
     | Char_Const of char
-    | String_Const of string
     (* Unary treeessions *)
     | Uplus of tree
     | Uminus of tree
@@ -256,40 +255,40 @@ expr : letdef T_in expr { () }
      | T_if expr T_then expr { () }
      /* (* binary operators *) */
      | expr T_plus expr { Plus ($1, $3) }
-     | expr T_minus expr { () }
-     | expr T_mul expr { () }
-     | expr T_div expr { () }
-     | expr T_fplus expr { () }
-     | expr T_fminus expr { () }
-     | expr T_fmul expr { () }
-     | expr T_fdiv expr { () }
-     | expr T_mod expr { () }
-     | expr T_pow expr { () }
-     | expr T_eq expr { () }
-     | expr T_differ expr { () }
-     | expr T_lt expr { () }
-     | expr T_gt expr { () }
-     | expr T_le expr { () }
-     | expr T_ge expr { () }
-     | expr T_equal expr { () }
-     | expr T_nequal expr { () }
-     | expr T_andlogic expr { () }
-     | expr T_orlogic expr { () }
-     | expr T_assign expr { () }
-     | unary_expr { () }
+     | expr T_minus expr { Minus ($1, $3) }
+     | expr T_mul expr { Times ($1, $3) }
+     | expr T_div expr { Div ($1, $3) }
+     | expr T_fplus expr { FPlus ($1, $3) }
+     | expr T_fminus expr { FMinus ($1, $3) }
+     | expr T_fmul expr { FTimes ($1, $3) }
+     | expr T_fdiv expr { FDiv ($1, $3) }
+     | expr T_mod expr { Mod ($1, $3) }
+     | expr T_pow expr { Pow ($1, $3) }
+     | expr T_eq expr { Eq ($1, $3) }
+     | expr T_differ expr { Differ ($1, $3) }
+     | expr T_lt expr { Lt ($1, $3) }
+     | expr T_gt expr { Gt ($1, $3) }
+     | expr T_le expr { Le ($1, $3) }
+     | expr T_ge expr { Ge ($1, $3) }
+     | expr T_equal expr { Equal ($1, $3) }
+     | expr T_nequal expr { NEqual ($1, $3) }
+     | expr T_andlogic expr { Andlogic ($1, $3) }
+     | expr T_orlogic expr { Orlogic ($1, $3) }
+     | expr T_assign expr { Assign ($1, $3) }
+     | unary_expr { $1 }
      ;
 
 unary_expr : T_plus unary_expr { Uplus $2 }
-           | T_minus unary_expr { () }
-           | T_fplus unary_expr { () }
-           | T_fminus unary_expr { () }
-           | T_not unary_expr { () }
-           | T_delete unary_expr { () }
-           | app { () }
+           | T_minus unary_expr { Uminus $2 }
+           | T_fplus unary_expr {UFplus $2  }
+           | T_fminus unary_expr { UFminus $2 }
+           | T_not unary_expr { Not $2 }
+           | T_delete unary_expr { Delet $2 }
+           | app { $1 }
            ;
 
 app /* (* function call *) */
-    : atom { () }
+    : atom { $1 }
     | T_cname atom atom_list { () }
     | T_constructor atom atom_list { () }
     ;
@@ -300,33 +299,33 @@ atom_list: /* nothing */ { () }
 
 atom /* (* un-reference *) */
      : T_bar atom { () }
-     | array_el { () }
+     | array_el { $1 }
      ;
 
 array_el /* (* array element  *) */
          : T_cname T_lbrack expr comm_list T_rbrack { () }
-         | new_stmt { () }
+         | new_stmt { $1 }
          ;
 
 new_stmt /* (* dynamic memory allocation *) */
          : T_new typ { () }
-         | simple_expr { () }
+         | simple_expr { $1 }
          ;
 
 simple_expr /* (* constants *) */ 
-           : T_intnum { () }
-           | T_floatnum { () }
-           | T_cchar { () }
-           | T_string { () }
-           | T_true { () }
-           | T_false { () }
-           | T_lparen T_rparen { () }
+           : T_intnum { Int_Const $1 }
+           | T_floatnum { Float_Const $1 }
+           | T_cchar { Char_const $1 }
+           /* (*| T_string { () } *) */
+           | T_true { True }
+           | T_false { False }
+           | T_lparen T_rparen { Unit }
            /* (* keyword-oriented *) */
            | T_dim T_intnum T_cname { () }
            | T_dim T_cname  { () }        
            | T_match expr T_with clause clause_list T_end { () }
            /* (* parentheses and imperative structures *) */
-           | T_lparen expr T_rparen { () }
+           | T_lparen expr T_rparen { $2 }
            | T_begin expr T_end { () }
            | T_while expr T_do expr T_done { () }
            | T_for T_cname T_eq expr T_to expr T_do expr T_done { () }
@@ -344,7 +343,7 @@ clause : pattern T_gives expr { () }
        ;
 
 pattern : T_constructor sp_list { () }
-        | simple_pattern { () }
+        | simple_pattern { $1 }
         ;
 
 simple_pattern : T_plus T_intnum { () }
