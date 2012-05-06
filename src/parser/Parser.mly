@@ -10,9 +10,10 @@
 
 (* Header Section *)
 
+  open Printf
   open Lexer
-(*
-  type expr =
+
+  type tree =
     (* Terminal Symbols  *) 
     | Unit
     | True
@@ -21,37 +22,72 @@
     | Float_Const of float
     | Char_Const of char
     | String_Const of string
-    (* Unary expressions *)
-    | Uplus of expr
-    | Uminus of expr
-    | UFplus of expr
-    | UFminus of expr
-    | Unref of expr
-    | Not of expr
-    (* Binary expressions *)
-    | Plus of expr * expr
-    | Minus of expr * expr 
-    | Times of expr * expr
-    | Div of expr * epxr
-    | FPlus of expr * expr
-    | FMinus of expr * expr 
-    | FTimes of expr * expr
-    | FDiv of expr * epxr
-    | Mod of expr * expr
-    | Pow of expr * expr
-    | Eq of expr * expr
-    | Differ of expr * expr
-    | Lt of expr * expr
-    | Gt of expr * expr
-    | Le of expr * expr
-    | Ge of expr * expr
-    | Equal of expr * expr
-    | NEqual of expr * expr
-    | Andlogic of expxr * expr
-    | Orlogic of expr * expr
-    | Sequence of expr * expr
-    | Assign of expr * expr
-*)
+    (* Unary treeessions *)
+    | Uplus of tree
+    | Uminus of tree
+    | UFplus of tree
+    | UFminus of tree
+    | Unref of tree
+    | Not of tree
+    (* Binary treeessions *)
+    | Plus of tree * tree
+    | Minus of tree * tree 
+    | Times of tree * tree
+    | Div of tree * tree
+    | FPlus of tree * tree
+    | FMinus of tree * tree 
+    | FTimes of tree * tree
+    | FDiv of tree * tree
+    | Mod of tree * tree
+    | Pow of tree * tree
+    | Eq of tree * tree
+    | Differ of tree * tree
+    | Lt of tree * tree
+    | Gt of tree * tree
+    | Le of tree * tree
+    | Ge of tree * tree
+    | Equal of tree * tree
+    | NEqual of tree * tree
+    | Andlogic of tree * tree
+    | Orlogic of tree * tree
+    | Sequence of tree * tree
+    | Assign of tree * tree
+
+  let rec pp_tree out t = 
+    match t with
+      | Unit              -> fprintf out "()"
+      | True              -> fprintf out "True"
+      | False             -> fprintf out "False"
+      | Int_Const n       -> fprintf out "%d" n
+      | Float_Const n     -> fprintf out "%f" n
+      | Char_Const c      -> fprintf out "%c" c
+      | Uplus t1          -> fprintf out "Uplus(%a)" (pp_tree t1)
+      | Uminus t1         -> fprintf out "Uminus(%a)" (pp_tree t1)
+      | UFplus t1         -> fprintf out "UFplus(%a" (pp_tree t1)
+      | UFminus t1        -> fprintf out "UFminus(%a)" (pp_tree t1)
+      | Unref t1          -> fprintf out "Unref(%a)" (pp_tree t1) 
+      | Not t1            -> fprintf out "Not(%a)" (pp_tree t1)
+      | Plus (t1, t2)     -> fprintf out "Plus(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Minus (t1, t2)    -> fprintf out "Minus(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Times (t1, t2)    -> fprintf out "Times(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Div (t1, t2)      -> fprintf out "Div(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | FPlus (t1, t2)    -> fprintf out "FPlus(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | FMinus (t1, t2)   -> fprintf out "FMinus(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | FTimes (t1, t2)   -> fprintf out "FTimes(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | FDiv (t1, t2)     -> fprintf out "FDiv(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Mod (t1, t2)      -> fprintf out "Mod(%a, %a)" (pp_tree t1) (pp_tree t2) 
+      | Pow (t1, t2)      -> fprintf out "Pow(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Eq (t1, t2)       -> fprintf out "Eq(%a, %a)" (pp_tree t1) (pp_tree t2) 
+      | Differ (t1, t2)   -> fprintf out "Differ(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Lt (t1, t2)       -> fprintf out "Lt(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Gt (t1, t2)       -> fprintf out "Gt(%a, %a)" (pp_tree t1) (pp_tree t2)  
+      | Le (t1, t2)       -> fprintf out "Le(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Ge (t1, t2)       -> fprintf out "Ge(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Equal (t1, t2)    -> fprintf out "Equal(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | NEqual (t1, t2)   -> fprintf out "NEqual(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Andlogic (t1, t2) -> fprintf out "Andlogic(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Orlogic (t1, t2)  -> fprintf out "Orlogic(%a, %a)" (pp_tree t1) (pp_tree t2)
+      | Assign (t1, t2)   -> fprintf out "Assign(%a, %a)" (pp_tree t1) (pp_tree t2) 
 
 %}
    
@@ -105,40 +141,41 @@
 
 
 %start program
-%type <unit> program
-%type <unit> pdef_list
-%type <unit> letdef 
-%type <unit> def_list
-%type <unit> tdef_list
-%type <unit> def
-%type <unit> par_list
-%type <unit> comm_list
-%type <unit> typedef
-%type <unit> tdef 
-%type <unit> constr_list
-%type <unit> constr
-%type <unit> typ_list
-%type <unit> par
-%type <unit> typ
-%type <unit> mul_list
-%type <unit> expr
-%type <unit> unary_expr 
-%type <unit> app 
-%type <unit> atom_list
-%type <unit> atom 
-%type <unit> array_el 
-%type <unit> new_stmt 
-%type <unit> simple_expr 
-%type <unit> clause_list
-%type <unit> clause
-%type <unit> pattern
-%type <unit> sp_list
+
+%type<unit> program
+%type<tree> pdef_list
+%type<tree> letdef 
+%type<tree> def_list
+%type<tree> tdef_list
+%type<tree> def
+%type<tree> par_list
+%type<tree> comm_list
+%type<tree> typedef
+%type<tree> tdef 
+%type<tree> constr_list
+%type<tree> constr
+%type<tree> typ_list
+%type<tree> par
+%type<tree> typ
+%type<tree> mul_list
+%type<tree> expr
+%type<tree> unary_expr 
+%type<tree> app 
+%type<tree> atom_list
+%type<tree> atom 
+%type<tree> array_el 
+%type<tree> new_stmt 
+%type<tree> simple_expr 
+%type<tree> clause_list
+%type<tree> clause
+%type<tree> pattern
+%type<tree> sp_list
  
 
 %%
 
 /* (* Grammar rules *) */
-program : pdef_list T_eof { () }
+program : pdef_list T_eof { printf "%a\n" (pp_tree $1) }
         ;
 
 pdef_list : /* nothing */      { () }
@@ -150,9 +187,9 @@ letdef : T_let T_rec def def_list { () }
        | T_let def def_list { () }
        ;
 
-def_list  : /* nothing */ { () }
-          | T_and def def_list { () }
-          ;
+def_list : /* nothing */ { () }
+         | T_and def def_list { () }
+         ;
 
 typedef : T_type tdef tdef_list { () }
         ;
@@ -218,7 +255,7 @@ expr : letdef T_in expr { () }
      | T_if expr T_then expr T_else expr { () }
      | T_if expr T_then expr { () }
      /* (* binary operators *) */
-     | expr T_plus expr { () }
+     | expr T_plus expr { Plus ($1, $3) }
      | expr T_minus expr { () }
      | expr T_mul expr { () }
      | expr T_div expr { () }
@@ -242,7 +279,7 @@ expr : letdef T_in expr { () }
      | unary_expr { () }
      ;
 
-unary_expr : T_plus unary_expr { () }
+unary_expr : T_plus unary_expr { Uplus $2 }
            | T_minus unary_expr { () }
            | T_fplus unary_expr { () }
            | T_fminus unary_expr { () }
