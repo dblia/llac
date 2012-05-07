@@ -12,52 +12,11 @@
 
   open Lexer
 
-  (*
-  type expr =
-    (* Terminal Symbols  *) 
-    | Unit
-    | True
-    | False
-    | Int of int
-    | Float of float
-    | Char of char
-    | String of string
-    (* Unary expressions *)
-    | Uplus of expr
-    | Uminus of expr
-    | UFplus of expr
-    | UFminus of expr
-    | Unref of expr
-    | Not of expr
-    (* Binary expressions *)
-    | Plus of expr * expr
-    | Minus of expr * expr 
-    | Times of expr * expr
-    | Div of expr * epxr
-    | FPlus of expr * expr
-    | FMinus of expr * expr 
-    | FTimes of expr * expr
-    | FDiv of expr * epxr
-    | Mod of expr * expr
-    | Pow of expr * expr
-    | Eq of expr * expr
-    | Differ of expr * expr
-    | Lt of expr * expr
-    | Gt of expr * expr
-    | Le of expr * expr
-    | Ge of expr * expr
-    | Equal of expr * expr
-    | NEqual of expr * expr
-    | Andlogic of expxr * expr
-    | Orlogic of expr * expr
-    | Assign of expr * expr
-*)
 %}
    
-/* (* Ocamlyacc declarations *) */
-%token T_eof
-%token T_err
-
+/* (* Ocamlyacc declarations 
+    *
+    * Identifier and Constant value Tokens *) */
 %token<int> T_intnum      
 %token<char> T_cchar   
 %token<float> T_floatnum
@@ -65,10 +24,13 @@
 %token<string> T_constructor
 %token<string> T_string
 
+/* (* Keyword Tokens *) */
 %token T_and T_array T_begin T_bool T_char T_delete T_dim T_do T_done T_downto
   T_else T_end T_false T_float T_for T_if T_in T_int T_let T_match T_mod 
   T_mutable T_new T_not T_of T_rec T_ref T_then T_to T_true T_type T_unit 
-  T_while T_with 
+  T_while T_with
+  
+/* (* Symbolic Tokens *) */
 %token T_gives 
 %token T_eq 
 %token T_pipe 
@@ -80,6 +42,9 @@
 %token T_lparen T_rparen T_lbrack T_rbrack
 %token T_comma
 %token T_colon
+%token T_eof
+%token T_err
+
 
 /* (* Precedence declarations: The lower the declaration is, the higher it's
     * precedence.
@@ -102,121 +67,88 @@
 %left T_mul T_div T_fmul T_fdiv T_mod
 %right T_pow
 
-
+/* (* The starting production of the generated parser is the syntactic class
+      program. The type that is returned when a program is recognized is unit
+    *) */
 %start program
 %type <unit> program
-%type <unit> pdef_list
-%type <unit> letdef 
-%type <unit> def_list
-%type <unit> tdef_list
-%type <unit> def
-%type <unit> par_list
-%type <unit> comm_list
-%type <unit> typedef
-%type <unit> tdef 
-%type <unit> constr_list
-%type <unit> constr
-%type <unit> typ_list
-%type <unit> par
-%type <unit> typ
-%type <unit> mul_list
-%type <unit> expr
-%type <unit> unary_expr 
-%type <unit> app 
-%type <unit> atom_list
-%type <unit> atom 
-%type <unit> array_el 
-%type <unit> new_stmt 
-%type <unit> simple_expr 
-%type <unit> clause_list
-%type <unit> clause
-%type <unit> pattern
-%type <unit> sp_list
- 
 
 %%
 
 /* (* Grammar rules *) */
-program : pdef_list T_eof { () }
-        ;
-
-pdef_list : /* nothing */      { () }
-          | letdef pdef_list   { () }
-          | typedef pdef_list  { () }
-          ;
-
-letdef : T_let T_rec def def_list { () }
-       | T_let def def_list { () }
+program: T_eof { () }
+       | letdef program { () }
+       | typedef program { () }
        ;
 
-def_list  : /* nothing */ { () }
-          | T_and def def_list { () }
-          ;
+letdef : T_let def_list { () }
+       | T_let T_rec def_list { () }
+       ;
 
-typedef : T_type tdef tdef_list { () }
+typedef : T_type tdef_list { () }
         ;
 
-tdef_list : /* nothing */ { () }
-          | T_and tdef tdef_list { () }
+def_list  : def { () }
+          | def T_and def_list { () }
           ;
 
 def : T_cname par_list T_colon typ T_eq expr { () }
     | T_cname par_list T_eq expr { () }
-    | T_mutable T_cname T_lbrack expr comm_list T_rbrack T_colon typ { () }
+    | T_mutable T_cname T_lbrack comm_list T_rbrack T_colon typ { () }
     | T_mutable T_cname T_colon typ { () }
-    | T_mutable T_cname T_lbrack expr comm_list T_rbrack { () }
+    | T_mutable T_cname T_lbrack comm_list T_rbrack { () }
     | T_mutable T_cname { () }
     ;
-
-tdef : T_cname T_eq constr constr_list { () }
-     ;
 
 par_list : /* nothing */ { () }
          | par par_list { () }
          ;
 
-comm_list : /* nothing */ { () }
-         | T_comma expr comm_list { () }
+comm_list: expr { () }
+         | expr T_comma comm_list { () }
          ;
 
-constr_list : /* nothing */ { () }
-            |  T_pipe constr constr_list { () }
+tdef_list : tdef { () }
+          | tdef T_and tdef_list { () }
+          ;
+
+tdef : T_cname T_eq constr_list { () }
+     ;
+
+constr_list : constr { () }
+            | constr T_pipe constr_list { () }
             ;
 
-constr : T_constructor T_of typ typ_list { () }
-       | T_constructor { () }
-       ;
-
-typ_list : /* nothing */ { () }
-         | typ typ_list { () }
-         ;
+constr: T_constructor { () }
+      | T_constructor T_of typ_list { () }
+      ;
 
 par : T_cname { () }
     | T_lparen T_cname T_colon typ T_rparen { () }
     ;
 
-typ : T_array T_lbrack T_mul mul_list T_rbrack T_of typ { () }
-    | T_array T_of typ { () }
-    | typ T_gives typ { () }
-    | T_unit { () }
+typ_list : typ { () }
+         | typ typ_list { () }
+         ;
+
+typ : T_unit { () }
     | T_int  { () }
     | T_char { () }
     | T_bool { () }
     | T_float { () }
-    | T_lparen typ T_rparen { () }
-    | typ T_ref { () }    
     | T_cname { () }
+    | typ T_ref { () }    
+    | typ T_gives typ { () }
+    | T_array T_of typ { () }
+    | T_lparen typ T_rparen { () }
+    | T_array T_lbrack mul_list T_rbrack T_of typ { () }
     ;
 
-mul_list : /* nothing */ { () }
-         | T_comma T_mul mul_list { () }
+mul_list : T_mul { () }
+         | T_mul T_comma T_mul mul_list { () }
          ;
 
-expr : letdef T_in expr { () }
-     | expr T_semicolon expr { () }
-     | T_if expr T_then expr T_else expr { () }
-     | T_if expr T_then expr { () }
-     /* (* binary operators *) */
+expr : /* (* binary operators *) */
      | expr T_plus expr { () }
      | expr T_minus expr { () }
      | expr T_mul expr { () }
@@ -238,6 +170,10 @@ expr : letdef T_in expr { () }
      | expr T_andlogic expr { () }
      | expr T_orlogic expr { () }
      | expr T_assign expr { () }
+     | expr T_semicolon expr { () }
+     | letdef T_in expr { () }
+     | T_if expr T_then expr { () }
+     | T_if expr T_then expr T_else expr { () }
      | unary_expr { () }
      ;
 
@@ -250,33 +186,36 @@ unary_expr : T_plus unary_expr { () }
            | app { () }
            ;
 
-app /* (* function call *) */
-    : atom { () }
-    | T_cname atom atom_list { () }
-    | T_constructor atom atom_list { () }
+app : /* (* function call *) */
+    | atom { () }
+    | T_cname atom_list { () }
+    | T_constructor atom_list { () }
     ;
 
-atom_list: /* nothing */ { () }
-         | atom atom_list { () }
-         ;
+atom_list : atom { () }
+          | atom atom_list { () }
+          ;
 
-atom /* (* un-reference *) */
-     : T_bar atom { () }
+atom : /* (* un-reference *) */
+     | T_bar atom { () }
      | array_el { () }
      ;
 
-array_el /* (* array element  *) */
-         : T_cname T_lbrack expr comm_list T_rbrack { () }
+array_el :  /* (* array element  *) */
          | new_stmt { () }
+         | T_cname T_lbrack comm_list T_rbrack { () }
          ;
 
-new_stmt /* (* dynamic memory allocation *) */
-         : T_new typ { () }
+new_stmt : /* (* dynamic memory allocation *) */
+         | T_new typ { () }
          | simple_expr { () }
          ;
 
-simple_expr /* (* constants *) */ 
-           : T_intnum { () }
+simple_expr:/* (* constants *) */ 
+           | T_cname   { () }
+           | T_constructor { () }
+           /* (* simple names *) */
+           | T_intnum { () }
            | T_floatnum { () }
            | T_cchar { () }
            | T_string { () }
@@ -286,27 +225,24 @@ simple_expr /* (* constants *) */
            /* (* keyword-oriented *) */
            | T_dim T_intnum T_cname { () }
            | T_dim T_cname  { () }        
-           | T_match expr T_with clause clause_list T_end { () }
+           | T_match expr T_with clause_list T_end { () }
            /* (* parentheses and imperative structures *) */
            | T_lparen expr T_rparen { () }
            | T_begin expr T_end { () }
            | T_while expr T_do expr T_done { () }
            | T_for T_cname T_eq expr T_to expr T_do expr T_done { () }
            | T_for T_cname T_eq expr T_downto expr T_do expr T_done { () }
-           /* (* simple names *) */
-           | T_cname   { () }
-           | T_constructor { () }
            ;
 
-clause_list : /* nothing */ { () }
-            | T_pipe clause clause_list { () }
+clause_list : clause { () }
+            | clause T_pipe clause_list { () }
             ;
 
 clause : pattern T_gives expr { () }
        ;
 
 pattern : T_constructor sp_list { () }
-        | simple_pattern { () }
+        | sp_list { () }
         ;
 
 simple_pattern : T_plus T_intnum { () }
