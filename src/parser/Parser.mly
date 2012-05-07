@@ -11,6 +11,7 @@
 (* Header Section *)
 
   open Lexer
+  open Ast
 
 %}
    
@@ -68,18 +69,19 @@
 %right T_pow
 
 /* (* The starting production of the generated parser is the syntactic class
-      program. The type that is returned when a program is recognized is unit
+      program. The type that is returned when a program is recognized is of
+      Ast.ast_program list 
     *) */
 %start program
-%type <unit> program
+%type <Ast.ast_program list> program
 
 %%
 
 /* (* Grammar rules *) */
-program: T_eof { () }
-       | letdef program { () }
-       | typedef program { () }
-       ;
+program : T_eof { [] }
+        | letdef program { $2 }
+        | typedef program { $2 }
+        ;
 
 letdef : T_let def_list { () }
        | T_let T_rec def_list { () }
@@ -104,9 +106,9 @@ par_list : /* nothing */ { () }
          | par par_list { () }
          ;
 
-comm_list: expr { () }
-         | expr T_comma comm_list { () }
-         ;
+comm_list : expr { () }
+          | expr T_comma comm_list { () }
+          ;
 
 tdef_list : tdef { () }
           | tdef T_and tdef_list { () }
@@ -119,9 +121,9 @@ constr_list : constr { () }
             | constr T_pipe constr_list { () }
             ;
 
-constr: T_constructor { () }
-      | T_constructor T_of typ_list { () }
-      ;
+constr : T_constructor { () }
+       | T_constructor T_of typ_list { () }
+       ;
 
 par : T_cname { () }
     | T_lparen T_cname T_colon typ T_rparen { () }
@@ -177,7 +179,8 @@ expr : /* (* binary operators *) */
      | unary_expr { () }
      ;
 
-unary_expr : T_plus unary_expr { () }
+unary_expr : /* (* Unary Operators *) */
+           | T_plus unary_expr { () }
            | T_minus unary_expr { () }
            | T_fplus unary_expr { () }
            | T_fminus unary_expr { () }
