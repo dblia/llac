@@ -55,7 +55,8 @@ depend: Lexer.ml Lexer.mli Parser.ml Parser.mli ../../main.ml
 	$(OCAMLDEP)  $^ > .depend
 
 clean:
-	$(RM) -f Parser.ml Parser.mli Parser.output Lexer.ml $(CMO_FILES) $(CMI_FILES) *~
+	$(RM) -f Parser.ml Parser.mli Parser.output Lexer.ml Abst.cm* $(CMO_FILES)  \
+		$(CMI_FILES) *~
 
 distclean: clean
 	$(RM) -f $(EXE_FILE) .depend

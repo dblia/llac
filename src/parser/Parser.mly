@@ -13,87 +13,11 @@
   open Printf
   open Lexer
 
-  type tree =
-    (* Terminal Symbols  *) 
-    | Unit
-    | True
-    | False
-    | Int_Const of int
-    | Float_Const of float
-    | Char_Const of char
-    (* Unary treeessions *)
-    | Uplus of tree
-    | Uminus of tree
-    | UFplus of tree
-    | UFminus of tree
-    | Unref of tree
-    | Not of tree
-    (* Binary treeessions *)
-    | Plus of tree * tree
-    | Minus of tree * tree 
-    | Times of tree * tree
-    | Div of tree * tree
-    | FPlus of tree * tree
-    | FMinus of tree * tree 
-    | FTimes of tree * tree
-    | FDiv of tree * tree
-    | Mod of tree * tree
-    | Pow of tree * tree
-    | Eq of tree * tree
-    | Differ of tree * tree
-    | Lt of tree * tree
-    | Gt of tree * tree
-    | Le of tree * tree
-    | Ge of tree * tree
-    | Equal of tree * tree
-    | NEqual of tree * tree
-    | Andlogic of tree * tree
-    | Orlogic of tree * tree
-    | Sequence of tree * tree
-    | Assign of tree * tree
-
-  let rec pp_tree out t = 
-    match t with
-      | Unit              -> fprintf out "()"
-      | True              -> fprintf out "True"
-      | False             -> fprintf out "False"
-      | Int_Const n       -> fprintf out "%d" n
-      | Float_Const n     -> fprintf out "%f" n
-      | Char_Const c      -> fprintf out "%c" c
-      | Uplus t1          -> fprintf out "Uplus(%a)" (pp_tree t1)
-      | Uminus t1         -> fprintf out "Uminus(%a)" (pp_tree t1)
-      | UFplus t1         -> fprintf out "UFplus(%a" (pp_tree t1)
-      | UFminus t1        -> fprintf out "UFminus(%a)" (pp_tree t1)
-      | Unref t1          -> fprintf out "Unref(%a)" (pp_tree t1) 
-      | Not t1            -> fprintf out "Not(%a)" (pp_tree t1)
-      | Plus (t1, t2)     -> fprintf out "Plus(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Minus (t1, t2)    -> fprintf out "Minus(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Times (t1, t2)    -> fprintf out "Times(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Div (t1, t2)      -> fprintf out "Div(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | FPlus (t1, t2)    -> fprintf out "FPlus(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | FMinus (t1, t2)   -> fprintf out "FMinus(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | FTimes (t1, t2)   -> fprintf out "FTimes(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | FDiv (t1, t2)     -> fprintf out "FDiv(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Mod (t1, t2)      -> fprintf out "Mod(%a, %a)" (pp_tree t1) (pp_tree t2) 
-      | Pow (t1, t2)      -> fprintf out "Pow(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Eq (t1, t2)       -> fprintf out "Eq(%a, %a)" (pp_tree t1) (pp_tree t2) 
-      | Differ (t1, t2)   -> fprintf out "Differ(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Lt (t1, t2)       -> fprintf out "Lt(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Gt (t1, t2)       -> fprintf out "Gt(%a, %a)" (pp_tree t1) (pp_tree t2)  
-      | Le (t1, t2)       -> fprintf out "Le(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Ge (t1, t2)       -> fprintf out "Ge(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Equal (t1, t2)    -> fprintf out "Equal(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | NEqual (t1, t2)   -> fprintf out "NEqual(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Andlogic (t1, t2) -> fprintf out "Andlogic(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Orlogic (t1, t2)  -> fprintf out "Orlogic(%a, %a)" (pp_tree t1) (pp_tree t2)
-      | Assign (t1, t2)   -> fprintf out "Assign(%a, %a)" (pp_tree t1) (pp_tree t2) 
-
 %}
    
-/* (* Ocamlyacc declarations *) */
-%token T_eof
-%token T_err
-
+/* (* Ocamlyacc declarations: 
+    *
+    * Identifier and constant value tokens  *) */
 %token<int> T_intnum      
 %token<char> T_cchar   
 %token<float> T_floatnum
@@ -101,10 +25,12 @@
 %token<string> T_constructor
 %token<string> T_string
 
+/* (* Keyword Tokens *) */
 %token T_and T_array T_begin T_bool T_char T_delete T_dim T_do T_done T_downto
   T_else T_end T_false T_float T_for T_if T_in T_int T_let T_match T_mod 
   T_mutable T_new T_not T_of T_rec T_ref T_then T_to T_true T_type T_unit 
-  T_while T_with 
+  T_while T_with
+/* (* Symbolic Tokens *) */ 
 %token T_gives 
 %token T_eq 
 %token T_pipe 
@@ -116,9 +42,11 @@
 %token T_lparen T_rparen T_lbrack T_rbrack
 %token T_comma
 %token T_colon
+%token T_eof
+%token T_err
 
 /* (* Precedence declarations: The lower the declaration is, the higher it's
-    * precedence.
+    * precedence:
     *
     * Predecence for type defs *) */
 %right T_gives
@@ -142,60 +70,53 @@
 %start program
 
 %type<unit> program
-%type<tree> pdef_list
-%type<tree> letdef 
-%type<tree> def_list
-%type<tree> tdef_list
-%type<tree> def
-%type<tree> par_list
-%type<tree> comm_list
-%type<tree> typedef
-%type<tree> tdef 
-%type<tree> constr_list
-%type<tree> constr
-%type<tree> typ_list
-%type<tree> par
-%type<tree> typ
-%type<tree> mul_list
-%type<tree> expr
-%type<tree> unary_expr 
-%type<tree> app 
-%type<tree> atom_list
-%type<tree> atom 
-%type<tree> array_el 
-%type<tree> new_stmt 
-%type<tree> simple_expr 
-%type<tree> clause_list
-%type<tree> clause
-%type<tree> pattern
-%type<tree> sp_list
+%type<unit> pdef_list
+%type<unit> letdef 
+%type<unit> def_list
+%type<unit> tdef_list
+%type<unit> def
+%type<unit> par_list
+%type<unit> comm_list
+%type<unit> typedef
+%type<unit> tdef 
+%type<unit> constr_list
+%type<unit> constr
+%type<unit> typ_list
+%type<unit> par
+%type<unit> typ
+%type<unit> mul_list
+%type<unit> expr
+%type<unit> unary_expr 
+%type<unit> app 
+%type<unit> atom_list
+%type<unit> atom 
+%type<unit> array_el 
+%type<unit> new_stmt 
+%type<unit> simple_expr 
+%type<unit> clause_list
+%type<unit> clause
+%type<unit> pattern
+%type<unit> sp_list
+
  
 
 %%
 
 /* (* Grammar rules *) */
-program : pdef_list T_eof { printf "%a\n" (pp_tree $1) }
+program : pdef_list T_eof { () }
         ;
 
-pdef_list : /* nothing */      { () }
-          | letdef pdef_list   { () }
-          | typedef pdef_list  { () }
+pdef_list : /* nothing */ { () }
+          | letdef pdef_list { () }
+          | typedef pdef_list { () }
           ;
 
 letdef : T_let T_rec def def_list { () }
        | T_let def def_list { () }
        ;
 
-def_list : /* nothing */ { () }
-         | T_and def def_list { () }
-         ;
-
 typedef : T_type tdef tdef_list { () }
         ;
-
-tdef_list : /* nothing */ { () }
-          | T_and tdef tdef_list { () }
-          ;
 
 def : T_cname par_list T_colon typ T_eq expr { () }
     | T_cname par_list T_eq expr { () }
@@ -205,32 +126,36 @@ def : T_cname par_list T_colon typ T_eq expr { () }
     | T_mutable T_cname { () }
     ;
 
+def_list : /* nothing */ { () }
+         | T_and def def_list { () }
+         ;
+
 tdef : T_cname T_eq constr constr_list { () }
      ;
 
-par_list : /* nothing */ { () }
-         | par par_list { () }
-         ;
+tdef_list : /* nothing */ { () }
+          | T_and tdef tdef_list { () }
+          ;
 
 comm_list : /* nothing */ { () }
          | T_comma expr comm_list { () }
          ;
 
-constr_list : /* nothing */ { () }
-            |  T_pipe constr constr_list { () }
-            ;
-
 constr : T_constructor T_of typ typ_list { () }
        | T_constructor { () }
        ;
 
-typ_list : /* nothing */ { () }
-         | typ typ_list { () }
-         ;
+constr_list : /* nothing */ { () }
+            |  T_pipe constr constr_list { () }
+            ;
 
 par : T_cname { () }
     | T_lparen T_cname T_colon typ T_rparen { () }
     ;
+
+par_list : /* nothing */ { () }
+         | par par_list { () }
+         ;
 
 typ : T_array T_lbrack T_mul mul_list T_rbrack T_of typ { () }
     | T_array T_of typ { () }
@@ -245,6 +170,10 @@ typ : T_array T_lbrack T_mul mul_list T_rbrack T_of typ { () }
     | T_cname { () }
     ;
 
+typ_list : /* nothing */ { () }
+         | typ typ_list { () }
+         ;
+
 mul_list : /* nothing */ { () }
          | T_comma T_mul mul_list { () }
          ;
@@ -254,41 +183,41 @@ expr : letdef T_in expr { () }
      | T_if expr T_then expr T_else expr { () }
      | T_if expr T_then expr { () }
      /* (* binary operators *) */
-     | expr T_plus expr { Plus ($1, $3) }
-     | expr T_minus expr { Minus ($1, $3) }
-     | expr T_mul expr { Times ($1, $3) }
-     | expr T_div expr { Div ($1, $3) }
-     | expr T_fplus expr { FPlus ($1, $3) }
-     | expr T_fminus expr { FMinus ($1, $3) }
-     | expr T_fmul expr { FTimes ($1, $3) }
-     | expr T_fdiv expr { FDiv ($1, $3) }
-     | expr T_mod expr { Mod ($1, $3) }
-     | expr T_pow expr { Pow ($1, $3) }
-     | expr T_eq expr { Eq ($1, $3) }
-     | expr T_differ expr { Differ ($1, $3) }
-     | expr T_lt expr { Lt ($1, $3) }
-     | expr T_gt expr { Gt ($1, $3) }
-     | expr T_le expr { Le ($1, $3) }
-     | expr T_ge expr { Ge ($1, $3) }
-     | expr T_equal expr { Equal ($1, $3) }
-     | expr T_nequal expr { NEqual ($1, $3) }
-     | expr T_andlogic expr { Andlogic ($1, $3) }
-     | expr T_orlogic expr { Orlogic ($1, $3) }
-     | expr T_assign expr { Assign ($1, $3) }
-     | unary_expr { $1 }
+     | expr T_plus expr { () }
+     | expr T_minus expr { () }
+     | expr T_mul expr { () }
+     | expr T_div expr {  () }
+     | expr T_fplus expr { () }
+     | expr T_fminus expr { () }
+     | expr T_fmul expr { () }
+     | expr T_fdiv expr { () }
+     | expr T_mod expr {  () }
+     | expr T_pow expr {  () }
+     | expr T_eq expr {  () }
+     | expr T_differ expr { () }
+     | expr T_lt expr {  () }
+     | expr T_gt expr {  () }
+     | expr T_le expr {  () }
+     | expr T_ge expr {  () }
+     | expr T_equal expr { () }
+     | expr T_nequal expr { () }
+     | expr T_andlogic expr { () }
+     | expr T_orlogic expr { () }
+     | expr T_assign expr { () }
+     | unary_expr { () }
      ;
 
-unary_expr : T_plus unary_expr { Uplus $2 }
-           | T_minus unary_expr { Uminus $2 }
-           | T_fplus unary_expr {UFplus $2  }
-           | T_fminus unary_expr { UFminus $2 }
-           | T_not unary_expr { Not $2 }
-           | T_delete unary_expr { Delet $2 }
-           | app { $1 }
+unary_expr : T_plus unary_expr { () }
+           | T_minus unary_expr { () }
+           | T_fplus unary_expr { ()  }
+           | T_fminus unary_expr { () }
+           | T_not unary_expr { () }
+           | T_delete unary_expr {() }
+           | app { () }
            ;
 
 app /* (* function call *) */
-    : atom { $1 }
+    : atom { () }
     | T_cname atom atom_list { () }
     | T_constructor atom atom_list { () }
     ;
@@ -299,7 +228,7 @@ atom_list: /* nothing */ { () }
 
 atom /* (* un-reference *) */
      : T_bar atom { () }
-     | array_el { $1 }
+     | array_el { () }
      ;
 
 array_el /* (* array element  *) */
@@ -309,23 +238,23 @@ array_el /* (* array element  *) */
 
 new_stmt /* (* dynamic memory allocation *) */
          : T_new typ { () }
-         | simple_expr { $1 }
+         | simple_expr { () }
          ;
 
 simple_expr /* (* constants *) */ 
-           : T_intnum { Int_Const $1 }
-           | T_floatnum { Float_Const $1 }
-           | T_cchar { Char_const $1 }
+           : T_intnum { () }
+           | T_floatnum { () }
+           | T_cchar { () }
            /* (*| T_string { () } *) */
-           | T_true { True }
-           | T_false { False }
-           | T_lparen T_rparen { Unit }
+           | T_true { () }
+           | T_false { () }
+           | T_lparen T_rparen { () }
            /* (* keyword-oriented *) */
            | T_dim T_intnum T_cname { () }
            | T_dim T_cname  { () }        
            | T_match expr T_with clause clause_list T_end { () }
            /* (* parentheses and imperative structures *) */
-           | T_lparen expr T_rparen { $2 }
+           | T_lparen expr T_rparen { () }
            | T_begin expr T_end { () }
            | T_while expr T_do expr T_done { () }
            | T_for T_cname T_eq expr T_to expr T_do expr T_done { () }
@@ -343,7 +272,7 @@ clause : pattern T_gives expr { () }
        ;
 
 pattern : T_constructor sp_list { () }
-        | simple_pattern { $1 }
+        | simple_pattern { () }
         ;
 
 simple_pattern : T_plus T_intnum { () }
