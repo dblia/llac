@@ -22,7 +22,7 @@ OCAMLC_FLAGS = -g
 OCAMLDEP = ocamldep
 
 EXE_FILE = llama$(EXE)
-ML_FILES = Lexer.ml Parser.ml ../../main.ml
+ML_FILES = Lexer.ml Parser.ml Ast.ml ../../main.ml
 MLI_FILES = Lexer.mli Parser.mli
 CMO_FILES = $(patsubst %.ml, %.cmo, $(ML_FILES))
 CMI_FILES = $(patsubst %.ml, %.cmi, $(ML_FILES))
