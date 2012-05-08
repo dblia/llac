@@ -11,21 +11,19 @@
 (* Header Section *)
 
   open Lexer
+  open Ast
 
 %}
    
 /* (* Ocamlyacc declarations 
-      We first list all the tokens mentioned in the parsing rules below. The
-      token names are common for parser and lexical analyzer. *) i
-*/
-
-/* (* Identifier and Constant value Tokens *) */
-%token <int> T_intnum      
-%token <char> T_cchar   
-%token <float> T_floatnum
-%token <string> T_string
-%token <string> T_cname
-%token <string> T_constructor
+    *
+    * Identifier and Constant value Tokens *) */
+%token<int> T_intnum      
+%token<char> T_cchar   
+%token<float> T_floatnum
+%token<string> T_cname
+%token<string> T_constructor
+%token<string> T_string
 
 /* (* Keyword Tokens *) */
 %token T_and T_array T_begin T_bool T_char T_delete T_dim T_do T_done T_downto
@@ -50,10 +48,9 @@
 
 
 /* (* Precedence declarations: The lower the declaration is, the higher it's
-      precedence. *)
-*/
-
-/* (* Predecence for type defs *) */
+    * precedence.
+    *
+    * Predecence for type defs *) */
 %right T_gives
 %nonassoc T_of T_array
 %left T_ref
@@ -72,96 +69,87 @@
 %right T_pow
 
 /* (* The starting production of the generated parser is the syntactic class
-      program. The type that is returned when a program is recognized is of
-      Ast.ast_program list  *) 
-*/
-
+      program. The type that is returned when a program is recognized is unit
+    *) */
 %start program
-%type <unit> program
+%type <Ast.ast_program list> program
 
 %%
 
 /* (* Grammar rules *) */
-program : pdef_list T_eof { () }
-        ;
-
-pdef_list : /* nothing */      { () }
-          | letdef pdef_list   { () }
-          | typedef pdef_list  { () }
-          ;
-
-letdef : T_let T_rec def def_list { () }
-       | T_let def def_list { () }
+program: T_eof { [] }
+       | letdef program { P_letdef($1) :: $2 }
+       | typedef program { P_typedef($1) :: $2 }
        ;
 
-def_list  : /* nothing */ { () }
-          | T_and def def_list { () }
-          ;
+letdef : T_let def_list { L_let (0) }
+       | T_let T_rec def_list { L_let (1) }
+       ;
 
-typedef : T_type tdef tdef_list { () }
+typedef : T_type tdef_list { TY_type (2) }
         ;
 
-tdef_list : /* nothing */ { () }
-          | T_and tdef tdef_list { () }
+def_list  : def { () }
+          | def T_and def_list { () }
           ;
 
 def : T_cname par_list T_colon typ T_eq expr { () }
     | T_cname par_list T_eq expr { () }
-    | T_mutable T_cname T_lbrack expr comm_list T_rbrack T_colon typ { () }
+    | T_mutable T_cname T_lbrack comm_list T_rbrack T_colon typ { () }
     | T_mutable T_cname T_colon typ { () }
-    | T_mutable T_cname T_lbrack expr comm_list T_rbrack { () }
+    | T_mutable T_cname T_lbrack comm_list T_rbrack { () }
     | T_mutable T_cname { () }
     ;
-
-tdef : T_cname T_eq constr constr_list { () }
-     ;
 
 par_list : /* nothing */ { () }
          | par par_list { () }
          ;
 
-comm_list : /* nothing */ { () }
-         | T_comma expr comm_list { () }
+comm_list: expr { () }
+         | expr T_comma comm_list { () }
          ;
 
-constr_list : /* nothing */ { () }
-            |  T_pipe constr constr_list { () }
+tdef_list : tdef { () }
+          | tdef T_and tdef_list { () }
+          ;
+
+tdef : T_cname T_eq constr_list { () }
+     ;
+
+constr_list : constr { () }
+            | constr T_pipe constr_list { () }
             ;
 
-constr : T_constructor T_of typ typ_list { () }
-       | T_constructor { () }
-       ;
-
-typ_list : /* nothing */ { () }
-         | typ typ_list { () }
-         ;
+constr: T_constructor { () }
+      | T_constructor T_of typ_list { () }
+      ;
 
 par : T_cname { () }
     | T_lparen T_cname T_colon typ T_rparen { () }
     ;
 
-typ : T_array T_lbrack T_mul mul_list T_rbrack T_of typ { () }
-    | T_array T_of typ { () }
-    | typ T_gives typ { () }
-    | T_unit { () }
+typ_list : typ { () }
+         | typ typ_list { () }
+         ;
+
+typ : T_unit { () }
     | T_int  { () }
     | T_char { () }
     | T_bool { () }
     | T_float { () }
-    | T_lparen typ T_rparen { () }
-    | typ T_ref { () }    
     | T_cname { () }
+    | typ T_ref { () }    
+    | typ T_gives typ { () }
+    | T_array T_of typ { () }
+    | T_lparen typ T_rparen { () }
+    | T_array T_lbrack mul_list T_rbrack T_of typ { () }
     ;
 
-mul_list : /* nothing */ { () }
-         | T_comma T_mul mul_list { () }
+mul_list : T_mul { () }
+         | T_mul T_comma T_mul mul_list { () }
          ;
 
-expr : letdef T_in expr { () }
-     | expr T_semicolon expr { () }
-     | T_if expr T_then expr T_else expr { () }
-     | T_if expr T_then expr { () }
-     /* (* binary operators *) */
+expr : /* (* binary operators *) */
      | expr T_plus expr { () }
      | expr T_minus expr { () }
      | expr T_mul expr { () }
@@ -183,6 +171,10 @@ expr : letdef T_in expr { () }
      | expr T_andlogic expr { () }
      | expr T_orlogic expr { () }
      | expr T_assign expr { () }
+     | expr T_semicolon expr { () }
+     | letdef T_in expr { () }
+     | T_if expr T_then expr { () }
+     | T_if expr T_then expr T_else expr { () }
      | unary_expr { () }
      ;
 
@@ -195,33 +187,36 @@ unary_expr : T_plus unary_expr { () }
            | app { () }
            ;
 
-app /* (* function call *) */
-    : atom { () }
-    | T_cname atom atom_list { () }
-    | T_constructor atom atom_list { () }
+app : /* (* function call *) */
+    | atom { () }
+    | T_cname atom_list { () }
+    | T_constructor atom_list { () }
     ;
 
-atom_list: /* nothing */ { () }
-         | atom atom_list { () }
-         ;
+atom_list : atom { () }
+          | atom atom_list { () }
+          ;
 
-atom /* (* un-reference *) */
-     : T_bar atom { () }
+atom : /* (* un-reference *) */
+     | T_bar atom { () }
      | array_el { () }
      ;
 
-array_el /* (* array element  *) */
-         : T_cname T_lbrack expr comm_list T_rbrack { () }
+array_el :  /* (* array element  *) */
          | new_stmt { () }
+         | T_cname T_lbrack comm_list T_rbrack { () }
          ;
 
-new_stmt /* (* dynamic memory allocation *) */
-         : T_new typ { () }
+new_stmt : /* (* dynamic memory allocation *) */
+         | T_new typ { () }
          | simple_expr { () }
          ;
 
-simple_expr /* (* constants *) */ 
-           : T_intnum { () }
+simple_expr:/* (* constants *) */ 
+           | T_cname   { () }
+           | T_constructor { () }
+           /* (* simple names *) */
+           | T_intnum { () }
            | T_floatnum { () }
            | T_cchar { () }
            | T_string { () }
@@ -231,27 +226,24 @@ simple_expr /* (* constants *) */
            /* (* keyword-oriented *) */
            | T_dim T_intnum T_cname { () }
            | T_dim T_cname  { () }        
-           | T_match expr T_with clause clause_list T_end { () }
+           | T_match expr T_with clause_list T_end { () }
            /* (* parentheses and imperative structures *) */
            | T_lparen expr T_rparen { () }
            | T_begin expr T_end { () }
            | T_while expr T_do expr T_done { () }
            | T_for T_cname T_eq expr T_to expr T_do expr T_done { () }
            | T_for T_cname T_eq expr T_downto expr T_do expr T_done { () }
-           /* (* simple names *) */
-           | T_cname   { () }
-           | T_constructor { () }
            ;
 
-clause_list : /* nothing */ { () }
-            | T_pipe clause clause_list { () }
+clause_list : clause { () }
+            | clause T_pipe clause_list { () }
             ;
 
 clause : pattern T_gives expr { () }
        ;
 
 pattern : T_constructor sp_list { () }
-        | simple_pattern { () }
+        | sp_list { () }
         ;
 
 simple_pattern : T_plus T_intnum { () }
