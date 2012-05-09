@@ -22,7 +22,7 @@ and ast_tdef =
   | TDEF_tdef of string * ast_constr list
 
 and ast_par = 
-  | PAR_id of string * Types.typ
+   | PAR_id of string * Types.typ
 
 and ast_expr = 
     E_intConst of int
@@ -89,7 +89,4 @@ and ast_pattern =
 and toDown_flag = TO | DOWNTO
 ;;
 
-let rec getTypeOf t =
-  match t with
-    | P_prog lst -> lst
-;;
+val getTypeOf : ast_program -> ast_pdef list ;;

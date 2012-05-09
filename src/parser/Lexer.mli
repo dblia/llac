@@ -1,1 +1,1 @@
-val lexer : Lexing.lexbuf -> Parser.token
+val lexer : Lexing.lexbuf -> Parser.token ;;
