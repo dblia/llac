@@ -9,15 +9,15 @@
 
 (* Header Section *)
 {
-  open String
+  open Lexing
   open Parser
-  open Lexing     (* for lex_curr_p field *)
+  open Printf
 
   (* Update the line number (pos_lnum field) and the offset of the line beggining,
    * (pos_bol field). Field pos_cnum managed by the lexing engine.
    *
-   * Print (lexbuf.lex_curr_p.pos_cnum-lexbuf.lex_curr_p.pos_bol) for the relative 
-   * offset in current line. 
+   * Print (lexbuf.lex_curr_p.pos_cnum-lexbuf.lex_curr_p.pos_bol) for the relative
+   * offset in current line.
    *)
   let incr_lineno lexbuf =
     let pos = lexbuf.lex_curr_p in
@@ -25,31 +25,6 @@
       pos_lnum = pos.pos_lnum + 1;                 (* increase newline counter *)
       pos_bol = pos.pos_cnum;       (* update the offset of the line beginning *)
     }
-
-	let reverse str =
-		let len = String.length str in	
-		let res = String.create len in
-		for i = 0 to pred len do
-			let j = pred len - i in
-			res.[i] <- str.[j]
-		done;
-	(res)
-
-  (* Parse an (escape) characer *)
-  let char_of_string str = 
-    if String.length str = 1 then String.get str 0
-    else match String.get str 1 with
-      | 'n'   ->  '\n'
-      | 't'   ->  '\t'
-      | 'r'   ->  '\r'
-      | '0'   ->  Char.chr 0
-      | '\\'  ->  '\\'
-      | '\''  ->  '\''
-      | '"'   ->  '"'
-      | 'x'   -> let sub = String.sub str 2 2 in
-                 Char.chr ( int_of_string ("0x" ^ sub) )
-      | _ as err  -> err
-
 }
 
 (* Definition Section *)
@@ -59,12 +34,13 @@ let floatnum = intnum"."intnum(("E"|"e")(("+"|"-")?)intnum)?  (* Float constants
 let llow = ['a'-'z']
 let lbig = ['A'-'Z']
 let letter = ['a'-'z' 'A'-'Z']        (* Letters *)
-let cnames = llow(letter|digit|"_")*  (* Constant names (vars, functions, types) *) 
+let cnames = llow(letter|digit|"_")*  (* Constant names (vars, functions, types) *)
 let constr = lbig(letter|digit|"_")*  (* Cunstructor names *)
 let hex = digit | ['a'-'f' 'A'-'F']   (* Hex numbers *)
 let xnn = "x" hex hex                 (* Char with nn ASCII code in hexademical *)
-let esc = xnn | ['n' 't' 'r' '0' '\\' '\'' '"']                 (* Escape chars *)
+let esc = xnn | ['n' 't' 'r' '0' '\\' '\'' '\"']                  (* Escape chars *)
 let chars = ( [^ '\'' '"' '\\' '\t' '\n' '\r' '\x00'] | "\\"esc ) (* fixed *)
+let str = ([^ '"' '\n'] | "\\"esc)+
 
 let whiteSet = [' ' '\t' '\n' '\r']      (* White Spaces *)
 let white  = whiteSet # ['\n']           (* Ignore white spaces *)
@@ -73,102 +49,95 @@ let comm   = "--" [^ '\n']+            (* One line comment *)
 (* Rule Section *)
 rule lexer = parse
   (* Key Words *)
-    "and"      { T_and }
-  | "array"    { T_array }
-  | "begin"    { T_begin }
-  | "bool"     { T_bool }
-  | "char"     { T_char }
-  | "delete"   { T_delete }
-  | "dim"      { T_dim }
-  | "do"       { T_do }
-  | "done"     { T_done }
-  | "downto"   { T_downto } 
-  | "else"     { T_else }
-  | "end"      { T_end }
-  | "false"    { T_false }
-  | "float"    { T_float }
-  | "for"      { T_for }
-  | "if"       { T_if }
-  | "in"       { T_in }
-  | "int"      { T_int }
-  | "let"      { T_let }
-  | "match"    { T_match }
-  | "mod"      { T_mod }
-  | "mutable"  { T_mutable }
-  | "new"      { T_new }
-  | "not"      { T_not }
-  | "of"       { T_of }
-  | "rec"      { T_rec }
-  | "ref"      { T_ref }
-  | "then"     { T_then }
-  | "to"       { T_to }
-  | "true"     { T_true }
-  | "type"     { T_type }
-  | "unit"     { T_unit }
-  | "while"    { T_while }
-  | "with"     { T_with }
+    "and"      { T_And }
+  | "array"    { T_Array }
+  | "begin"    { T_Begin }
+  | "bool"     { T_Bool }
+  | "char"     { T_Char }
+  | "delete"   { T_Delete }
+  | "dim"      { T_Dim }
+  | "do"       { T_Do }
+  | "done"     { T_Done }
+  | "downto"   { T_Downto }
+  | "else"     { T_Else }
+  | "end"      { T_End }
+  | "false"    { T_False }
+  | "float"    { T_Float }
+  | "for"      { T_For }
+  | "if"       { T_If }
+  | "in"       { T_In }
+  | "int"      { T_Int }
+  | "let"      { T_Let }
+  | "match"    { T_Match }
+  | "mod"      { T_Mod }
+  | "mutable"  { T_Mutable }
+  | "new"      { T_New }
+  | "not"      { T_Not }
+  | "of"       { T_Of }
+  | "rec"      { T_Rec }
+  | "ref"      { T_Ref }
+  | "then"     { T_Then }
+  | "to"       { T_To }
+  | "true"     { T_True }
+  | "type"     { T_Type }
+  | "unit"     { T_Unit }
+  | "while"    { T_While }
+  | "with"     { T_With }
   (* Operators *)
-  | "->"       { T_gives }
-  | "="        { T_eq }
-  | "|"        { T_pipe }
-  | "+"        { T_plus }
-  | "-"        { T_minus }
-  | "*"        { T_mul }
-  | "/"        { T_div }
-  | "+."       { T_fplus }
-  | "-."       { T_fminus }
-  | "*."       { T_fmul }
-  | "/."       { T_fdiv }
-  | "**"       { T_pow } 
-  | "!"        { T_bar }
-  | ";"        { T_semicolon }
-  | "&&"       { T_andlogic }
-  | "||"       { T_orlogic }
-  | "<>"       { T_differ } 
-  | "<"        { T_lt } 
-  | ">"        { T_gt } 
-  | "<="       { T_le } 
-  | ">="       { T_ge } 
-  | "=="       { T_equal } 
-  | "!="       { T_nequal }
-  | ":="       { T_assign }
+  | "->"       { T_Gives }
+  | "="        { T_Eq }
+  | "|"        { T_Bar }
+  | "+"        { T_Plus }
+  | "-"        { T_Minus }
+  | "*"        { T_Mul }
+  | "/"        { T_Div }
+  | "+."       { T_FPlus }
+  | "-."       { T_FMinus }
+  | "*."       { T_FMul }
+  | "/."       { T_FDiv }
+  | "**"       { T_Pow }
+  | "!"        { T_Deref }
+  | ";"        { T_Semicolon }
+  | "&&"       { T_Andlogic }
+  | "||"       { T_Orlogic }
+  | "<>"       { T_Differ }
+  | "<"        { T_Lt }
+  | ">"        { T_Gt }
+  | "<="       { T_Le }
+  | ">="       { T_Ge }
+  | "=="       { T_Equal }
+  | "!="       { T_NEqual }
+  | ":="       { T_Assign }
   (* Separators *)
-  | "("        { T_lparen }
-  | ")"        { T_rparen }
-  | "["        { T_lbrack } 
-  | "]"        { T_rbrack }
-  | ","        { T_comma }
-  | ":"        { T_colon }
+  | "("        { T_LParen }
+  | ")"        { T_RParen }
+  | "["        { T_LBrack }
+  | "]"        { T_RBrack }
+  | ","        { T_Comma }
+  | ":"        { T_Colon }
   (* Digits Constants *)
-  | intnum as integer  { T_intnum (int_of_string integer) }
-  | floatnum as fl     { T_floatnum (float_of_string fl) }
+  | intnum as integer  { T_LitInt (int_of_string integer) }
+  | floatnum as fl     { T_LitFloat (float_of_string fl) }
   (* Names *)
-  | cnames as name     { T_cname (name) }
-  | constr as con      { T_constructor (con) }
+  | cnames as name     { T_LitId (name) }
+  | constr as con      { T_LitConstr (con) }
   (* Characters and strings *)
-  | "'"chars"'" as c { T_cchar (char_of_string (sub c 1 (length c - 2))) }
-  | '"'        { string_state "" lexbuf }  
-  
-  | '\n'       { incr_lineno lexbuf; lexer lexbuf }    (* newline *)
-  | white      { lexer lexbuf }                        (* Ignore white spaces *)
-  | comm       { lexer lexbuf }                        (* One line comment *)
-  | "(*"       { comment 0 lexbuf }                    (* Multiline comments start *)
-  | eof        { T_eof }                        
-  | _ as err   { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n" err 
-                  (Char.code err); T_err }
+  | "'" chars "'"      { T_LitChar (Lexing.lexeme_char lexbuf 1) }
+  | '"' str '"' as s   { T_LitString s}
+  | '\n'               { incr_lineno lexbuf; lexer lexbuf }   (* newline *)
+  | white              { lexer lexbuf }           (* Ignore white spaces *)
+  | comm               { lexer lexbuf }              (* One line comment *)
+  | "(*"               { comment 0 lexbuf }  (* Multiline comments start *)
+  | eof                { T_Eof }
+  | _ as err           { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n"
+                                        err (Char.code err) }
 
 (* inside comment *)
 and comment level = parse
   | "*)"       { if level = 0 then lexer lexbuf
                  else comment (level-1) lexbuf }       (* goto the lexer rule *)
   | "(*"       { comment (level+1) lexbuf }            (* nested comment found *)
+  | '\n'       { incr_lineno lexbuf; comment level lexbuf }
   | _          { comment level lexbuf }                (* skip comments *)
-  | eof        { print_endline "Comments are not closed\n"; T_eof }
-
-(* inside string literal *)
-and string_state acc = parse 
-  | chars as c { string_state ((make 1 (char_of_string c)) ^ acc) lexbuf }
-  | '"'        { T_string (reverse acc) }
-  | _ as err   { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n" err 
-                  (Char.code err); T_err } 
+  | eof        { print_endline "Comments are not closed\n"; T_Eof }
 
