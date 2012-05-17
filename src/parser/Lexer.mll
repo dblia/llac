@@ -130,7 +130,7 @@ rule lexer = parse
   | "(*"               { comment 0 lexbuf }  (* Multiline comments start *)
   | eof                { T_Eof }
   | _ as err           { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n"
-                                        err (Char.code err) }
+                         err (Char.code err); lexer lexbuf }
 
 (* inside comment *)
 and comment level = parse
