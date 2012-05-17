@@ -47,26 +47,26 @@
 %token T_LParen T_RParen T_LBrack T_RBrack
 
 /* (* Precedence declarations: The lower the declaration is, the higher it's
-    * precedence. *) */
-
-%right T_Gives
-%nonassoc T_Of T_Array
-%left T_Deref
+    * precedence. *) */ 
 
 /* (* Precedence for expressions *) */
 %nonassoc T_In
 %left T_Semicolon
 %left T_If T_Then
-%left T_Else
+%nonassoc T_Else
 %right T_Assign
 %left T_Orlogic
 %left T_Andlogic
 %nonassoc T_Eq T_Differ T_Lt T_Gt T_Le T_Ge T_Equal T_NEqual
 %left T_Plus T_FPlus T_Minus T_FMinus
 %left T_Mul T_FMul T_Div T_FDiv T_Mod
-%nonassoc UPLUS UFPLUS UMINUS UFMINUS
-%nonassoc T_Not
 %left T_Pow
+%nonassoc UPLUS UFPLUS UMINUS UFMINUS T_Not T_Delete
+
+/* (* Typedefs precedence *) */
+%left T_Deref
+%nonassoc T_Of T_Array
+%right T_Gives
 
 
 /* (* The starting production of the generated parser is the syntactic class
@@ -174,31 +174,24 @@ actuals:
     ;
 
 exprs:
-    | expr { () }
+    | /* empty */ { () }
     | exprs expr { () }
     ;
 
-simp_type:
+expr:
     | T_True { () }
     | T_False { () }
-    | T_LitId { () }
     | T_LitChar { () }
-    ;
-
-expr:
     | T_LitInt { () }
     | T_LitFloat { () }
     | T_LitString { () }
     | T_LParen T_RParen { () }
     | T_LParen expr T_RParen { () }
-    | unop_expr { () }
-    | binop_expr { () }
-    | T_LitId exprs { () }
+    | T_LitId expr { () }
     | T_LitConstr exprs { () }
     | T_LitId T_LParen actuals T_RParen { () }
     | T_Dim T_LitInt T_LitId { () }
     | T_New typee { () }
-    | T_Delete expr { () }
     | letdef T_In expr { () }
     | T_Begin expr T_End { () }
     | if_stmt { () }
@@ -206,6 +199,9 @@ expr:
     | T_For T_LitId T_Eq expr T_To expr T_Do expr T_Done { () }
     | T_For T_LitId T_Eq expr T_Downto expr T_Do expr T_Done { () }
     | T_Match expr T_With clauses T_End { () }
+    | binop_expr { () }
+    | relop_expr { () }
+    | unop_expr { () }
     ;
 
 clauses:
@@ -218,24 +214,34 @@ clause:
     ;
 
 patterns:
-    | pattern { () }
+    | /* empty */ { () }
     | patterns pattern { () }
     ;
 
 pattern:
+    | T_True { () }
+    | T_False { () }
+    | T_LitId { () }
+    | T_LitChar { () }
     | T_Plus T_LitInt { () }
     | T_FPlus T_LitInt { () }
     | T_Minus T_LitFloat { () }
     | T_FMinus T_LitFloat { () }
     | T_LParen pattern T_RParen { () }
     | T_LitConstr patterns { () }
-    | simp_type { () }
-    ;
 
 if_stmt:
     | T_If expr T_Then expr { () }
     | T_If expr T_Then expr T_Else expr { () }
 
+relop_expr:
+    | expr T_Equal expr { () }
+    | expr T_NEqual expr { () }
+    | expr T_Lt expr { () }
+    | expr T_Gt expr { () }
+    | expr T_Le expr { () }
+    | expr T_Ge expr { () }
+    ;
 unop_expr:
     | T_Plus expr %prec UPLUS { () }
     | T_FPlus expr %prec UFPLUS { () }
@@ -243,6 +249,7 @@ unop_expr:
     | T_FMinus expr %prec UFMINUS { () }
     | T_Deref expr { () }
     | T_Not expr { () }
+    | T_Delete expr { () }
     ;
 
 binop_expr:
@@ -258,12 +265,6 @@ binop_expr:
     | expr T_Pow expr { () }
     | expr T_Eq expr { () }
     | expr T_Differ expr { () }
-    | expr T_Lt expr { () }
-    | expr T_Gt expr { () }
-    | expr T_Le expr { () }
-    | expr T_Ge expr { () }
-    | expr T_Equal expr { () }
-    | expr T_NEqual expr { () }
     | expr T_Andlogic expr { () }
     | expr T_Orlogic expr { () }
     | expr T_Assign expr { () }
