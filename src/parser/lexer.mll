@@ -1,7 +1,7 @@
 (***************************************************************
  *
  * Lexical Analyzer for Llama Language
- * Authors: Bliablias Dimitrios, Koukoutos Emmanouhl
+ * Authors: Bliablias Dimitrios
  *
  * This file is part of Llamac project.
  *
@@ -103,8 +103,8 @@ rule lexer = parse
   | "<>"       { T_Differ }
   | "<"        { T_Lt }
   | ">"        { T_Gt }
-  | "<="       { T_Le }
-  | ">="       { T_Ge }
+  | "<="       { T_Leq }
+  | ">="       { T_Geq }
   | "=="       { T_Equal }
   | "!="       { T_NEqual }
   | ":="       { T_Assign }

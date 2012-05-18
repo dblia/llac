@@ -22,8 +22,8 @@ OCAMLC_FLAGS = -g
 OCAMLDEP = ocamldep
 
 EXE_FILE = llama$(EXE)
-ML_FILES = Lexer.ml Parser.ml ../../main.ml
-MLI_FILES = Lexer.mli Parser.mli 
+ML_FILES = lexer.ml parser.ml ../../main.ml
+MLI_FILES = lexer.mli parser.mli 
 CMO_FILES = $(patsubst %.ml, %.cmo, $(ML_FILES))
 CMI_FILES = $(patsubst %.ml, %.cmi, $(ML_FILES))
 
@@ -38,10 +38,10 @@ all: $(EXE_FILE)
 %.cmo %.cmi: %.ml
 	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
 
-Lexer.ml: Lexer.mll
+lexer.ml: lexer.mll
 	ocamllex -o $@ $<
 
-Parser.ml Parser.mli: Parser.mly
+parser.ml parser.mli: parser.mly
 	ocamlyacc -v $<
 
 $(EXE_FILE): $(CMO_FILES)
@@ -51,11 +51,11 @@ $(EXE_FILE): $(CMO_FILES)
 
 -include .depend
 
-depend: Lexer.ml Lexer.mli Parser.ml Parser.mli ../../main.ml
+depend: lexer.ml lexer.mli parser.ml parser.mli ../../main.ml
 	$(OCAMLDEP)  $^ > .depend
 
 clean:
-	$(RM) -f Parser.ml Parser.mli Parser.output Lexer.ml $(CMO_FILES) $(CMI_FILES) *~
+	$(RM) -f parser.ml parser.mli parser.output lexer.ml $(CMO_FILES) $(CMI_FILES) *~
 
 distclean: clean
 	$(RM) -f $(EXE_FILE) .depend

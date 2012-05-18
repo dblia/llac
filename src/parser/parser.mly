@@ -10,8 +10,6 @@
 
 (* Header Section *)
 
-  open Lexer
-
 %}
   
 /* (* Ocamlyacc declarations
@@ -39,7 +37,7 @@
 %token T_Assign T_Deref
 %token T_Eq T_Differ    /* (* Structural equality [not array, func type] *) */
 %token T_Equal T_NEqual /* (* Physical equality [only int, float, char] *) */
-%token T_Lt T_Gt T_Le T_Ge
+%token T_Lt T_Gt T_Leq T_Geq
 %token T_Semicolon T_Comma
 %token T_Andlogic T_Orlogic T_Not 
 %token T_Plus T_Minus T_Mul T_Div T_Pow
@@ -57,16 +55,19 @@
 %right T_Assign
 %left T_Orlogic
 %left T_Andlogic
-%nonassoc T_Eq T_Differ T_Lt T_Gt T_Le T_Ge T_Equal T_NEqual
+%nonassoc T_Eq T_Differ T_Lt T_Gt T_Leq T_Geq T_Equal T_NEqual
 %left T_Plus T_FPlus T_Minus T_FMinus
 %left T_Mul T_FMul T_Div T_FDiv T_Mod
 %left T_Pow
-%nonassoc UPLUS UFPLUS UMINUS UFMINUS T_Not T_Delete
+
+%nonassoc UPLUS UFPLUS UMINUS UFMINUS NOT DELETE
 
 /* (* Typedefs precedence *) */
-%left T_Deref
-%nonassoc T_Of T_Array
 %right T_Gives
+%nonassoc T_Of T_Array
+%left T_Ref
+
+%nonassoc T_LParen T_RParen
 
 
 /* (* The starting production of the generated parser is the syntactic class
@@ -79,78 +80,74 @@
 
 /* (* Grammar rules *) */
 program:
-    | pdefs T_Eof { () }
+      pdef T_Eof { () }
     ;
 
-pdefs:
-    | /* empty */ { () }
-    | pdefs pdef  { () }
-    ;
-    
 pdef:
-    | letdef pdef  { () }
-    | typedef pdef { () }
+      /* nothing */ { () }
+    | letdef program  { () }
+    | typedef program { () }
     ;
 
 letdef:
-    | T_Let vardefs { () }
+      T_Let vardefs { () }
     | T_Let T_Rec vardefs { () }
     ;
 
 vardefs:
-    | vardef { () }
+      vardef { () }
     | vardefs T_And vardef { () }
     ;
 
 vardef:
-    | T_LitId formals T_Eq expr { () }
+      T_LitId formals T_Eq expr { () }
     | T_LitId formals T_Colon typee T_Eq expr { () }
     | T_Mutable T_LitId { () }
     | T_Mutable T_LitId T_Colon typee { () }
-    | T_Mutable T_LitId T_LBrack actuals T_RBrack { () }
-    | T_Mutable T_LitId T_LBrack actuals T_RBrack T_Colon typee { () }
+    | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack { () }
+    | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack T_Colon typee { () }
     ;
 
 typedef:
-    | T_Type tdefs { () }
+      T_Type tdefs { () }
     ;
 
 tdefs:
-    | tdef { () }
+      tdef { () }
     | tdefs T_And tdef { () }
     ;
 
 tdef:
-    | T_LitId T_Eq constrs { () }
+      T_LitId T_Eq constrs { () }
     ;
 
 constrs:
-    | constr { () }
+      constr { () }
     | constrs T_Bar constr { () }
     ;
 
 constr:
-    | T_LitConstr { () }
+      T_LitConstr { () }
     | T_LitConstr T_Of typees { () }
     ;
 
 formals:
-    | /* empty */ { () }
+      /* nothing */ { () }
     | formals param { () }
     ;
  
 param:
-    | T_LitId { () }
+      T_LitId { () }
     | T_LParen T_LitId T_Colon typee T_RParen { () }
     ;
 
 typees:
-    | typee { () }
+      typee { () }
     | typees typee { () }
     ;
 
 typee:
-    | T_Unit  { () }
+      T_Unit  { () }
     | T_Int   { () }
     | T_Char  { () }
     | T_Bool  { () }
@@ -164,96 +161,18 @@ typee:
     ;
 
 dimension:
-    | T_Mul { () }
+      T_Mul { () }
     | dimension T_Comma T_Mul { () }
     ;
 
-actuals:
-    | expr { () }
-    | actuals T_Comma expr { () }
-    ;
-
-exprs:
-    | /* empty */ { () }
-    | exprs expr { () }
+expr_comma_list:
+      expr { () }
+    | expr_comma_list T_Comma expr { () }
     ;
 
 expr:
-    | T_True { () }
-    | T_False { () }
-    | T_LitChar { () }
-    | T_LitInt { () }
-    | T_LitFloat { () }
-    | T_LitString { () }
-    | T_LParen T_RParen { () }
-    | T_LParen expr T_RParen { () }
-    | T_LitId expr { () }
-    | T_LitConstr exprs { () }
-    | T_LitId T_LParen actuals T_RParen { () }
-    | T_Dim T_LitInt T_LitId { () }
-    | T_New typee { () }
-    | letdef T_In expr { () }
-    | T_Begin expr T_End { () }
-    | if_stmt { () }
-    | T_While expr T_Do expr T_Done { () }
-    | T_For T_LitId T_Eq expr T_To expr T_Do expr T_Done { () }
-    | T_For T_LitId T_Eq expr T_Downto expr T_Do expr T_Done { () }
-    | T_Match expr T_With clauses T_End { () }
-    | binop_expr { () }
-    | relop_expr { () }
-    | unop_expr { () }
-    ;
-
-clauses:
-    | clause { () }
-    | clauses T_Bar clause { () }
-    ;
-
-clause:
-    | pattern T_Gives expr { () }
-    ;
-
-patterns:
-    | /* empty */ { () }
-    | patterns pattern { () }
-    ;
-
-pattern:
-    | T_True { () }
-    | T_False { () }
-    | T_LitId { () }
-    | T_LitChar { () }
-    | T_Plus T_LitInt { () }
-    | T_FPlus T_LitInt { () }
-    | T_Minus T_LitFloat { () }
-    | T_FMinus T_LitFloat { () }
-    | T_LParen pattern T_RParen { () }
-    | T_LitConstr patterns { () }
-
-if_stmt:
-    | T_If expr T_Then expr { () }
-    | T_If expr T_Then expr T_Else expr { () }
-
-relop_expr:
-    | expr T_Equal expr { () }
-    | expr T_NEqual expr { () }
-    | expr T_Lt expr { () }
-    | expr T_Gt expr { () }
-    | expr T_Le expr { () }
-    | expr T_Ge expr { () }
-    ;
-unop_expr:
-    | T_Plus expr %prec UPLUS { () }
-    | T_FPlus expr %prec UFPLUS { () }
-    | T_Minus expr %prec UMINUS { () }
-    | T_FMinus expr %prec UFMINUS { () }
-    | T_Deref expr { () }
-    | T_Not expr { () }
-    | T_Delete expr { () }
-    ;
-
-binop_expr:
-    | expr T_Plus expr { () }
+    /* (* Binary Operators *) */
+      expr T_Plus expr { () }
     | expr T_FPlus expr { () }
     | expr T_Minus expr { () }
     | expr T_FMinus expr { () }
@@ -265,9 +184,94 @@ binop_expr:
     | expr T_Pow expr { () }
     | expr T_Eq expr { () }
     | expr T_Differ expr { () }
+    /* (* Relational Operators *) */
+    | expr T_Equal expr { () }
+    | expr T_NEqual expr { () }
+    | expr T_Lt expr { () }
+    | expr T_Gt expr { () }
+    | expr T_Leq expr { () }
+    | expr T_Geq expr { () }
+    /* (* Logical Operators *) */
     | expr T_Andlogic expr { () }
     | expr T_Orlogic expr { () }
     | expr T_Assign expr { () }
     | expr T_Semicolon expr { () }
+    /* (* Unary Operators *) */
+    | T_Plus expr %prec UPLUS { () }
+    | T_FPlus expr %prec UFPLUS { () }
+    | T_Minus expr %prec UMINUS { () }
+    | T_FMinus expr %prec UFMINUS { () }
+    | T_Not expr %prec NOT { () }
+    | T_Delete expr %prec DELETE { () }
+    | letdef T_In expr { () }
+    /* (* If Stmt *) */
+    | T_If expr T_Then expr { () }
+    | T_If expr T_Then expr T_Else expr { () }
+    /* (*   *) */
+    | T_Dim T_LitId { () }
+    | T_Dim T_LitInt T_LitId { () }
+    | T_Match expr T_With clauses T_End { () }
+    /* (*   *) */
+    | T_New typee { () }
+    | T_Begin expr T_End { () }
+    | T_While expr T_Do expr T_Done { () }
+    | T_For T_LitId T_Eq expr T_To expr T_Do expr T_Done { () }
+    | T_For T_LitId T_Eq expr T_Downto expr T_Do expr T_Done { () }
+      /* (* Function Call *) */
+    | T_LitId exprs__ { () }
+    | T_LitConstr exprs__ { () }
+    | expr__ { () }
+    ;
+
+exprs__:
+      expr__ { () }
+    | expr__ exprs__ { () }
+    ;
+
+expr__:
+      T_Deref expr__ { () }
+    | T_LitId { () }
+    | T_LitConstr { () }
+    | T_True { () }
+    | T_False { () }
+    | T_LitChar { () }
+    | T_LitInt { () }
+    | T_LitFloat { () }
+    | T_LitString { () }
+    | T_LParen T_RParen { () }
+    | T_LParen expr T_RParen { () }
+    | T_LitId T_LBrack expr_comma_list T_RBrack { () }  /* (* array_el *) */
+    ;
+
+clauses:
+      clause { () }
+    | clauses T_Bar clause { () }
+    ;
+
+clause:
+      pattern T_Gives expr { () }
+    ;
+
+patterns:
+      /* nothing */ { () }
+    | patterns simple_pattern { () }
+    ;
+
+pattern:
+      T_LitConstr patterns { () }
+    | simple_pattern { () }
+    ;
+
+simple_pattern:
+      T_True { () }
+    | T_False { () }
+    | T_LitId { () }
+    | T_LitChar { () }
+    | T_LitFloat { () }
+    | T_Plus T_LitInt { () }
+    | T_FPlus T_LitFloat { () }
+    | T_Minus T_LitInt { () }
+    | T_FMinus T_LitFloat { () }
+    | T_LParen pattern T_RParen { () }
     ;
 

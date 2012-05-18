@@ -12,7 +12,10 @@
 ########################
 *.cmi
 *.cmo
-Lexer.ml
+lexer.ml
+parser.ml
+parser.mli
+parser.output
 
 # vim swap and backup files #
 #############################
@@ -27,6 +30,11 @@ Lexer.ml
 # testsuite temp files #
 ########################
 testsuite_input.txt
+
+# executable files #
+########################
+llama
+llama.EXE
 
 # autoconf generated files #
 ############################
