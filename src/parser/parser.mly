@@ -58,7 +58,7 @@
 %nonassoc T_Eq T_Differ T_Lt T_Gt T_Leq T_Geq T_Equal T_NEqual
 %left T_Plus T_FPlus T_Minus T_FMinus
 %left T_Mul T_FMul T_Div T_FDiv T_Mod
-%left T_Pow
+%right T_Pow
 
 %nonassoc UPLUS UFPLUS UMINUS UFMINUS NOT DELETE
 
@@ -67,7 +67,7 @@
 %nonassoc T_Of T_Array
 %left T_Ref
 
-%nonassoc T_LParen T_RParen
+%nonassoc T_LParen T_RParen T_LBrack T_RBrack
 
 
 /* (* The starting production of the generated parser is the syntactic class
