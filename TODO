@@ -1,3 +1,5 @@
--- dangling else fix
 -- a master Makefile to handle the sub-Makefiles
+-- currently stopping the lexing when a false token found.
+   i should change this
+-- runner.py check if i can change the name printed.
 
