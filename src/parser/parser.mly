@@ -16,6 +16,7 @@
     *
     * Identifier and Constant value Tokens *) */
 %token T_Eof
+%token T_Error
 
 %token<int> T_LitInt
 %token<char> T_LitChar  
