@@ -5,9 +5,9 @@ import unittest
 
 from subprocess import call
 
-exe     = "/home/jimmisbl/Desktop/llac/src/parser/llama"
-faildir = '/home/jimmisbl/Desktop/llac/testsuite/should_fail/'
-passdir = '/home/jimmisbl/Desktop/llac/testsuite/should_compile/'
+exe  = "/home/jimmisbl/Desktop/llac/src/parser/llama"
+fdir = '/home/jimmisbl/Desktop/llac/testsuite/should_fail/'
+pdir = '/home/jimmisbl/Desktop/llac/testsuite/should_compile/'
 
 class ParametrizedTestCase(unittest.TestCase):
     """ Any TestCase classes that want to be parametrized 
@@ -31,7 +31,7 @@ class ParametrizedTestCase(unittest.TestCase):
 
 class ShouldFail(ParametrizedTestCase):
     def test_f(self):
-        res = call([exe, faildir + "/" + self.param], stderr=err)
+        res = call([exe, fdir + "/" + self.param], stderr=err)
         try:
             self.assertEqual(res, 0)
         except AssertionError:
@@ -39,20 +39,18 @@ class ShouldFail(ParametrizedTestCase):
 
 class ShouldCompile(ParametrizedTestCase):
     def test_c(self):
-        res = call([exe, passdir + "/" + self.param], stderr=err)
+        res = call([exe, pdir + "/" + self.param], stderr=err)
         try:
             self.assertEqual(res, 0)
         except AssertionError:
             print 'failed', self.param
 
 if __name__ == '__main__':
-    err = open("err.txt", 'w+r')
+    err = open(os.devnull, 'w')
     suite = unittest.TestSuite()
-    ffail = os.listdir(faildir)
-    fpass = os.listdir(passdir)
-    map(lambda x: suite.addTest(ParametrizedTestCase.parametrize(ShouldFail, x)),
-            ffail)
-    map(lambda x: suite.addTest(ParametrizedTestCase.parametrize(ShouldCompile, x)),
-            fpass)
-    unittest.TextTestRunner(descriptions=2, verbosity=2).run(suite)
-    os.remove("err.txt")
+    ffail = os.listdir(fdir)
+    fpass = os.listdir(pdir)
+    [suite.addTest(ParametrizedTestCase.parametrize(ShouldFail, x)) for x in ffail]
+    [suite.addTest(ParametrizedTestCase.parametrize(ShouldCompile, x)) for x in fpass]
+    unittest.TextTestRunner(verbosity=2).run(suite)
+
