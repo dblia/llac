@@ -9,7 +9,8 @@
 ****************************************************************)
 
 (* Header Section *)
-
+  open Types
+  open Ast
 %}
   
 /* (* Ocamlyacc declarations
@@ -75,101 +76,101 @@
       program. The type that is returned when a program is recognized is unit
     *) */
 %start program
-%type <unit> program
+%type <Ast.ast_prog> program
 
 %%
 
 /* (* Grammar rules *) */
 program:
-      pdef T_Eof { () }
-    ;
+      pdef T_Eof 
+        { let (ldefs, tdefs) = $1 in
+          PROGRAM (ldefs, tdefs) }
 
 pdef:
-      /* nothing */ { () }
-    | letdef program  { () }
-    | typedef program { () }
-    ;
+    /* nothing */ { ([], []) }
+    | letdef program  
+        { let (ldefs, tdefs) = get_name_of_prog $2 in
+          ($1 :: ldefs, tdefs) }
+    | typedef program 
+        { let (ldefs, tdefs) = get_name_of_prog $2 in
+          (ldefs, $1 :: tdefs) }
 
 letdef:
-      T_Let vardefs { () }
-    | T_Let T_Rec vardefs { () }
-    ;
+      T_Let vardefs 
+        { L_Let $2 }
+    | T_Let T_Rec vardefs 
+        { L_LetRec $3 }
 
 vardefs:
-      vardef { () }
-    | vardefs T_And vardef { () }
-    ;
+      vardef 
+        { [$1] }
+    | vardefs T_And vardef 
+        { $1 @ [$3] }
 
 vardef:
-      T_LitId formals T_Eq expr { () }
-    | T_LitId formals T_Colon typee T_Eq expr { () }
-    | T_Mutable T_LitId { () }
-    | T_Mutable T_LitId T_Colon typee { () }
-    | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack { () }
-    | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack T_Colon typee { () }
-    ;
+      T_LitId formals T_Eq expr 
+        { VAR_Id ($1, $2, None, $4) }
+    | T_LitId formals T_Colon typee T_Eq expr 
+        { VAR_Id ($1, $2, Some $4, $6) }
+    | T_Mutable T_LitId 
+        { VAR_MutId ($2, None, None) }
+    | T_Mutable T_LitId T_Colon typee 
+        { VAR_MutId ($2, Some $4, None) }
+    | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack 
+        { VAR_MutId ($2, None, Some $4) }
+    | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack T_Colon typee 
+        { VAR_MutId ($2, Some $7, Some $4) }
 
 typedef:
-      T_Type tdefs { () }
-    ;
+      T_Type tdefs { TD_Type $2 }
 
 tdefs:
-      tdef { () }
-    | tdefs T_And tdef { () }
-    ;
+      tdef { [$1] }
+    | tdefs T_And tdef { $1 @ [$3] }
 
 tdef:
-      T_LitId T_Eq constrs { () }
-    ;
+      T_LitId T_Eq constrs { TD_TDefId ($1, $3) }
 
 constrs:
-      constr { () }
-    | constrs T_Bar constr { () }
-    ;
+      constr { [$1] }
+    | constrs T_Bar constr { $1 @ [$3] }
 
 constr:
-      T_LitConstr { () }
-    | T_LitConstr T_Of typees { () }
-    ;
+      T_LitConstr { TD_Constr ($1, None) }
+    | T_LitConstr T_Of typees { TD_Constr ($1, Some $3) }
 
 formals:
-      /* nothing */ { () }
-    | formals param { () }
-    ;
+      /* nothing */ { [] }
+    | formals param { $1 @ [$2] }
  
 param:
-      T_LitId { () }
-    | T_LParen T_LitId T_Colon typee T_RParen { () }
-    ;
+      T_LitId { VAR_Id ($1, [], None, E_Unit) }
+    | T_LParen T_LitId T_Colon typee T_RParen { VAR_Id ($2, [], Some $4, E_Unit) }
 
 typees:
-      typee { () }
-    | typees typee { () }
-    ;
+    typee { [$1] }
+    | typees typee { $1 @ [$2] }
 
 typee:
-      T_Unit  { () }
-    | T_Int   { () }
-    | T_Char  { () }
-    | T_Bool  { () }
-    | T_Float { () }
-    | T_LParen typee T_RParen { () }
-    | typee T_Gives typee { () }
-    | typee T_Ref { () }
-    | T_Array T_Of typee { () }
-    | T_Array T_LBrack dimension T_RBrack T_Of typee { () }
-    | T_LitId { () }
-    ;
+      T_Unit  { TY_Unit }
+    | T_Int   { TY_Int }
+    | T_Char  { TY_Char }
+    | T_Bool  { TY_Bool }
+    | T_Float { TY_Float }
+    | T_LParen typee T_RParen { $2 }
+    | typee T_Gives typee { TY_Function ($1, $3) }
+    | typee T_Ref { TY_Ref $1 }
+    | T_Array T_Of typee { TY_Array (1, $3) }
+    | T_Array T_LBrack dimension T_RBrack T_Of typee { TY_Array ($3, $6) }
+    | T_LitId { TY_UserDef $1 }
 
 dimension:
-      T_Mul { () }
-    | dimension T_Comma T_Mul { () }
-    ;
+      T_Mul { 1 }
+    | dimension T_Comma T_Mul { $1 + 1 }
 
 expr_comma_list:
       expr { () }
     | expr_comma_list T_Comma expr { () }
-    ;
 
 expr:
     /* (* Binary Operators *) */
@@ -222,12 +223,10 @@ expr:
     | T_LitId exprs__ { () }
     | T_LitConstr exprs__ { () }
     | expr__ { () }
-    ;
 
 exprs__:
       expr__ { () }
     | expr__ exprs__ { () }
-    ;
 
 expr__:
       T_Deref expr__ { () }
@@ -242,26 +241,21 @@ expr__:
     | T_LParen T_RParen { () }
     | T_LParen expr T_RParen { () }
     | T_LitId T_LBrack expr_comma_list T_RBrack { () }  /* (* array_el *) */
-    ;
 
 clauses:
       clause { () }
     | clauses T_Bar clause { () }
-    ;
 
 clause:
       pattern T_Gives expr { () }
-    ;
 
 patterns:
       /* nothing */ { () }
     | patterns simple_pattern { () }
-    ;
 
 pattern:
       T_LitConstr patterns { () }
     | simple_pattern { () }
-    ;
 
 simple_pattern:
       T_True { () }
@@ -274,5 +268,4 @@ simple_pattern:
     | T_Minus T_LitInt { () }
     | T_FMinus T_LitFloat { () }
     | T_LParen pattern T_RParen { () }
-    ;
 

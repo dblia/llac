@@ -7,5 +7,5 @@ type ty =
   | TY_Char
   | TY_Ref of ty
   | TY_Array of int * ty
-  | TY_Userdef of string
+  | TY_UserDef of string
   | TY_Function of ty * ty
