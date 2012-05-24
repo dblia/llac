@@ -84,4 +84,5 @@ and ast_pattern =
   | P_LitConstr of string * ast_pattern list
 ;;
 
+val pp_prog : ast_prog -> unit
 val get_name_of_prog : ast_prog -> ast_letdef list * ast_typedef list
