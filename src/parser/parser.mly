@@ -169,103 +169,105 @@ dimension:
     | dimension T_Comma T_Mul { $1 + 1 }
 
 expr_comma_list:
-      expr { () }
-    | expr_comma_list T_Comma expr { () }
+      expr { [$1] }
+    | expr_comma_list T_Comma expr { $1 @ [$3] }
 
 expr:
     /* (* Binary Operators *) */
-      expr T_Plus expr { () }
-    | expr T_FPlus expr { () }
-    | expr T_Minus expr { () }
-    | expr T_FMinus expr { () }
-    | expr T_Mul expr { () }
-    | expr T_FMul expr { () }
-    | expr T_Div expr { () }
-    | expr T_FDiv expr { () }
-    | expr T_Mod expr { () }
-    | expr T_Pow expr { () }
-    | expr T_Eq expr { () }
-    | expr T_Differ expr { () }
+      expr T_Plus expr { E_Plus ($1, $3) }
+    | expr T_FPlus expr { E_FPlus ($1, $3) }
+    | expr T_Minus expr { E_Minus ($1, $3) }
+    | expr T_FMinus expr { E_FMinus ($1, $3) }
+    | expr T_Mul expr { E_Mul ($1, $3) }
+    | expr T_FMul expr { E_FMul ($1, $3) }
+    | expr T_Div expr { E_Div ($1, $3) }
+    | expr T_FDiv expr { E_FDiv ($1, $3) }
+    | expr T_Mod expr { E_Mod ($1, $3) }
+    | expr T_Pow expr { E_Pow ($1, $3) }
+    | expr T_Eq expr { E_Eq ($1, $3) }
+    | expr T_Differ expr { E_Differ ($1, $3) }
     /* (* Relational Operators *) */
-    | expr T_Equal expr { () }
-    | expr T_NEqual expr { () }
-    | expr T_Lt expr { () }
-    | expr T_Gt expr { () }
-    | expr T_Leq expr { () }
-    | expr T_Geq expr { () }
+    | expr T_Equal expr { E_Equal ($1, $3) }
+    | expr T_NEqual expr { E_NEqual ($1, $3) }
+    | expr T_Lt expr { E_Lt ($1, $3) }
+    | expr T_Gt expr { E_Gt ($1, $3) }
+    | expr T_Leq expr { E_Leq ($1, $3) }
+    | expr T_Geq expr { E_Geq ($1, $3) }
     /* (* Logical Operators *) */
-    | expr T_Andlogic expr { () }
-    | expr T_Orlogic expr { () }
-    | expr T_Assign expr { () }
-    | expr T_Semicolon expr { () }
+    | expr T_Andlogic expr { E_Andlogic ($1, $3) }
+    | expr T_Orlogic expr { E_Orlogic ($1, $3) }
+    | expr T_Assign expr { E_Assign ($1, $3) }
+    | expr T_Semicolon expr { E_Semicolon ($1, $3) }
     /* (* Unary Operators *) */
-    | T_Plus expr %prec UPLUS { () }
-    | T_FPlus expr %prec UFPLUS { () }
-    | T_Minus expr %prec UMINUS { () }
-    | T_FMinus expr %prec UFMINUS { () }
-    | T_Not expr %prec NOT { () }
-    | T_Delete expr %prec DELETE { () }
-    | letdef T_In expr { () }
+    | T_Plus expr %prec UPLUS { E_UPlus $2 }
+    | T_FPlus expr %prec UFPLUS { E_UFPlus $2 }
+    | T_Minus expr %prec UMINUS { E_UMinus $2 }
+    | T_FMinus expr %prec UFMINUS { E_UFMinus $2 }
+    | T_Not expr %prec NOT { E_Not $2 }
+    | T_Delete expr %prec DELETE { E_Delete $2  }
+    | letdef T_In expr { E_LetIn ($1, $3) }
     /* (* If Stmt *) */
-    | T_If expr T_Then expr { () }
-    | T_If expr T_Then expr T_Else expr { () }
+    | T_If expr T_Then expr { E_IfStmt ($2, $4, None) }
+    | T_If expr T_Then expr T_Else expr { E_IfStmt ($2, $4, Some $6) }
     /* (*   *) */
-    | T_Dim T_LitId { () }
-    | T_Dim T_LitInt T_LitId { () }
-    | T_Match expr T_With clauses T_End { () }
+    | T_Dim T_LitId { E_Dim (None, $2) }
+    | T_Dim T_LitInt T_LitId { E_Dim (Some $2, $3) }
+    | T_Match expr T_With clauses T_End { E_Match ($2, $4) }
     /* (*   *) */
-    | T_New typee { () }
-    | T_Begin expr T_End { () }
-    | T_While expr T_Do expr T_Done { () }
-    | T_For T_LitId T_Eq expr T_To expr T_Do expr T_Done { () }
-    | T_For T_LitId T_Eq expr T_Downto expr T_Do expr T_Done { () }
+    | T_New typee { E_New $2 }
+    | T_Begin expr T_End { E_Block $2 }
+    | T_While expr T_Do expr T_Done { E_While ($2, $4) }
+    | T_For T_LitId T_Eq expr T_To expr T_Do expr T_Done 
+        { E_For ($2, $4, $6, $8) }
+    | T_For T_LitId T_Eq expr T_Downto expr T_Do expr T_Done 
+        { E_For ($2, $4, $6, $8) }
       /* (* Function Call *) */
-    | T_LitId exprs__ { () }
-    | T_LitConstr exprs__ { () }
-    | expr__ { () }
+    | T_LitId exprs__ { E_Call ($1, $2)  }
+    | T_LitConstr exprs__ { E_Constructor ($1, $2) }
+    | expr__ { $1 }
 
 exprs__:
-      expr__ { () }
-    | expr__ exprs__ { () }
+    expr__ { [$1] }
+    | expr__ exprs__ { $1 :: $2 }
 
 expr__:
-      T_Deref expr__ { () }
-    | T_LitId { () }
-    | T_LitConstr { () }
-    | T_True { () }
-    | T_False { () }
-    | T_LitChar { () }
-    | T_LitInt { () }
-    | T_LitFloat { () }
-    | T_LitString { () }
-    | T_LParen T_RParen { () }
-    | T_LParen expr T_RParen { () }
-    | T_LitId T_LBrack expr_comma_list T_RBrack { () }  /* (* array_el *) */
+      T_Deref expr__ { E_Deref $2 }
+    | T_LitId { E_LitId $1 }
+    | T_LitConstr { E_LitConstr $1 }
+    | T_True { E_True }
+    | T_False { E_False }
+    | T_LitChar { E_LitChar $1 }
+    | T_LitInt { E_LitInt $1 }
+    | T_LitFloat { E_LitFloat $1 }
+    | T_LitString { E_LitString $1 }
+    | T_LParen T_RParen { E_Unit }
+    | T_LParen expr T_RParen { $2 }
+    | T_LitId T_LBrack expr_comma_list T_RBrack { E_ArrayEl ($1, $3) }  /* (* array_el *) */
 
 clauses:
-      clause { () }
-    | clauses T_Bar clause { () }
+      clause { [$1] }
+    | clauses T_Bar clause { $1 @ [$3] }
 
 clause:
-      pattern T_Gives expr { () }
+      pattern T_Gives expr { P_Clause ($1, $3) }
 
 patterns:
-      /* nothing */ { () }
-    | patterns simple_pattern { () }
+      /* nothing */ { [] }
+    | patterns simple_pattern { $1 @ [$2] }
 
 pattern:
-      T_LitConstr patterns { () }
-    | simple_pattern { () }
+      T_LitConstr patterns { P_LitConstr ($1, $2) }
+    | simple_pattern { $1 }
 
 simple_pattern:
-      T_True { () }
-    | T_False { () }
-    | T_LitId { () }
-    | T_LitChar { () }
-    | T_LitFloat { () }
-    | T_Plus T_LitInt { () }
-    | T_FPlus T_LitFloat { () }
-    | T_Minus T_LitInt { () }
-    | T_FMinus T_LitFloat { () }
-    | T_LParen pattern T_RParen { () }
+      T_True { P_True }
+    | T_False { P_False }
+    | T_LitId { P_LitId $1 }
+    | T_LitChar { P_LitChar $1 }
+    | T_LitFloat { P_LitFloat $1 }
+    | T_Plus T_LitInt { P_Plus $2 }
+    | T_FPlus T_LitFloat { P_FPlus $2 }
+    | T_Minus T_LitInt { P_Minus $2 }
+    | T_FMinus T_LitFloat { P_FMinus $2 }
+    | T_LParen pattern T_RParen { $2 }
 

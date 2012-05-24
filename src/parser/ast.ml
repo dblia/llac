@@ -34,6 +34,7 @@ and ast_expr =
   | E_UFMinus     of ast_expr
   | E_Not         of ast_expr
   | E_Deref       of ast_expr
+  | E_Delete      of ast_expr
   | E_Block       of ast_expr
   | E_Plus        of ast_expr * ast_expr
   | E_FPlus       of ast_expr * ast_expr
@@ -146,6 +147,7 @@ and pp_expr =
     | E_UFMinus e           -> pr " -. "; pp_expr e
     | E_Not e               -> pr "Not "; pp_expr e
     | E_Deref e             -> pr "!"; pp_expr e
+    | E_Delete e            -> pr "Delete"; pp_expr e
     | E_Block e             -> pr "begin\n"; pp_expr e; pr "\nend\n"
     | E_Plus (e1, e2)       -> pp_expr e1; pr " + "; pp_expr e2
     | E_FPlus (e1, e2)      -> pp_expr e1; pr " +. "; pp_expr e2

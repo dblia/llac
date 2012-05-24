@@ -35,6 +35,7 @@ and ast_expr =
   | E_UFMinus     of ast_expr
   | E_Not         of ast_expr
   | E_Deref       of ast_expr
+  | E_Delete      of ast_expr
   | E_Block       of ast_expr
   | E_Plus        of ast_expr * ast_expr
   | E_FPlus       of ast_expr * ast_expr

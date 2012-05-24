@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import logging
 import unittest
 
 from subprocess import call
