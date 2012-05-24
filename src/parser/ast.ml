@@ -67,7 +67,7 @@ and ast_expr =
   | E_Call        of string * ast_expr list
   | E_Constructor of string * ast_expr list
   | E_ArrayEl     of string * ast_expr list
-  | E_For         of string * ast_expr * ast_expr * ast_expr
+  | E_For         of string * for_info * ast_expr * ast_expr * ast_expr
 
 and ast_pattern =
     P_True
@@ -81,6 +81,8 @@ and ast_pattern =
   | P_FMinus    of float
   | P_Clause    of ast_pattern * ast_expr
   | P_LitConstr of string * ast_pattern list
+
+and for_info = TO | DOWNTO
 ;;
 
 (* Pretty Printing Function For Ast *)
@@ -88,47 +90,62 @@ let pr = print_string
 
 let rec pp_prog = 
   function
-    | PROGRAM ([], [])  -> pr "Empty Program\n"
-    | PROGRAM (ls, ds)  -> pp_typedefs ds; pp_letdefs ls; pr "\n"
+      PROGRAM ([], [])  -> 
+        pr "Empty Program\n"
+    | PROGRAM (ls, ds)  -> 
+        pp_typedefs ds; pp_letdefs ls; pr "\n"
 
 and pp_letdef =
   function
-    | L_Let []            -> pr "Error: Empty letdefs"
-    | L_Let [v]           -> pr "\nlet "; pp_vardef v
-    | L_Let (v :: vs)     -> pr "\nlet "; pp_vardef v; pp_anddefs vs
-    | L_LetRec []         -> pr "Error: Empty letdefs"
-    | L_LetRec [v]        -> pr "\nlet rec "; pp_vardef v
-    | L_LetRec (v :: vs)  -> pr "\nlet rec "; pp_vardef v; pp_anddefs vs
+      L_Let []            -> 
+        pr "Error: Empty letdefs"
+    | L_Let [v]           -> 
+        pr "\nlet "; pp_vardef v
+    | L_Let (v :: vs)     -> 
+        pr "\nlet "; pp_vardef v; pp_anddefs vs
+    | L_LetRec []         -> 
+        pr "Error: Empty letdefs"
+    | L_LetRec [v]        -> 
+        pr "\nlet rec "; pp_vardef v
+    | L_LetRec (v :: vs)  -> 
+        pr "\nlet rec "; pp_vardef v; pp_anddefs vs
 
 and pp_anddefs = 
   function
-    | []        -> pr "Error: Empty letdefs"
-    | [v]       -> pr "\nand "; pp_vardef v
-    | (v :: vs) -> pr "\nand "; pp_vardef v; pp_anddefs vs
+      []        -> 
+        pr "Error: Empty letdefs"
+    | [v]       -> 
+        pr "\nand "; pp_vardef v
+    | (v :: vs) -> 
+        pr "\nand "; pp_vardef v; pp_anddefs vs
 
 and pp_letdefs =
   function
-    | [] -> ()
-    | (hd :: tl) -> pp_letdef hd; pp_letdefs tl
+      [] -> ()
+    | (hd :: tl) -> 
+        pp_letdef hd; pp_letdefs tl
 
 and pp_typedef =
   function
-    | TD_Type ts            -> pr "type "; pp_typedefs ts
-    | TD_TDefId (s, ts)     -> pr s; pr " = "; pp_typedefs ts
-    | TD_Constr (s, tys)    -> pr s;
-                               (match tys with
-                                | None -> ()
-                                | Some _tys -> pr " of "; pp_types _tys)
+      TD_Type ts            -> 
+        pr "type "; pp_typedefs ts
+    | TD_TDefId (s, ts)     -> 
+        pr s; pr " = "; pp_typedefs ts
+    | TD_Constr (s, tys)    -> 
+        pr s;
+        (match tys with
+         | None -> ()
+         | Some _tys -> pr " of "; pp_types _tys)
 
 and pp_typedefs =
   function
-    | [] -> ()
+      [] -> ()
     | [hd] -> pp_typedef hd
     | (hd :: tl) -> pp_typedef hd; pr " | "; pp_typedefs tl
 
 and pp_vardef =
   function
-    | VAR_Id (s, vs, t, e)  -> (match e with
+      VAR_Id (s, vs, t, e)  -> (match e with
                                 | E_Unit -> pr " "; pr s
                                 | _ -> pr s; pp_vardefs vs;
                                   (match t with
@@ -150,85 +167,137 @@ and pp_vardef =
 
 and pp_vardefs =
   function
-    | [] -> ()
+      [] -> ()
     | (hd :: tl) -> pp_vardef hd; pp_vardefs tl
 
 and pp_expr =
   function
-    | E_Unit                -> pr "()"
-    | E_True                -> pr "true"
-    | E_False               -> pr "false"
-    | E_LitInt i            -> print_int i
-    | E_LitChar c           -> print_char c
-    | E_LitFloat f          -> print_float f
-    | E_LitId id            -> pr id
-    | E_LitConstr con       -> pr con
-    | E_LitString s         -> pr s; pr" "
-    | E_UPlus e             -> pr "+"; pp_expr e
-    | E_UMinus e            -> pr "-"; pp_expr e
-    | E_UFPlus e            -> pr "+."; pp_expr e
-    | E_UFMinus e           -> pr "-."; pp_expr e
-    | E_Not e               -> pr " Not "; pp_expr e
-    | E_Deref e             -> pr " !"; pp_expr e
-    | E_Delete e            -> pr " Delete "; pp_expr e
-    | E_Block e             -> pr "\nbegin\n"; pp_expr e; pr "\nend\n"
-    | E_Plus (e1, e2)       -> pp_expr e1; pr "+"; pp_expr e2
-    | E_FPlus (e1, e2)      -> pp_expr e1; pr "+."; pp_expr e2
-    | E_Minus (e1, e2)      -> pp_expr e1; pr "-"; pp_expr e2
-    | E_FMinus (e1, e2)     -> pp_expr e1; pr "-."; pp_expr e2
-    | E_Mul (e1, e2)        -> pp_expr e1; pr "*"; pp_expr e2
-    | E_FMul (e1, e2)       -> pp_expr e1; pr "*."; pp_expr e2
-    | E_Div (e1, e2)        -> pp_expr e1; pr " / "; pp_expr e2
-    | E_FDiv (e1, e2)       -> pp_expr e1; pr " /. "; pp_expr e2
-    | E_Mod (e1, e2)        -> pp_expr e1; pr " % "; pp_expr e2
-    | E_Pow (e1, e2)        -> pp_expr e1; pr " ^ "; pp_expr e2
-    | E_Eq (e1, e2)         -> pp_expr e1; pr " = "; pp_expr e2
-    | E_Differ (e1, e2)     -> pp_expr e1; pr " <> "; pp_expr e2
-    | E_Equal (e1, e2)      -> pp_expr e1; pr " == "; pp_expr e2
-    | E_NEqual (e1, e2)     -> pp_expr e1; pr " != "; pp_expr e2
-    | E_Lt (e1, e2)         -> pp_expr e1; pr " < "; pp_expr e2
-    | E_Gt (e1, e2)         -> pp_expr e1; pr " > "; pp_expr e2
-    | E_Leq (e1, e2)        -> pp_expr e1; pr " <= "; pp_expr e2
-    | E_Geq (e1, e2)        -> pp_expr e1; pr " >= "; pp_expr e2
-    | E_Andlogic (e1, e2)   -> pp_expr e1; pr " && "; pp_expr e2
-    | E_Orlogic (e1, e2)    -> pp_expr e1; pr " || "; pp_expr e2
-    | E_Assign (e1, e2)     -> pp_expr e1; pr ":="; pp_expr e2
-    | E_Semicolon (e1, e2)  -> pp_expr e1; pr ";\n"; pp_expr e2
-    | E_While (e1, e2)      -> pr "while "; pp_expr e1; pr " do\n";
-                              pp_expr e2; pr "\ndone\n"
-    | E_Match (e, ps)       -> pr "match "; pp_expr e; pr " with\n"; 
-                               pp_patterns ps; pr "end\n"
-    | E_IfStmt (e1, e2, e3) -> pr "if "; pp_expr e1; pr " then"; pp_expr e2;
-                               (match e3 with
-                                | None -> ()
-                                | Some e -> pr "else"; pp_expr e)
-    | E_LetIn (ldef, e)     -> pp_letdef ldef; pr " in\n"; pp_expr e
-    | E_Dim (i, s)          -> pr "dim "; pr s;
-                               (match i with
-                                | None -> ()
-                                | Some _i -> print_int _i)
-    | E_New t               -> pr "new"; pp_type t
-    | E_Call (s, es)        -> pr s; pr " "; pp_exprs es
-    | E_Constructor (s, es) -> pr s; pr " "; pp_exprs es
-    | E_ArrayEl (s, es)     -> pr s; pr "["; pp_com_exprs es; pr "]"
-    | E_For (s, e1, e2, e3) -> pr "for "; pr s; pr " = "; pp_expr e1;
-                               pr " to/downto "; pp_expr e2; pr " do\n\t";
-                               pp_expr e3; pr "\ndone"
+      E_Unit                    ->
+        pr "()"
+    | E_True                    ->
+        pr "true"
+    | E_False                   ->
+        pr "false"
+    | E_LitInt i                ->
+        print_int i
+    | E_LitChar c               ->
+        print_char c
+    | E_LitFloat f              ->
+        print_float f
+    | E_LitId id                ->
+        pr id
+    | E_LitConstr con           ->
+        pr con
+    | E_LitString s             ->
+        pr s; pr" "
+    | E_UPlus e                 ->
+        pr "+"; pp_expr e
+    | E_UMinus e                ->
+        pr "-"; pp_expr e
+    | E_UFPlus e                ->
+        pr "+."; pp_expr e
+    | E_UFMinus e               ->
+        pr "-."; pp_expr e
+    | E_Not e                   ->
+        pr " Not "; pp_expr e
+    | E_Deref e                 ->
+        pr " !"; pp_expr e
+    | E_Delete e                ->
+        pr " Delete "; pp_expr e
+    | E_Block e                 ->
+        pr "\nbegin\n"; pp_expr e; pr "\nend\n"
+    | E_Plus (e1, e2)           ->
+        pp_expr e1; pr "+"; pp_expr e2
+    | E_FPlus (e1, e2)          -> 
+        pp_expr e1; pr "+."; pp_expr e2
+    | E_Minus (e1, e2)          ->
+        pp_expr e1; pr "-"; pp_expr e2
+    | E_FMinus (e1, e2)         -> 
+        pp_expr e1; pr "-."; pp_expr e2
+    | E_Mul (e1, e2)            -> 
+        pp_expr e1; pr "*"; pp_expr e2
+    | E_FMul (e1, e2)           -> 
+        pp_expr e1; pr "*."; pp_expr e2
+    | E_Div (e1, e2)            -> 
+        pp_expr e1; pr " / "; pp_expr e2
+    | E_FDiv (e1, e2)           -> 
+        pp_expr e1; pr " /. "; pp_expr e2
+    | E_Mod (e1, e2)            -> 
+        pp_expr e1; pr " % "; pp_expr e2
+    | E_Pow (e1, e2)            -> 
+        pp_expr e1; pr " ^ "; pp_expr e2
+    | E_Eq (e1, e2)             -> 
+        pp_expr e1; pr " = "; pp_expr e2
+    | E_Differ (e1, e2)         -> 
+        pp_expr e1; pr " <> "; pp_expr e2
+    | E_Equal (e1, e2)          -> 
+        pp_expr e1; pr " == "; pp_expr e2
+    | E_NEqual (e1, e2)         -> 
+        pp_expr e1; pr " != "; pp_expr e2
+    | E_Lt (e1, e2)             -> 
+        pp_expr e1; pr " < "; pp_expr e2
+    | E_Gt (e1, e2)             -> 
+        pp_expr e1; pr " > "; pp_expr e2
+    | E_Leq (e1, e2)            -> 
+        pp_expr e1; pr " <= "; pp_expr e2
+    | E_Geq (e1, e2)            -> 
+        pp_expr e1; pr " >= "; pp_expr e2
+    | E_Andlogic (e1, e2)       -> 
+        pp_expr e1; pr " && "; pp_expr e2
+    | E_Orlogic (e1, e2)        -> 
+        pp_expr e1; pr " || "; pp_expr e2
+    | E_Assign (e1, e2)         -> 
+        pp_expr e1; pr ":="; pp_expr e2
+    | E_Semicolon (e1, e2)      -> 
+        pp_expr e1; pr ";\n"; pp_expr e2
+    | E_While (e1, e2)          -> 
+        pr "while "; pp_expr e1; pr " do\n";
+        pp_expr e2; pr "\ndone\n"
+    | E_Match (e, ps)           -> 
+        pr "match "; pp_expr e; pr " with\n"; 
+        pp_patterns ps; pr "end\n"
+    | E_IfStmt (e1, e2, e3)     -> 
+        pr "if "; pp_expr e1; pr " then"; pp_expr e2;
+        (match e3 with
+         | None -> ()
+         | Some e -> pr "else"; pp_expr e)
+    | E_LetIn (ldef, e)         -> 
+        pp_letdef ldef; pr " in\n"; pp_expr e
+    | E_Dim (i, s)              -> 
+        pr "dim "; pr s;
+        (match i with
+         | None -> ()
+         | Some _i -> print_int _i)
+    | E_New t                   -> 
+        pr "new"; pp_type t
+    | E_Call (s, es)            -> 
+        pr s; pr " "; pp_exprs es
+    | E_Constructor (s, es)     -> 
+        pr s; pr " "; pp_exprs es
+    | E_ArrayEl (s, es)         -> 
+        pr s; pr "["; pp_com_exprs es; pr "]"
+    | E_For (s, i, e1, e2, e3)  -> 
+        pr "for "; pr s; pr " = "; pp_expr e1;
+        (match i with
+         | TO ->  pr " to "; 
+         | DOWNTO -> pr " downto");
+         pp_expr e2; pr " do\n\t"; pp_expr e3; 
+         pr "\ndone"
 
 and pp_exprs =
   function
-    | [] -> ()
+      [] -> ()
     | (hd :: tl) -> pp_expr hd; pr " "; pp_exprs tl
 
 and pp_com_exprs =
   function
-    | [] -> ()
+      [] -> ()
     | [hd] -> pp_expr hd
     | (hd :: tl) -> pp_expr hd; pr ","; pp_com_exprs tl
 
 and pp_pattern =
   function
-    | P_Clause (p, e)       -> pp_pattern p; pr " -> "; pp_expr e; pr "\n"
+      P_Clause (p, e)       -> pp_pattern p; pr " -> "; pp_expr e; pr "\n"
     | P_True                -> pr "true"
     | P_False               -> pr "false"
     | P_LitId id            -> pr id
@@ -242,12 +311,12 @@ and pp_pattern =
 
 and pp_patterns =
   function
-    | [] -> ()
+      [] -> ()
     | (hd :: tl) -> pp_pattern hd; pr " ";  pp_patterns tl
 
 and pp_type =
   function
-    | TY_Unit               -> pr "()"
+      TY_Unit               -> pr "()"
     | TY_Int                -> pr "int"
     | TY_Float              -> pr "float"
     | TY_Bool               -> pr "bool"
@@ -259,10 +328,11 @@ and pp_type =
 
 and pp_types =
   function
-    | [] -> ()
+      [] -> ()
     | (hd :: tl) -> pp_type hd; pr " "; pp_types tl
 ;;
 
 let get_name_of_prog =
   function
-    | PROGRAM (l, t) -> (l, t)
+      PROGRAM (l, t) -> (l, t)
+;;

@@ -32,7 +32,7 @@ class ParametrizedTestCase(unittest.TestCase):
 
 class ShouldFail(ParametrizedTestCase):
     def test_f(self):
-        res = call([exe, fdir + "/" + self.param], stderr=err)
+        res = call([exe, fdir + "/" + self.param], stderr=err, stdout=err)
         try:
             self.assertEqual(res, 0)
         except AssertionError:
@@ -40,7 +40,7 @@ class ShouldFail(ParametrizedTestCase):
 
 class ShouldCompile(ParametrizedTestCase):
     def test_c(self):
-        res = call([exe, pdir + "/" + self.param], stderr=err)
+        res = call([exe, pdir + "/" + self.param], stderr=err, stdout=err)
         try:
             self.assertEqual(res, 0)
         except AssertionError:
