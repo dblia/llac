@@ -1,5 +1,8 @@
-(* Abstract Syntax Tree for llama *)
-open Types
+(* Abstract syntax tree Interface *)
+
+open Types  ;;
+
+(* Type expressions for the llama language *)
 
 type ast_prog = 
     PROGRAM of ast_letdef list * ast_typedef list
@@ -67,7 +70,7 @@ and ast_expr =
   | E_Call        of string * ast_expr list
   | E_Constructor of string * ast_expr list
   | E_ArrayEl     of string * ast_expr list
-  | E_For         of string * for_info * ast_expr * ast_expr * ast_expr
+  | E_For         of string * Types.for_info * ast_expr * ast_expr * ast_expr
 
 and ast_pattern =
     P_True
@@ -81,10 +84,6 @@ and ast_pattern =
   | P_FMinus    of float
   | P_Clause    of ast_pattern * ast_expr
   | P_LitConstr of string * ast_pattern list
-
-and for_info = TO | DOWNTO 
 ;;
 
-val pp_prog : ast_prog -> unit
-val get_name_of_prog : ast_prog -> ast_letdef list * ast_typedef list
-
+val get_name_of_prog : ast_prog -> ast_letdef list * ast_typedef list ;;
