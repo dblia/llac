@@ -1,7 +1,4 @@
 (* Abstract syntax tree Interface *)
-
-open Types  ;;
-
 (* Type expressions for the llama language *)
 
 type ast_prog = 

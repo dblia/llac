@@ -57,26 +57,32 @@ and pp_typedefs =
 and pp_vardef =
   function
       VAR_Id (s, vs, t, e) ->
-        (match e with
-          | E_Unit -> pr " "; pr s
-          | _ -> pr s; pp_vardefs vs;
-                 (match t with
-                  | None -> ()
-                  | Some ty -> pr " : "; pp_type ty);
-                 pr " =\n"; pp_expr e)
+        begin
+           match e with
+           | E_Unit -> pr " "; pr s
+           | _ -> pr s; pp_vardefs vs;
+                   (match t with
+                    | None -> ()
+                    | Some ty -> pr " : "; pp_type ty);
+                   pr " =\n"; pp_expr e
+        end
     | VAR_MutId (s, t, es) ->
-        pr "mutable "; pr s;
-        (match es with
-         | None -> ()
-         | Some _es -> pr " ["; pp_com_exprs _es; pr "] ");
-        (match t with
-         | None -> ()
-         | Some ty -> pr " : "; pp_type ty)
+        begin
+          pr "mutable "; pr s;
+          match es with
+           | None -> ()
+           | Some _es -> pr " ["; pp_com_exprs _es; pr "] ";
+          match t with
+           | None -> ()
+           | Some ty -> pr " : "; pp_type ty
+        end
     | VAR_Formal (s, ty) ->
-        pr s;
-        (match ty with
-         | None -> ()
-         | Some _ty -> pr " : "; pp_type _ty)
+        begin
+          pr s;
+          match ty with
+          | None -> ()
+          | Some _ty -> pr " : "; pp_type _ty
+        end
 
 and pp_vardefs =
   function
@@ -175,11 +181,13 @@ and pp_expr =
         pr s; pr "["; pp_com_exprs es; pr "]"
     | E_For (s, i, e1, e2, e3)  ->
         pr "for "; pr s; pr " = "; pp_expr e1;
-        (match i with
-         | UPTO ->  pr " to ";
-         | DOWNTO -> pr " downto");
-         pp_expr e2; pr " do\n\t"; pp_expr e3;
-         pr "\ndone"
+        begin 
+          match i with
+          | UPTO ->  pr " to ";
+          | DOWNTO -> pr " downto"
+        end;
+        pp_expr e2; pr " do\n\t"; pp_expr e3;
+        pr "\ndone"
 
 and pp_exprs =
   function

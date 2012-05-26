@@ -1,16 +1,19 @@
+open Lexing
 open Pp_ast
-open Ast
+open Error
 
 let main =
-  let input = 
+  let input =
     if Array.length Sys.argv > 1 then open_in Sys.argv.(1)
-    else stdin 
+    else stdin
   in
   let lexbuf = Lexing.from_channel input in
   try
     let ast = Parser.program Lexer.lexer lexbuf in
-    Pp_ast.pp_prog ast
+    Pp_ast.pp_prog ast;
+    exit 0
   with Parsing.Parse_error ->
-    Printf.eprintf "syntax error in line %d, char %d\n" (lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum) 
-        (lexbuf.Lexing.lex_curr_p.Lexing.pos_cnum - lexbuf.Lexing.lex_curr_p.Lexing.pos_bol) ;
+    let lbuf = lexbuf.lex_curr_p in
+    message "Parsing error: %a\n" print_position (POS_Point lbuf);
     exit 1
+;;

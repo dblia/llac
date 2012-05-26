@@ -1,3 +1,5 @@
+-- Before typechecking i should create the error handling 
+   functions
 -- a master Makefile to handle the sub-Makefiles
 -- currently stopping the lexing when a false token found.
    i should change this
