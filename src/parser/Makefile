@@ -1,62 +1,73 @@
-########################################################
- # 
- # Makefile for Llama language
- #
- # This file is part of Llammac project.
- #
-########################################################
-
-.PHONY: all
+.PHONY: clean distclean count_lines
 
 # OS type: Linux/Win DJGPP
 ifdef OS
-   EXE=.exe
+   EXE = .exe
 else
-   EXE=
+   EXE = 
 endif
 
-RM = /bin/rm
-
-OCAMLC = ocamlc
+CAMLP5_FLAGS = -pp "camlp5o ./extend.cmo"
 OCAMLC_FLAGS = -g
+OCAMLOPT_FLAGS = 
+OCAMLC = ocamlc $(OCAMLC_FLAGS)
+OCAMLOPT = ocamlopt $(OCAMLOPT_FLAGS)
 OCAMLDEP = ocamldep
 
 EXE_FILE = llama$(EXE)
-ML_FILES = lexer.ml error.ml pp_ast.ml ast.ml types.ml parser.ml ../../main.ml
-MLI_FILES = lexer.mli error.mli pp_ast.mli ast.mli types.mli parser.mli 
-CMO_FILES = $(patsubst %.ml, %.cmo, $(ML_FILES))
-CMI_FILES = $(patsubst %.ml, %.cmi, $(ML_FILES))
+ML_FILES = ast.ml pp_ast.ml hashcons.ml identifier.ml error.ml types.ml symbol.ml \
+  lexer.ml parser.ml ast.ml
+MLI_FILES = ast.ml pp_ast.mli hashcons.mli identifier.mli error.mli types.mli symbol.mli \
+  parser.mli lexer.mli
+CMO_FILES = $(patsubst %.ml,%.cmo,$(ML_FILES))
+CMI_FILES = $(patsubst %.ml,%.cmi,$(ML_FILES))
+CMX_FILES = $(patsubst %.ml,%.cmx,$(ML_FILES))
+OBJ_FILES = $(patsubst %.ml,%.o,$(ML_FILES))
+PARSER_FILES = parser.ml parser.mli parser.output lexer.ml
+SRC_FILES = Makefile extend.ml lexer.mll parser.mly \
+  $(filter-out Parser.% Lexer.%,$(ML_FILES)) \
+  $(filter-out Parser.%,$(MLI_FILES))
 
 all: $(EXE_FILE)
 
-%.cmo: %.ml %.mli
-	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
+extend.cmo: extend.ml
+	$(OCAMLC) -pp "camlp5o pa_extend.cmo q_MLast.cmo" -I +camlp5 -c $<
 
-%.cmi: %.mli
-	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
+%.cmo: %.ml %.mli extend.cmo
+	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
 
-%.cmo %.cmi: %.ml
-	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
+%.cmx: %.ml extend.cmo
+	$(OCAMLOPT) $(CAMLP5_FLAGS) -c $<
 
-lexer.ml: lexer.mll
-	ocamllex -o $@ $<
+%.cmi: %.mli extend.cmo
+	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
 
-parser.ml parser.mli: parser.mly
-	ocamlyacc -v $<
+%.cmo %.cmi: %.ml extend.cmo
+	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
+
+.PHONY: all clean count_lines depend
 
 $(EXE_FILE): $(CMO_FILES)
-	$(OCAMLC) $(OCAMLC_FLAGS) -o $@ $^
+	$(OCAMLC) -o $@ $(CMO_FILES)
 
-.PHONY: clean distclean
+parser.ml parser.mli: parser.mly
+	ocamlyacc -v parser.mly
+
+lexer.ml: lexer.mll
+	ocamllex lexer.mll
 
 -include .depend
 
-depend: $(ML_FILES) $(MLI_FILES)
-	$(OCAMLDEP)  $^ > .depend
+depend: $(ML_FILES) $(MLI_FILES) extend.cmo
+	$(OCAMLDEP) $(CAMLP5_FLAGS) \
+          $(filter-out extend.cmo,$^) > .depend
 
 clean:
-	$(RM) -f parser.ml parser.mli parser.output lexer.ml $(CMO_FILES) $(CMI_FILES) *~
+	$(RM) $(CMO_FILES) $(CMI_FILES) $(CMX_FILES) $(OBJ_FILES) \
+		extend.cm* $(PARSER_FILES) *~
 
 distclean: clean
-	$(RM) -f $(EXE_FILE) .depend
+	$(RM) $(EXE_FILE) .depend
 
+count_lines:
+	wc -l $(SRC_FILES)

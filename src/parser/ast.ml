@@ -1,10 +1,10 @@
 (* Abstract syntax tree produced by parsing *)
 
-open Types  ;;
+open Types
 
 (* Type expressions for the llama language *)
 
-type ast_prog = 
+type ast_prog =
     PROGRAM of ast_letdef list * ast_typedef list
 
 and ast_letdef =

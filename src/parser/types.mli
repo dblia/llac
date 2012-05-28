@@ -1,4 +1,4 @@
-(* Basic and auxilary AST types used by ast.ml and parser.ml  *)
+(* Types interface file *)
 
 type ty =
     TY_Unit
@@ -13,3 +13,6 @@ type ty =
 ;;
 
 type for_info = UPTO | DOWNTO ;;
+
+val sizeOfType : ty -> int ;;
+val equalType : ty -> ty -> bool ;;
