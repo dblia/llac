@@ -16,3 +16,6 @@ type for_info = UPTO | DOWNTO ;;
 
 val sizeOfType : ty -> int ;;
 val equalType : ty -> ty -> bool ;;
+
+val isSimpleType : ty -> bool ;;
+val isNotArrayFunc : ty -> bool ;;

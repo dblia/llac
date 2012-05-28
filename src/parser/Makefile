@@ -15,10 +15,10 @@ OCAMLOPT = ocamlopt $(OCAMLOPT_FLAGS)
 OCAMLDEP = ocamldep
 
 EXE_FILE = llama$(EXE)
-ML_FILES = ast.ml pp_ast.ml hashcons.ml identifier.ml error.ml types.ml symbol.ml \
-  lexer.ml parser.ml ast.ml ../../main.ml
-MLI_FILES = ast.ml pp_ast.mli hashcons.mli identifier.mli error.mli types.mli symbol.mli \
-  parser.mli lexer.mli
+ML_FILES = error.ml ast.ml pp_ast.ml hashcons.ml identifier.ml types.ml typecheck.ml \
+		   symbol.ml lexer.ml parser.ml ast.ml ../../main.ml
+MLI_FILES = error.mli ast.mli pp_ast.mli hashcons.mli identifier.mli typecheck.ml \
+			types.mli symbol.mli parser.mli lexer.mli
 CMO_FILES = $(patsubst %.ml,%.cmo,$(ML_FILES))
 CMI_FILES = $(patsubst %.ml,%.cmi,$(ML_FILES))
 CMX_FILES = $(patsubst %.ml,%.cmx,$(ML_FILES))
