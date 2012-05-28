@@ -14,9 +14,9 @@ let rec typeOfExpr =
   | E_LitInt _    -> TY_Int
   | E_LitChar _   -> TY_Char
   | E_LitFloat _  -> TY_Float
-(*| E_LitId _     ->
-  | E_LitConstr _ ->
-  | E_LitString _ ->*)
+  | E_LitId _     -> TY_Unit (* .. *)
+  | E_LitConstr _ -> TY_Unit (* .. *)
+  | E_LitString _ -> TY_Unit (* .. *)
   | E_New t       ->
       if isNotArrayFunc t then t
       else (error "Type mismatch (new)"; raise Terminate)
@@ -36,7 +36,7 @@ let rec typeOfExpr =
       if (=) (typeOfExpr e) TY_Bool then TY_Bool
       else (error "Type mismatch (not)"; raise Terminate)
   | E_Deref e     -> typeOfExpr e
-(*  | E_Delete e    -> *)
+  | E_Delete e    -> TY_Unit (* .. *)
   | E_Block e     -> typeOfExpr e
   | E_Plus (e1, e2)        ->
       if (=) (typeOfExpr e1) TY_Int then
@@ -156,3 +156,40 @@ let rec typeOfExpr =
         if (=) (typeOfExpr e2) TY_Bool then TY_Bool
         else (error "Type mismatch (e1 ||  e2)"; raise Terminate)
       else (error "Type mismatch (e1 ||) not bool"; raise Terminate)
+  | E_Assign (e1, e2)      -> TY_Unit (* .. *)
+  | E_Semicolon (e1, e2)   -> typeOfExpr e2
+  | E_While (e1, e2)       ->
+      if isBool (typeOfExpr e1) then
+        if isUnit (typeOfExpr e2) then TY_Unit
+        else (error "Type mismatch (while) not unit"; raise Terminate)
+      else (error "Type mismatch (while) not bool"; raise Terminate)
+  | E_For (s, ti, e1, e2, e)  ->
+      let typ1 = typeOfExpr e1 in
+      let typ2 = typeOfExpr e2 in
+      if (=) typ1 typ2 then
+        if isUnit (typeOfExpr e) && typ1 = TY_Int then TY_Unit
+        else (error "Type mismatch (for)"; raise Terminate)
+      else (error "Type mismatch (for) t1 t2"; raise Terminate)
+  | E_Match (e1, e2)       -> TY_Unit (* .. *)
+  | E_IfStmt (e, e1, e2)      ->
+      if isBool (typeOfExpr e) then
+        let typ1 = typeOfExpr e1 in
+        begin
+          match e2 with
+          | Some _e2 ->
+              if (=) typ1 (typeOfExpr _e2) then typ1
+              else (error "Type mismatch (if-else)"; raise Terminate)
+          | None -> typ1
+        end
+      else (error "Type mismatch (if) not bool"; raise Terminate)
+  | E_LetIn (ld, e)        -> typeOfExpr e
+  | E_Dim (i, s)           -> TY_Int
+  | E_Call (s, el)         -> TY_Unit (* .. *)
+  | E_Constructor (s, el)  -> TY_Unit (* .. *)
+  | E_ArrayEl (s, el)      ->
+      match el with
+      | [] -> TY_Int
+      | (e :: es) ->
+          if (=) (typeOfExpr e) TY_Int then typeOfExpr (E_ArrayEl (s, es))
+          else (error "Type mismatch (array_el) not int"; raise Terminate)
+
