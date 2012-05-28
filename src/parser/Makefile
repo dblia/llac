@@ -16,7 +16,7 @@ OCAMLDEP = ocamldep
 
 EXE_FILE = llama$(EXE)
 ML_FILES = ast.ml pp_ast.ml hashcons.ml identifier.ml error.ml types.ml symbol.ml \
-  lexer.ml parser.ml ast.ml
+  lexer.ml parser.ml ast.ml ../../main.ml
 MLI_FILES = ast.ml pp_ast.mli hashcons.mli identifier.mli error.mli types.mli symbol.mli \
   parser.mli lexer.mli
 CMO_FILES = $(patsubst %.ml,%.cmo,$(ML_FILES))
