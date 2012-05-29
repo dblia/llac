@@ -144,21 +144,18 @@ let lookupEntry id how err =
     match how with
     | LOOKUP_CURRENT_SCOPE ->
         let e = H.find !tab id in
-        if e.entry_scope.sco_nesting = scc.sco_nesting then
-          e
-        else
-          raise Not_found
+        if e.entry_scope.sco_nesting = scc.sco_nesting then e
+        else raise Not_found
     | LOOKUP_ALL_SCOPES ->
         let rec walk es =
           match es with
           | [] ->
               raise Not_found
           | e :: es ->
-              if not e.entry_scope.sco_hidden then
-                e
-              else
-                walk es in
-        walk (H.find_all !tab id) in
+              if not e.entry_scope.sco_hidden then e
+              else walk es 
+        in walk (H.find_all !tab id) 
+  in
   if err then
     try
       lookup ()

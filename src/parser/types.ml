@@ -30,6 +30,12 @@ let rec equalType t1 t2 =
  | _                                        -> t1 = t2
 ;;
 
+let isRef =
+  function
+      TY_Ref _ -> true
+    | _ -> false
+;;
+
 let isUnit =
   function
       TY_Unit -> true
@@ -48,7 +54,8 @@ let isSimpleType =
     | _ -> false
 ;;
 
-let isNotArrayFunc =
+let isNotArrayOrFunc =
   function
       TY_Array _ | TY_Function _ -> false
     | _ -> true
+;;
