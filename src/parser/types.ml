@@ -59,3 +59,10 @@ let isNotArrayOrFunc =
       TY_Array _ | TY_Function _ -> false
     | _ -> true
 ;;
+
+exception No_value
+
+let get = function
+    None -> raise No_value
+  | Some a -> a
+;;

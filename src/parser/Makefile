@@ -4,21 +4,21 @@
 ifdef OS
    EXE = .exe
 else
-   EXE = 
+   EXE =
 endif
 
 CAMLP5_FLAGS = -pp "camlp5o ./extend.cmo"
 OCAMLC_FLAGS = -g
-OCAMLOPT_FLAGS = 
+OCAMLOPT_FLAGS =
 OCAMLC = ocamlc $(OCAMLC_FLAGS)
 OCAMLOPT = ocamlopt $(OCAMLOPT_FLAGS)
 OCAMLDEP = ocamldep
 
 EXE_FILE = llama$(EXE)
-ML_FILES = error.ml ast.ml pp_ast.ml hashcons.ml identifier.ml types.ml symbol.ml \
-		   typecheck.ml lexer.ml parser.ml ast.ml ../../main.ml
-MLI_FILES = error.mli ast.mli pp_ast.mli hashcons.mli identifier.mli typecheck.ml \
-			types.mli symbol.mli parser.mli lexer.mli
+ML_FILES = error.ml ast.ml pp_ast.ml hashcons.ml identifier.ml types.ml \
+		   symbol.ml typecheck.ml lexer.ml parser.ml ../../main.ml
+MLI_FILES = error.mli ast.mli pp_ast.mli hashcons.mli identifier.mli types.mli \
+			symbol.mli typecheck.mli lexer.mli parser.mli
 CMO_FILES = $(patsubst %.ml,%.cmo,$(ML_FILES))
 CMI_FILES = $(patsubst %.ml,%.cmi,$(ML_FILES))
 CMX_FILES = $(patsubst %.ml,%.cmx,$(ML_FILES))

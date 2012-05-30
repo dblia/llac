@@ -116,6 +116,8 @@ let hideScope sco flag =
 
 exception Failure_NewEntry of entry
 
+(* err := true  : check if variable exists 
+ * err := false : do nothing *)
 let newEntry id inf err =
   try
     if err then begin
@@ -259,7 +261,9 @@ let newTemporary typ =
   } in
   incr tempNumber;
   newEntry id (ENTRY_temporary inf) false
+;;
 
+(* find the forward definitions from the entry given *)
 let forwardFunction e =
   match e.entry_info with
   | ENTRY_function inf ->

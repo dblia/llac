@@ -40,11 +40,12 @@ and temporary_info = {                        (** Προσωρινή μεταβ�
   temporary_offset : int                      (* Offset στο Ε.Δ.       *)
 }
 
-and entry_info = ENTRY_none
-               | ENTRY_variable of variable_info
-               | ENTRY_function of function_info
-               | ENTRY_parameter of parameter_info
-               | ENTRY_temporary of temporary_info
+and entry_info = 
+    ENTRY_none
+  | ENTRY_variable of variable_info
+  | ENTRY_function of function_info
+  | ENTRY_parameter of parameter_info
+  | ENTRY_temporary of temporary_info
 
 and entry = {
   entry_id    : Identifier.id;

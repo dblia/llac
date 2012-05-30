@@ -1,3 +1,11 @@
+***** in typecheckin create a field in ast for assigning the expr_type
+      and actually make the typeOf and typeOfExpr function mutually recursive
+      This will be done by a struct eg.
+
+       type sem_val = {
+            expr_type: typ
+        }
+
 -- Before typechecking i should create the error handling 
    functions
 -- a master Makefile to handle the sub-Makefiles

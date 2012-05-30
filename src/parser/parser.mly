@@ -262,10 +262,10 @@ expr:
       { E_UFMinus $2 }
   | T_Not expr %prec NOT 
       { E_Not $2 }
+  | T_New typee 
+      { E_New $2 }
   | T_Delete expr %prec DELETE 
       { E_Delete $2  }
-  | letdef T_In expr 
-      { E_LetIn ($1, $3) }
   /* (* If Stmt *) */
   | T_If expr T_Then expr 
       { E_IfStmt ($2, $4, None) }
@@ -279,8 +279,8 @@ expr:
   | T_Match expr T_With clauses T_End 
       { E_Match ($2, $4) }
   /* (*   *) */
-  | T_New typee 
-      { E_New $2 }
+  | letdef T_In expr 
+      { E_LetIn ($1, $3) }
   | T_Begin expr T_End 
       { E_Block $2 }
   | T_While expr T_Do expr T_Done 

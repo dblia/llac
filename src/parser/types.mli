@@ -22,3 +22,5 @@ val isUnit : ty -> bool ;;
 val isBool : ty -> bool ;;
 val isSimpleType : ty -> bool ;;
 val isNotArrayOrFunc : ty -> bool ;;
+
+val get : 'a option -> 'a ;;
