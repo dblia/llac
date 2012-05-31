@@ -19,7 +19,7 @@ and ast_typedef =
 and ast_vardef =
     VAR_Id of string * ast_vardef list * Types.ty option * ast_expr
   | VAR_MutId of string * Types.ty option * ast_expr list option
-  | VAR_Formal of string * Types.ty option
+(*  | VAR_Formal of string * Types.ty option *)
 
 and ast_expr =
     E_Unit

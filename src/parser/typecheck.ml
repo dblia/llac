@@ -10,19 +10,6 @@ open Error
 open Types
 open Ast
 
-let new_parameter f = function
-    VAR_Id (s, [], t, e) ->
-      begin
-        match t with
-        | None -> (error "No typeinfer you must provide a type\n";
-                  raise Terminate)
-        | Some _t ->
-            newParameter (id_make s) _t PASS_BY_VALUE f true
-      end
-  | _ -> (* FIXME: currying (function parameters) *)
-      (error "Not a valid parameter form\n"; raise Terminate)
-;;
-
 exception Terminate
 
 let rec typeOfExpr = function
@@ -276,12 +263,12 @@ and typeOfVardef rec_flag = function
         match varl with
         | [] -> (* var list empty, so we found a variable definition *)
             (* add a new_variable Entry to the current scope *)
-            P.ignore(newVariable (id_make s) (get t) true);
+            P.ignore (newVariable (id_make s) (get t) true);
             (* because definition of the form 'let rec x = e' is not allowed
              * (that means we came from let), we should hide the current
              * scope while we are processing the expr (see comments above). *)
             hideScope (!currentScope) true;
-            P.ignore(typeOfExpr e);
+            P.ignore (typeOfExpr e);
             hideScope (!currentScope) false
         | _ -> (* var list not empty, so we found a function definition *)
             (* we add a new_function Entry to the current scope *)
@@ -290,16 +277,42 @@ and typeOfVardef rec_flag = function
               with Exit -> raise Terminate
             in
             (* we add all function params to the above's function scope *)
+            let new_parameter f = function
+                VAR_Id (s, [], t, e) ->
+                  begin
+                    match t with
+                    | None -> (error "No typeinfer you must provide a type\n";
+                              raise Terminate)
+                    | Some _t ->
+                        newParameter (id_make s) _t PASS_BY_VALUE f true
+                  end
+              | _ -> (* FIXME: currying (function parameters).
+                      * eg. VAR_Id (s, lst, t, e) *)
+                  (error "Not a valid parameter form\n"; raise Terminate)
+            in
             List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
             endFunctionHeader fn (get t); (* FIXME: check type t *)
-            (* in case of a let rec we shouldn't hide the scope while we are 
+            (* in case of a let rec we shouldn't hide the scope while we are
              * processing the function body. *)
             if rec_flag then ()
             else (hideScope (!currentScope) true;
                   P.ignore (typeOfExpr e);
                   hideScope (!currentScope) false)
       end
-  | VAR_MutId (s, t, exl) -> () (* TODO *)
-  | VAR_Formal (s, t)    -> () (* TODO *)
+  | VAR_MutId (s, t, exprl) ->
+      begin
+        match exprl with
+        | None -> (* simple variable definition *)
+            P.ignore (newVariable (id_make s) (TY_Ref (get t)) true)
+        | Some es -> (* array variable definition *)
+            (* es types must be integers *)
+            let check_array_dim ty =
+              if (=) ty TY_Int then ()
+              else (error "Array exprs should be integers.\n"; raise Terminate)
+            in List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
+            P.ignore (newVariable (id_make s)
+              (TY_Array (List.length es, get t)) true)
+      end
 ;;
+
 

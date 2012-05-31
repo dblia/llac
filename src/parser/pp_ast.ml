@@ -76,13 +76,13 @@ and pp_vardef =
            | None -> ()
            | Some ty -> pr " : "; pp_type ty
         end
-    | VAR_Formal (s, ty) ->
+(*    | VAR_Formal (s, ty) ->
         begin
           pr s;
           match ty with
           | None -> ()
           | Some _ty -> pr " : "; pp_type _ty
-        end
+        end *)
 
 and pp_vardefs =
   function
