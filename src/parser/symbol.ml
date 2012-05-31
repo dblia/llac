@@ -13,9 +13,9 @@ module H = Hashtbl.Make (
 type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE
 
 type param_status =
-  | PARDEF_COMPLETE
-  | PARDEF_DEFINE
-  | PARDEF_CHECK
+  | PARDEF_COMPLETE (* already defined function *)
+  | PARDEF_DEFINE   (*   *) 
+  | PARDEF_CHECK    (*   *)
 
 type scope = {
   sco_parent : scope option;
@@ -85,12 +85,15 @@ let currentScope = ref the_outer_scope
 let quadNext = ref 1
 let tempNumber = ref 1
 
+(* init hash table to 0 size *)
 let tab = ref (H.create 0)
 
 let initSymbolTable size =
    tab := H.create size;
    currentScope := the_outer_scope
 
+(* creates a new scope:
+ * one level nested from the current scope *)
 let openScope () =
   let sco = {
     sco_parent = Some !currentScope;
@@ -101,6 +104,7 @@ let openScope () =
   } in
   currentScope := sco
 
+(* closes current scope and sets current to it's parent *)
 let closeScope () =
   let sco = !currentScope in
   let manyentry e = H.remove !tab e.entry_id in
@@ -108,16 +112,19 @@ let closeScope () =
   match sco.sco_parent with
   | Some scp ->
       currentScope := scp
-  | None ->
+  | None -> (* that means that you are in the outer_scope *)
       internal "cannot close the outer scope!"
 
+(* change the scope's given visibility *)
 let hideScope sco flag =
   sco.sco_hidden <- flag
 
 exception Failure_NewEntry of entry
 
-(* err := true  : check if variable exists 
- * err := false : do nothing *)
+(* adds a new entry in the current scope:
+ * the type of entry depends on the inf given (see functions below).
+ * set 'err' to true if you want to check for duplicate entry_id's,
+ * else set 'err' to false  *)
 let newEntry id inf err =
   try
     if err then begin
@@ -140,6 +147,9 @@ let newEntry id inf err =
     error "duplicate identifier %a" pretty_id id;
     e
 
+(* lookup for the entry given in the scope asked:
+ * set 'err' to true or false depending on if you want to
+ * print possible errors or not  *)    
 let lookupEntry id how err =
   let scc = !currentScope in
   let lookup () =
@@ -155,8 +165,8 @@ let lookupEntry id how err =
               raise Not_found
           | e :: es ->
               if not e.entry_scope.sco_hidden then e
-              else walk es 
-        in walk (H.find_all !tab id) 
+              else walk es
+        in walk (H.find_all !tab id)
   in
   if err then
     try
@@ -170,6 +180,7 @@ let lookupEntry id how err =
   else
     lookup ()
 
+(* adds a new variable into the current scope *)    
 let newVariable id typ err =
   !currentScope.sco_negofs <- !currentScope.sco_negofs - sizeOfType typ;
   let inf = {
@@ -178,6 +189,7 @@ let newVariable id typ err =
   } in
   newEntry id (ENTRY_variable inf) err
 
+(* *)  
 let newFunction id err =
   try
     let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in
@@ -202,6 +214,7 @@ let newFunction id err =
     } in
     newEntry id (ENTRY_function inf) false
 
+(* *)
 let newParameter id typ mode f err =
   match f.entry_info with
   | ENTRY_function inf -> begin
@@ -305,3 +318,4 @@ let endFunctionHeader e typ =
       inf.function_pstatus <- PARDEF_COMPLETE
   | _ ->
       internal "Cannot end parameters in a non-function"
+
