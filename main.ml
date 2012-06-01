@@ -11,7 +11,7 @@ let main =
   let lexbuf = Lexing.from_channel input in
   try
     let ast = Parser.program Lexer.lexer lexbuf in
-    Pp_ast.pp_prog ast;
+    (*Pp_ast.pp_prog ast;*)
     Typecheck.typeOf ast;
     exit 0
   with Parsing.Parse_error ->

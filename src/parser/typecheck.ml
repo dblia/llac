@@ -28,6 +28,7 @@ and typeOfLetdef = function
    * body of the block. So we have to make it hidden to the function body.
    * rec_flag := false *)
     L_Let vl    ->
+      openScope();
       List.iter (fun x -> typeOfVardef false x) vl
   (* let rec:
    * In a let rec block the variable/function defined should BE visible by the
@@ -59,9 +60,10 @@ and typeOfVardef rec_flag = function
             (* because definition of the form 'let rec x = e' is not allowed
              * (that means we came from let), we should hide the current
              * scope while we are processing the expr (see comments above). *)
-            hideScope (!currentScope) true;
-            P.ignore (typeOfExpr e);
-            hideScope (!currentScope) false
+            if rec_flag then (P.ignore (typeOfExpr e); ())
+            else (hideScope (!currentScope) true; (* XXX *)
+                  P.ignore (typeOfExpr e);
+                  hideScope (!currentScope) false) (* XXX *)
         | _ -> (* var list not empty, so we found a function definition *)
             (* we add a new_function Entry to the current scope *)
             let fn =
@@ -69,6 +71,7 @@ and typeOfVardef rec_flag = function
               with Exit -> raise Terminate
             in
             (* we add all function params to the above's function scope *)
+            if not rec_flag then hideScope (!currentScope) true; (* XXX *)
             let new_parameter f = function
                 VAR_Id (s, [], t, e) ->
                   begin
@@ -82,14 +85,14 @@ and typeOfVardef rec_flag = function
                       * eg. VAR_Id (s, lst, t, e) *)
                   (error "Not a valid parameter form\n"; raise Terminate)
             in
+            openScope();
             List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
-            endFunctionHeader fn (get t); (* FIXME: check type t *)
             (* in case of a let rec we shouldn't hide the scope while we are
              * processing the function body. *)
-            if rec_flag then ()
-            else (hideScope (!currentScope) true;
-                  P.ignore (typeOfExpr e);
-                  hideScope (!currentScope) false)
+            endFunctionHeader fn (get t); (* FIXME: check type t *)
+            P.ignore (typeOfExpr e);
+            closeScope();
+            hideScope (!currentScope) false; (* XXX *)
       end
   | VAR_MutId (s, t, exprl) ->
       begin
@@ -121,7 +124,7 @@ and typeOfExpr = function
         | ENTRY_parameter p -> p.parameter_type;
         | _ -> (error "E_LitId not found"; raise Terminate)
       end
-  | E_LitConstr id -> (* XXX: check if it's wright *)
+  | E_LitConstr id -> (* XXX: check if it's right *)
       let l = lookupEntry (id_make id) LOOKUP_ALL_SCOPES true in
       begin
         match l.entry_info with
