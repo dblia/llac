@@ -54,7 +54,7 @@ and typeOfLetdef = function
       openScope(); (* scope for the definition only *)
       List.iter (fun x -> typeOfVardef false x) vl
   (* let rec:
-   * 
+   *
    * We should make two passes to let rec definitions. The first one is for
    * adding to the symbol table all forward functions and it's parameters, and
    * the second one we add all the definition and we handle the body's of each
@@ -66,7 +66,7 @@ and typeOfLetdef = function
   | L_LetRec vl -> (* vl: vardefs connected with 'and' keyword *)
       openScope(); (* scope for the definition only *)
       let find_forwards = function
-          VAR_Id (s, varl, t, e) when varl != [] ->
+          VAR_Id (s, varl, t, e)  ->
             let fn =
               try newFunction (id_make s) true
               with Exit -> raise Terminate
@@ -142,6 +142,7 @@ and typeOfExpr = function
         match l.entry_info with
         | ENTRY_variable v -> v.variable_type;
         | ENTRY_parameter p -> p.parameter_type;
+        | ENTRY_function f -> f.function_result;
         | _ -> (error "E_LitId not found"; raise Terminate)
       end
   | E_LitConstr id -> (* XXX: check if it's right *)
@@ -332,7 +333,30 @@ and typeOfExpr = function
       closeScope();
       typ
   | E_Dim (i, s)           -> TY_Int
-  | E_Call (s, el)         -> TY_Unit (* TODO *)
+  | E_Call (s, el)         ->
+      let en = lookupEntry (id_make s) LOOKUP_ALL_SCOPES true in
+      begin
+        match en.entry_info with
+        | ENTRY_function info -> begin
+            let typ = info.function_result in
+            let pars = info.function_paramlist in
+            let param_type p =
+              match p.entry_info with
+              | ENTRY_parameter inf -> inf.parameter_type
+              | _ -> (error "call: params expected\n"; raise Terminate)
+            in
+            let check_call_args a b =
+              if (=) (typeOfExpr a) b then ()
+              else (error "different call-arg types.\n"; raise Terminate)
+            in
+            try
+              List.iter2 (fun x y -> check_call_args x (param_type y)) el pars;
+              typ
+            with Invalid_argument e ->
+              (error "different number of args in call.\n"; raise Terminate)
+        end
+        | _ -> (error "call name not a func\n"; raise Terminate)
+      end
   | E_Constructor (s, el)  -> TY_Unit (* TODO *)
   | E_ArrayEl (s, el)      ->
       match el with

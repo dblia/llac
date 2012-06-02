@@ -1,3 +1,10 @@
+--check what happens in the following example
+
+let rec a (x : int) : int = a1 + 1
+and a1 : int = 2
+
+
+
 ***** in typecheckin create a field in ast for assigning the expr_type
       and actually make the typeOf and typeOfExpr function mutually recursive
       This will be done by a struct eg.
