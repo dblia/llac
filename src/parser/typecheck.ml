@@ -12,6 +12,21 @@ open Ast
 
 exception Terminate
 
+(* auxilary function for adding new parameters to the scope given *)
+let new_parameter f = function
+    VAR_Id (s, [], t, e) ->
+      begin
+        match t with
+        | None -> (error "No typeinfer you must provide a type\n";
+                  raise Terminate)
+        | Some _t ->
+            newParameter (id_make s) _t PASS_BY_VALUE f true
+      end
+  | _ -> (* FIXME: currying (function parameters).
+          * eg. VAR_Id (s, lst, t, e) *)
+      (error "Not a valid parameter form\n"; raise Terminate)
+;;
+
 let rec typeOf = function
     PROGRAM (ldfs, tdfs) ->
       List.iter (fun x -> typeOfLetdef x) ldfs;
@@ -19,31 +34,53 @@ let rec typeOf = function
 
 (* Every letfed block can re-define variables or functions that have been
  * defined in a previous letdef block.
- * So we wont't make a new scope everytime we found a new letdef but we'll
- * add it to the same scope (eg the_outer_scope). In case of duplicate values
- * we have to add the new entry to the symbol table and remove the old one. *)
+ *
+ * So it isn't actually necessary to make a new scope everytime we found a new
+ * letdef but we could add the new definiton into the same scope (eg the top
+ * level scope). In case of duplicate values we should add the new entry to the
+ * symbol table and remove the old one.
+ *
+ * Nevertheless, we follow a different strategy because of the symbol's table
+ * form given (we don't want to change it). Currently, we open a new scope in
+ * every letdef found because later we'll want to hide the definition from the
+ * body and that won't be possible because the hiddeScope func given hides the
+ * entire scope and not the name which we only want to hide. *)
 and typeOfLetdef = function
   (* let:
    * In a let block the variable/function defined should NOT be visible by the
-   * body of the block. So we have to make it hidden to the function body.
+   * body of the block. So we have to make it hidden by the function body.
    * rec_flag := false *)
-    L_Let vl    ->
-      openScope();
+    L_Let vl    -> (* vl: vardefs connected with 'and' keyword *)
+      openScope(); (* scope for the definition only *)
       List.iter (fun x -> typeOfVardef false x) vl
   (* let rec:
+   * 
+   * We should make two passes to let rec definitions. The first one is for
+   * adding to the symbol table all forward functions and it's parameters, and
+   * the second one we add all the definition and we handle the body's of each
+   * definition.
+   *
    * In a let rec block the variable/function defined should BE visible by the
-   * body of the block. So we have NOT make it hidden to the function body.
+   * body of the block. So we do NOT make it hidden from the function body.
    * rec_flag := true *)
-  | L_LetRec vl ->
-        match vl with
-        | (VAR_Id (s, varl, t, e) :: vls) ->
+  | L_LetRec vl -> (* vl: vardefs connected with 'and' keyword *)
+      openScope(); (* scope for the definition only *)
+      let find_forwards = function
+          VAR_Id (s, varl, t, e) when varl != [] ->
             let fn =
               try newFunction (id_make s) true
               with Exit -> raise Terminate
             in
             forwardFunction fn;
-            List.iter (fun x -> typeOfVardef true x) vls
-        | _ -> () (* XXX: no nothing for other types of var *)
+            openScope(); (* new scope for the args of forward functions *)
+            List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
+            closeScope();
+            endFunctionHeader fn (get t);
+        | _ -> () (* for non-functions do nothing *)
+      in
+      List.iter (fun x -> P.ignore (find_forwards x)) vl; (* first traverse *)
+      List.iter (fun x -> typeOfVardef true x) vl         (* second traverse *)
+
 
 and typeOfTypedef = function
     TD_Type tl   -> () (* TODO *)
@@ -57,42 +94,25 @@ and typeOfVardef rec_flag = function
         | [] -> (* var list empty, so we found a variable definition *)
             (* add a new_variable Entry to the current scope *)
             P.ignore (newVariable (id_make s) (get t) true);
-            (* because definition of the form 'let rec x = e' is not allowed
-             * (that means we came from let), we should hide the current
-             * scope while we are processing the expr (see comments above). *)
-            if rec_flag then (P.ignore (typeOfExpr e); ())
-            else (hideScope (!currentScope) true; (* XXX *)
-                  P.ignore (typeOfExpr e);
-                  hideScope (!currentScope) false) (* XXX *)
+            (* now we hide the definitions while we're processing the body *)
+            if not rec_flag then hideScope (!currentScope) true;
+            P.ignore (typeOfExpr e);
+            hideScope (!currentScope) false
         | _ -> (* var list not empty, so we found a function definition *)
             (* we add a new_function Entry to the current scope *)
             let fn =
               try newFunction (id_make s) true
               with Exit -> raise Terminate
             in
-            (* we add all function params to the above's function scope *)
-            if not rec_flag then hideScope (!currentScope) true; (* XXX *)
-            let new_parameter f = function
-                VAR_Id (s, [], t, e) ->
-                  begin
-                    match t with
-                    | None -> (error "No typeinfer you must provide a type\n";
-                              raise Terminate)
-                    | Some _t ->
-                        newParameter (id_make s) _t PASS_BY_VALUE f true
-                  end
-              | _ -> (* FIXME: currying (function parameters).
-                      * eg. VAR_Id (s, lst, t, e) *)
-                  (error "Not a valid parameter form\n"; raise Terminate)
-            in
-            openScope();
+            (* in case of let we hide the definition from the body *)
+            if not rec_flag then hideScope (!currentScope) true;
+            openScope(); (* new scope for the args and body definition *)
+            (* now we add the parameters of the function *)
             List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
-            (* in case of a let rec we shouldn't hide the scope while we are
-             * processing the function body. *)
-            endFunctionHeader fn (get t); (* FIXME: check type t *)
+            endFunctionHeader fn (get t); (* end of function header *)
             P.ignore (typeOfExpr e);
-            closeScope();
-            hideScope (!currentScope) false; (* XXX *)
+            closeScope(); (* close the body's scope *)
+            hideScope (!currentScope) false;
       end
   | VAR_MutId (s, t, exprl) ->
       begin
