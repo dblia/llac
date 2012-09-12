@@ -2,6 +2,8 @@ open Identifier
 open Error
 open Types
 
+let internal = Format.print_string
+
 module H = Hashtbl.Make (
   struct
     type t = id

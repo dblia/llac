@@ -6,7 +6,7 @@ import unittest
 
 from subprocess import call
 
-exe  = "/home/jimmisbl/Desktop/llac/src/parser/llama"
+exe  = "/home/jimmisbl/Desktop/llac/main.native"
 fdir = '/home/jimmisbl/Desktop/llac/testsuite/should_fail/'
 pdir = '/home/jimmisbl/Desktop/llac/testsuite/should_compile/'
 
