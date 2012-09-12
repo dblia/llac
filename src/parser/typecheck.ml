@@ -327,7 +327,6 @@ and typeOfExpr = function
         end
       else (error "Type mismatch (if) not bool"; raise Terminate)
   | E_LetIn (ld, e)        -> (* local declarations *)
-      openScope();
       typeOfLetdef ld;
       let typ = typeOfExpr e in
       closeScope();
