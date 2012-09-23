@@ -38,3 +38,7 @@ llama.EXE
 
 # autoconf generated files #
 ############################
+
+# useful files #
+############################
+Makefile
