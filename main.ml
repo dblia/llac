@@ -1,4 +1,4 @@
-open Typecheck
+open Semantics
 open Lexing
 open Pp_ast
 open Error
@@ -12,7 +12,7 @@ let main =
   try
     let ast = Parser.program Lexer.lexer lexbuf in
     (*Pp_ast.pp_prog ast;*)
-    Typecheck.typeOf ast;
+    Semantics.typeOf ast;
     exit 0
   with Parsing.Parse_error ->
     let lbuf = lexbuf.lex_curr_p in

@@ -12,6 +12,11 @@ open Ast
 
 exception Terminate
 
+(* External functions that form the Llama's standard library *)
+let library_function = [
+  (* TODO *)
+]
+
 (* auxilary function for adding new parameters to the scope given *)
 let new_parameter f = function
     VAR_Id (s, [], t, e) ->
@@ -44,9 +49,10 @@ let rec typeOf = function
  * form given (we don't want to change it). Currently, we open a new scope in
  * every letdef found because later we'll want to hide the definition from the
  * body and that won't be possible because the hiddeScope func given hides the
- * entire scope and not the name which we only want to hide. *)
+ * entire scope and not the name which we would only like to hide. *)
 and typeOfLetdef = function
   (* let:
+   *
    * In a let block the variable/function defined should NOT be visible by the
    * body of the block. So we have to make it hidden by the function body.
    * rec_flag := false *)
@@ -57,8 +63,8 @@ and typeOfLetdef = function
    *
    * We should make two passes to let rec definitions. The first one is for
    * adding to the symbol table all forward functions and it's parameters, and
-   * the second one we add all the definition and we handle the body's of each
-   * definition.
+   * in the second one we add all the definitions and we handle the body of 
+   * each definition.
    *
    * In a let rec block the variable/function defined should BE visible by the
    * body of the block. So we do NOT make it hidden from the function body.
