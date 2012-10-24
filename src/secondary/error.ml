@@ -1,6 +1,52 @@
 open Format
 open Lexing
 
+(* Taken by Benjamin Pierce tyarith intepreter: <link>  *)
+
+exception Exit of int
+
+type finfo = FI of string * int * int | UNKNOWN
+type 'a withinfo = {i: finfo; v: 'a}
+
+let dummyinfo = UNKNOWN
+let createInfo name line chr = FI (name, line, chr)
+
+let printFileInfo = function
+    FI (name, line, chr) ->
+      print_string name; 
+      print_string ":"; 
+      print_int line; 
+      print_string "."; 
+      print_int chr; 
+      print_string ":"
+  | UNKNOWN ->
+      print_string "<Unknown file and line>: "
+
+let errf f = 
+  print_flush(); 
+  open_vbox 0; 
+  open_hvbox 0; 
+  f(); 
+  print_cut(); 
+  close_box(); 
+  print_newline();
+  raise (Exit 1)
+
+let errfAt fi f = errf (fun()-> printFileInfo fi; print_space(); f())
+
+let err s = errf (fun () -> print_string "Error: "; 
+  print_string s; print_newline ())
+
+let error fi s = errfAt fi (fun()-> print_string s; print_newline())
+
+let warning fi s =
+  printFileInfo fi; 
+  print_string "Warning: "; 
+  print_string s;
+  print_newline()
+
+(* ------------------------------------------------------------------------- *)
+
 exception Terminate
 
 type verbose = Vquiet | Vnormal | Vverbose
@@ -74,7 +120,7 @@ and fatal fmt =
     raise Terminate in
   kfprintf cont err_formatter fmt
 
-and error fmt =
+and error2 fmt =
   let fmt = "@[<v 2>Error: " ^^ fmt ^^ "@]@;@?" in
   incr numErrors;
   if !numErrors >= !maxErrors then
@@ -85,7 +131,7 @@ and error fmt =
   else
     eprintf fmt
 
-and warning fmt =
+and warning2 fmt =
   let fmt = "@[<v 2>Warning: " ^^ fmt ^^ "@]@;@?" in
   if !flagWarnings then
   begin

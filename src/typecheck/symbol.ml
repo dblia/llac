@@ -146,7 +146,7 @@ let newEntry id inf err =
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
     e
   with Failure_NewEntry e ->
-    error "duplicate identifier %a" pretty_id id;
+    error2 "duplicate identifier %a" pretty_id id;
     e
 
 (* lookup for the entry given in the scope asked:
@@ -174,11 +174,11 @@ let lookupEntry id how err =
     try
       lookup ()
     with Not_found ->
-      error "unknown identifier %a (first occurrence)"
+      error2 "unknown identifier %a (first occurrence)"
         pretty_id id;
       (* put it in, so we don't see more errors *)
       H.add !tab id (no_entry id);
-      raise Exit
+      raise (Exit 1)
   else
     lookup ()
 
@@ -203,8 +203,8 @@ let newFunction id err =
         e
     | _ ->
         if err then
-          error "duplicate identifier: %a" pretty_id id;
-          raise Exit
+          error2 "duplicate identifier: %a" pretty_id id;
+          raise (Exit 1)
   with Not_found ->
     let inf = {
       function_isForward = false;
@@ -237,13 +237,13 @@ let newParameter id typ mode f err =
               match p.entry_info with
               | ENTRY_parameter inf ->
                   if not (equalType inf.parameter_type typ) then
-                    error "Parameter type mismatch in redeclaration \
+                    error2 "Parameter type mismatch in redeclaration \
                            of function %a" pretty_id f.entry_id
                   else if inf.parameter_mode != mode then
-                    error "Parameter passing mode mismatch in redeclaration \
+                    error2 "Parameter passing mode mismatch in redeclaration \
                            of function %a" pretty_id f.entry_id
                   else if p.entry_id != id then
-                    error "Parameter name mismatch in redeclaration \
+                    error2 "Parameter name mismatch in redeclaration \
                            of function %a" pretty_id f.entry_id
                   else begin
                     H.add !tab id p;
@@ -252,20 +252,20 @@ let newParameter id typ mode f err =
                   p
               | _ ->
                   internal "I found a parameter that is not a parameter!";
-                  raise Exit
+                  raise (Exit 1)
             end
           | [] ->
-              error "More parameters than expected in redeclaration \
+              error2 "More parameters than expected in redeclaration \
                      of function %a" pretty_id f.entry_id;
-              raise Exit
+              raise (Exit 1)
         end
       | PARDEF_COMPLETE ->
           internal "Cannot add a parameter to an already defined function";
-          raise Exit
+          raise (Exit 1)
     end
   | _ ->
       internal "Cannot add a parameter to a non-function";
-      raise Exit
+      raise (Exit 1)
 
 let newTemporary typ =
   let id = id_make ("$" ^ string_of_int !tempNumber) in
@@ -311,10 +311,10 @@ let endFunctionHeader e typ =
             inf.function_paramlist <- List.rev inf.function_paramlist
         | PARDEF_CHECK ->
             if inf.function_redeflist <> [] then
-              error "Fewer parameters than expected in redeclaration \
+              error2 "Fewer parameters than expected in redeclaration \
                      of function %a" pretty_id e.entry_id;
             if not (equalType inf.function_result typ) then
-              error "Result type mismatch in redeclaration of function %a"
+              error2 "Result type mismatch in redeclaration of function %a"
                     pretty_id e.entry_id;
       end;
       inf.function_pstatus <- PARDEF_COMPLETE

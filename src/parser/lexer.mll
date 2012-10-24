@@ -12,6 +12,7 @@
   open Lexing
   open Parser
   open Printf
+  open Error
 
   (* Update the line number (pos_lnum field) and the offset of the line beggining,
    * (pos_bol field). Field pos_cnum managed by the lexing engine.
@@ -25,6 +26,13 @@
       pos_lnum = pos.pos_lnum + 1;                 (* increase newline counter *)
       pos_bol = pos.pos_cnum;       (* update the offset of the line beginning *)
     }
+
+  let lineno   = ref 1
+  and start    = ref 0
+  and filename = ref ""
+
+  let add_info lexbuf =
+    createInfo (!filename) (!lineno) (Lexing.lexeme_start lexbuf - !start)
 }
 
 (* Definition Section *)
@@ -49,95 +57,99 @@ let comm   = "--" [^ '\n']+            (* One line comment *)
 (* Rule Section *)
 rule lexer = parse
   (* Key Words *)
-    "and"      { T_And }
-  | "array"    { T_Array }
-  | "begin"    { T_Begin }
-  | "bool"     { T_Bool }
-  | "char"     { T_Char }
-  | "delete"   { T_Delete }
-  | "dim"      { T_Dim }
-  | "do"       { T_Do }
-  | "done"     { T_Done }
-  | "downto"   { T_Downto }
-  | "else"     { T_Else }
-  | "end"      { T_End }
-  | "false"    { T_False }
-  | "float"    { T_Float }
-  | "for"      { T_For }
-  | "if"       { T_If }
-  | "in"       { T_In }
-  | "int"      { T_Int }
-  | "let"      { T_Let }
-  | "match"    { T_Match }
-  | "mod"      { T_Mod }
-  | "mutable"  { T_Mutable }
-  | "new"      { T_New }
-  | "not"      { T_Not }
-  | "of"       { T_Of }
-  | "rec"      { T_Rec }
-  | "ref"      { T_Ref }
-  | "then"     { T_Then }
-  | "to"       { T_To }
-  | "true"     { T_True }
-  | "type"     { T_Type }
-  | "unit"     { T_Unit }
-  | "while"    { T_While }
-  | "with"     { T_With }
+    "and"      { T_And (add_info lexbuf) }
+  | "array"    { T_Array (add_info lexbuf) }
+  | "begin"    { T_Begin (add_info lexbuf) }
+  | "bool"     { T_Bool (add_info lexbuf) }
+  | "char"     { T_Char (add_info lexbuf) }
+  | "delete"   { T_Delete (add_info lexbuf) }
+  | "dim"      { T_Dim (add_info lexbuf) }
+  | "do"       { T_Do (add_info lexbuf) }
+  | "done"     { T_Done (add_info lexbuf) }
+  | "downto"   { T_Downto (add_info lexbuf) }
+  | "else"     { T_Else (add_info lexbuf) }
+  | "end"      { T_End (add_info lexbuf) }
+  | "false"    { T_False (add_info lexbuf) }
+  | "float"    { T_Float (add_info lexbuf) }
+  | "for"      { T_For (add_info lexbuf) }
+  | "if"       { T_If (add_info lexbuf) }
+  | "in"       { T_In (add_info lexbuf) }
+  | "int"      { T_Int (add_info lexbuf) }
+  | "let"      { T_Let (add_info lexbuf) }
+  | "match"    { T_Match (add_info lexbuf) }
+  | "mod"      { T_Mod (add_info lexbuf) }
+  | "mutable"  { T_Mutable (add_info lexbuf) }
+  | "new"      { T_New (add_info lexbuf) }
+  | "not"      { T_Not (add_info lexbuf) }
+  | "of"       { T_Of (add_info lexbuf) }
+  | "rec"      { T_Rec (add_info lexbuf) }
+  | "ref"      { T_Ref (add_info lexbuf) }
+  | "then"     { T_Then (add_info lexbuf) }
+  | "to"       { T_To (add_info lexbuf) }
+  | "true"     { T_True (add_info lexbuf) }
+  | "type"     { T_Type (add_info lexbuf) }
+  | "unit"     { T_Unit (add_info lexbuf) }
+  | "while"    { T_While(add_info lexbuf)  }
+  | "with"     { T_With (add_info lexbuf) }
   (* Operators *)
-  | "->"       { T_Gives }
-  | "="        { T_Eq }
-  | "|"        { T_Bar }
-  | "+"        { T_Plus }
-  | "-"        { T_Minus }
-  | "*"        { T_Mul }
-  | "/"        { T_Div }
-  | "+."       { T_FPlus }
-  | "-."       { T_FMinus }
-  | "*."       { T_FMul }
-  | "/."       { T_FDiv }
-  | "**"       { T_Pow }
-  | "!"        { T_Deref }
-  | ";"        { T_Semicolon }
-  | "&&"       { T_Andlogic }
-  | "||"       { T_Orlogic }
-  | "<>"       { T_Differ }
-  | "<"        { T_Lt }
-  | ">"        { T_Gt }
-  | "<="       { T_Leq }
-  | ">="       { T_Geq }
-  | "=="       { T_Equal }
-  | "!="       { T_NEqual }
-  | ":="       { T_Assign }
+  | "->"       { T_Gives (add_info lexbuf) }
+  | "="        { T_Eq (add_info lexbuf) }
+  | "|"        { T_Bar (add_info lexbuf) }
+  | "+"        { T_Plus (add_info lexbuf) }
+  | "-"        { T_Minus (add_info lexbuf) }
+  | "*"        { T_Mul (add_info lexbuf) }
+  | "/"        { T_Div (add_info lexbuf) }
+  | "+."       { T_FPlus (add_info lexbuf) }
+  | "-."       { T_FMinus (add_info lexbuf) }
+  | "*."       { T_FMul (add_info lexbuf) }
+  | "/."       { T_FDiv (add_info lexbuf) }
+  | "**"       { T_Pow (add_info lexbuf) }
+  | "!"        { T_Deref (add_info lexbuf) }
+  | ";"        { T_Semicolon (add_info lexbuf) }
+  | "&&"       { T_Andlogic (add_info lexbuf) }
+  | "||"       { T_Orlogic (add_info lexbuf) }
+  | "<>"       { T_Differ (add_info lexbuf) }
+  | "<"        { T_Lt (add_info lexbuf) }
+  | ">"        { T_Gt (add_info lexbuf) }
+  | "<="       { T_Leq (add_info lexbuf) }
+  | ">="       { T_Geq (add_info lexbuf) }
+  | "=="       { T_Equal (add_info lexbuf) }
+  | "!="       { T_NEqual (add_info lexbuf) }
+  | ":="       { T_Assign (add_info lexbuf) }
   (* Separators *)
-  | "("        { T_LParen }
-  | ")"        { T_RParen }
-  | "["        { T_LBrack }
-  | "]"        { T_RBrack }
-  | ","        { T_Comma }
-  | ":"        { T_Colon }
+  | "("        { T_LParen (add_info lexbuf) }
+  | ")"        { T_RParen (add_info lexbuf) }
+  | "["        { T_LBrack (add_info lexbuf) }
+  | "]"        { T_RBrack (add_info lexbuf) }
+  | ","        { T_Comma (add_info lexbuf) }
+  | ":"        { T_Colon (add_info lexbuf) }
   (* Digits Constants *)
-  | intnum as integer  { T_LitInt (int_of_string integer) }
-  | floatnum as fl     { T_LitFloat (float_of_string fl) }
+  | intnum as integer
+    { T_LitInt {i = add_info lexbuf; v = int_of_string integer} }
+  | floatnum as fl
+    { T_LitFloat {i = add_info lexbuf; v = float_of_string fl} }
   (* Names *)
-  | cnames as name     { T_LitId (name) }
-  | constr as con      { T_LitConstr (con) }
+  | cnames as name     { T_LitId {i = add_info lexbuf; v = name} }
+  | constr as con      { T_LitConstr {i = add_info lexbuf; v = con} }
   (* Characters and strings *)
-  | "'" chars "'"      { T_LitChar (Lexing.lexeme_char lexbuf 1) }
-  | '"' str '"' as s   { T_LitString s}
+  | "'" chars "'"
+    { T_LitChar {i = add_info lexbuf; v = Lexing.lexeme_char lexbuf 1} }
+  | '"' str '"'
+    { T_LitChar {i = add_info lexbuf; v = Lexing.lexeme_char lexbuf 1} }
   | '\n'               { incr_lineno lexbuf; lexer lexbuf }   (* newline *)
   | white              { lexer lexbuf }           (* Ignore white spaces *)
   | comm               { lexer lexbuf }              (* One line comment *)
   | "(*"               { comment 0 lexbuf }  (* Multiline comments start *)
-  | eof                { T_Eof }
-  | _ as err           { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n"
+  | eof                { T_Eof (add_info lexbuf) }
+  | _ as err           { Printf.printf "Invalid character: '%c' (ascii: %d)\n"
                          err (Char.code err); T_Error }
 
 (* inside comment *)
 and comment level = parse
   | "*)"       { if level = 0 then lexer lexbuf
-                 else comment (level-1) lexbuf }       (* goto the lexer rule *)
-  | "(*"       { comment (level+1) lexbuf }            (* nested comment found *)
+                 else comment (level-1) lexbuf }    (* goto the lexer rule *)
+  | "(*"       { comment (level+1) lexbuf }        (* nested comment found *)
   | '\n'       { incr_lineno lexbuf; comment level lexbuf }
-  | _          { comment level lexbuf }                (* skip comments *)
-  | eof        { print_endline "Comments are not closed\n"; T_Eof }
+  | _          { comment level lexbuf }             (* skip comments *)
+  | eof        { error (dummyinfo) "Comments are not closed properly" }
 

@@ -10,45 +10,95 @@
 
 (* Header Section *)
   open Types
+  open Error
   open Ast
 
 %}
-  
+
 /* (* Ocamlyacc declarations
     *
     * Identifier and Constant value Tokens *) */
-%token T_Eof
 %token T_Error
+%token<Error.finfo> T_Eof
 
-%token<int> T_LitInt
-%token<char> T_LitChar  
-%token<float> T_LitFloat
-%token<string> T_LitId
-%token<string> T_LitConstr
-%token<string> T_LitString
+/* (* Idetifiers and constant value tokens *) */
+%token<int Error.withinfo> T_LitInt
+%token<char Error.withinfo> T_LitChar
+%token<float Error.withinfo> T_LitFloat
+%token<string Error.withinfo> T_LitId
+%token<string Error.withinfo> T_LitConstr
+%token<string Error.withinfo> T_LitString
 
 /* (* Keyword Tokens *) */
-%token T_Bool T_Char T_Int T_Float T_Unit
-%token T_And T_Array T_Begin T_Delete T_Dim T_Do T_Done T_Downto T_Else 
-      T_End T_False T_For T_If T_In T_Let T_Match T_Mod T_Mutable T_New 
-      T_Of T_Rec T_Ref T_Then T_To T_True T_Type T_While T_With
- 
+%token<Error.finfo> T_And
+%token<Error.finfo> T_Bool
+%token<Error.finfo> T_Char
+%token<Error.finfo> T_Int
+%token<Error.finfo> T_Float
+%token<Error.finfo> T_Unit
+%token<Error.finfo> T_Array
+%token<Error.finfo> T_Begin
+%token<Error.finfo> T_Delete
+%token<Error.finfo> T_Dim
+%token<Error.finfo> T_Do
+%token<Error.finfo> T_Done
+%token<Error.finfo> T_Downto
+%token<Error.finfo> T_Else
+%token<Error.finfo> T_End
+%token<Error.finfo> T_False
+%token<Error.finfo> T_For
+%token<Error.finfo> T_If
+%token<Error.finfo> T_In
+%token<Error.finfo> T_Let
+%token<Error.finfo> T_Match
+%token<Error.finfo> T_Mod
+%token<Error.finfo> T_Mutable
+%token<Error.finfo> T_New
+%token<Error.finfo> T_Of
+%token<Error.finfo> T_Rec
+%token<Error.finfo> T_Ref
+%token<Error.finfo> T_Then
+%token<Error.finfo> T_To
+%token<Error.finfo> T_True
+%token<Error.finfo> T_Type
+%token<Error.finfo> T_While
+%token<Error.finfo> T_With
+
 /* (* Symbolic Tokens *) */
-%token T_Bar
-%token T_Colon
-%token T_Gives
-%token T_Assign T_Deref
-%token T_Eq T_Differ    /* (* Structural equality [not array, func type] *) */
-%token T_Equal T_NEqual /* (* Physical equality [only int, float, char] *) */
-%token T_Lt T_Gt T_Leq T_Geq
-%token T_Semicolon T_Comma
-%token T_Andlogic T_Orlogic T_Not 
-%token T_Plus T_Minus T_Mul T_Div T_Pow
-%token T_FPlus T_FMinus T_FMul T_FDiv
-%token T_LParen T_RParen T_LBrack T_RBrack
+%token<Error.finfo> T_Bar
+%token<Error.finfo> T_Colon
+%token<Error.finfo> T_Gives
+%token<Error.finfo> T_Assign
+%token<Error.finfo> T_Deref
+%token<Error.finfo> T_Eq     /* (* Structural equal [not array, fun type] *) */
+%token<Error.finfo> T_Differ /* (* Structural equal [not array, fun type] *) */
+%token<Error.finfo> T_Equal  /* (* Physical equal [only int, float, char] *) */
+%token<Error.finfo> T_NEqual /* (* Physical equal [only int, float, char] *) */
+%token<Error.finfo> T_Lt
+%token<Error.finfo> T_Gt
+%token<Error.finfo> T_Leq
+%token<Error.finfo> T_Geq
+%token<Error.finfo> T_Semicolon
+%token<Error.finfo> T_Comma
+%token<Error.finfo> T_Andlogic
+%token<Error.finfo> T_Orlogic
+%token<Error.finfo> T_Not
+%token<Error.finfo> T_Plus
+%token<Error.finfo> T_Minus
+%token<Error.finfo> T_Mul
+%token<Error.finfo> T_Div
+%token<Error.finfo> T_Pow
+%token<Error.finfo> T_FPlus
+%token<Error.finfo> T_FMinus
+%token<Error.finfo> T_FMul
+%token<Error.finfo> T_FDiv
+%token<Error.finfo> T_LParen
+%token<Error.finfo> T_RParen
+%token<Error.finfo> T_LBrack
+%token<Error.finfo> T_RBrack
 
 /* (* Precedence declarations: The lower the declaration is, the higher it's
-    * precedence. *) */ 
+    * precedence. *) */
 
 /* (* Precedence for expressions *) */
 %nonassoc T_In
@@ -83,293 +133,293 @@
 
 /* (* Grammar rules *) */
 program:
-    pdef T_Eof 
+    pdef T_Eof
       { let (ldefs, tdefs) = $1 in
         PROGRAM (ldefs, tdefs) }
 
 pdef:
-  /* nothing */ 
+  /* nothing */
       { ([], []) }
-  | letdef program  
+  | letdef program
       { let (ldefs, tdefs) = get_name_of_prog $2 in
         ($1 :: ldefs, tdefs) }
-  | typedef program 
+  | typedef program
       { let (ldefs, tdefs) = get_name_of_prog $2 in
         (ldefs, $1 :: tdefs) }
 
 letdef:
-    T_Let vardefs 
+    T_Let vardefs
       { L_Let $2 }
-  | T_Let T_Rec vardefs 
+  | T_Let T_Rec vardefs
       { L_LetRec $3 }
 
 vardefs:
-    vardef 
+    vardef
       { [$1] }
-  | vardefs T_And vardef 
+  | vardefs T_And vardef
       { $1 @ [$3] }
 
 vardef:
-    T_LitId formals T_Eq expr 
-      { VAR_Id ($1, $2, None, $4) }
-  | T_LitId formals T_Colon typee T_Eq expr 
-      { VAR_Id ($1, $2, Some $4, $6) }
-  | T_Mutable T_LitId 
-      { VAR_MutId ($2, None, None) }
-  | T_Mutable T_LitId T_Colon typee 
-      { VAR_MutId ($2, Some $4, None) }
-  | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack 
-      { VAR_MutId ($2, None, Some $4) }
-  | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack T_Colon typee 
-      { VAR_MutId ($2, Some $7, Some $4) }
+    T_LitId formals T_Eq expr
+      { VAR_Id ($1.v, $2, None, $4) }
+  | T_LitId formals T_Colon typee T_Eq expr
+      { VAR_Id ($1.v, $2, Some $4, $6) }
+  | T_Mutable T_LitId
+      { VAR_MutId ($2.v, None, None) }
+  | T_Mutable T_LitId T_Colon typee
+      { VAR_MutId ($2.v, Some $4, None) }
+  | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack
+      { VAR_MutId ($2.v, None, Some $4) }
+  | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack T_Colon typee
+      { VAR_MutId ($2.v, Some $7, Some $4) }
 
 typedef:
-    T_Type tdefs 
+    T_Type tdefs
       { TD_Type $2 }
 
 tdefs:
-    tdef 
+    tdef
       { [$1] }
-  | tdefs T_And tdef 
+  | tdefs T_And tdef
       { $1 @ [$3] }
 
 tdef:
-    T_LitId T_Eq constrs 
-      { TD_TDefId ($1, $3) }
+    T_LitId T_Eq constrs
+      { TD_TDefId ($1.v, $3) }
 
 constrs:
-    constr 
+    constr
       { [$1] }
-  | constrs T_Bar constr 
+  | constrs T_Bar constr
       { $1 @ [$3] }
 
 constr:
-    T_LitConstr 
-      { TD_Constr ($1, None) }
-  | T_LitConstr T_Of typees 
-      { TD_Constr ($1, Some $3) }
+    T_LitConstr
+      { TD_Constr ($1.v, None) }
+  | T_LitConstr T_Of typees
+      { TD_Constr ($1.v, Some $3) }
 
 formals:
-    /* nothing */ 
+    /* nothing */
       { [] }
-  | formals param 
+  | formals param
       { $1 @ [$2] }
 
 param:
-    T_LitId 
-      { VAR_Id ($1, [], None, E_Unit) }
-  | T_LParen T_LitId T_Colon typee T_RParen 
-      { VAR_Id ($2, [], Some $4, E_Unit) }
+    T_LitId
+      { VAR_Id ($1.v, [], None, E_Unit) }
+  | T_LParen T_LitId T_Colon typee T_RParen
+      { VAR_Id ($2.v, [], Some $4, E_Unit) }
 
 typees:
-    typee 
+    typee
       { [$1] }
-  | typees typee 
+  | typees typee
       { $1 @ [$2] }
 
 typee:
-    T_Unit  
+    T_Unit
       { TY_Unit }
-  | T_Int   
+  | T_Int
       { TY_Int }
-  | T_Char  
+  | T_Char
       { TY_Char }
-  | T_Bool  
+  | T_Bool
       { TY_Bool }
-  | T_Float 
+  | T_Float
       { TY_Float }
-  | T_LParen typee T_RParen 
+  | T_LParen typee T_RParen
       { $2 }
-  | typee T_Gives typee 
+  | typee T_Gives typee
       { TY_Function ($1, $3) }
-  | typee T_Ref 
+  | typee T_Ref
       { TY_Ref $1 }
-  | T_Array T_Of typee 
+  | T_Array T_Of typee
       { TY_Array (1, $3) }
-  | T_Array T_LBrack dimension T_RBrack T_Of typee 
+  | T_Array T_LBrack dimension T_RBrack T_Of typee
       { TY_Array ($3, $6) }
-  | T_LitId 
-    { TY_UserDef $1 }
+  | T_LitId
+    { TY_UserDef $1.v }
 
 dimension:
-    T_Mul 
+    T_Mul
       { 1 }
-  | dimension T_Comma T_Mul 
+  | dimension T_Comma T_Mul
       { $1 + 1 }
 
 expr_comma_list:
-    expr 
+    expr
       { [$1] }
-  | expr_comma_list T_Comma expr 
+  | expr_comma_list T_Comma expr
       { $1 @ [$3] }
 
 expr:
   /* (* Binary Operators *) */
-    expr T_Plus expr 
+    expr T_Plus expr
       { E_Plus ($1, $3) }
-  | expr T_FPlus expr 
+  | expr T_FPlus expr
       { E_FPlus ($1, $3) }
-  | expr T_Minus expr 
+  | expr T_Minus expr
       { E_Minus ($1, $3) }
-  | expr T_FMinus expr 
+  | expr T_FMinus expr
       { E_FMinus ($1, $3) }
-  | expr T_Mul expr 
+  | expr T_Mul expr
       { E_Mul ($1, $3) }
-  | expr T_FMul expr 
+  | expr T_FMul expr
       { E_FMul ($1, $3) }
-  | expr T_Div expr 
+  | expr T_Div expr
       { E_Div ($1, $3) }
-  | expr T_FDiv expr 
+  | expr T_FDiv expr
       { E_FDiv ($1, $3) }
-  | expr T_Mod expr 
+  | expr T_Mod expr
       { E_Mod ($1, $3) }
-  | expr T_Pow expr 
+  | expr T_Pow expr
       { E_Pow ($1, $3) }
-  | expr T_Eq expr 
+  | expr T_Eq expr
       { E_Eq ($1, $3) }
-  | expr T_Differ expr 
+  | expr T_Differ expr
       { E_Differ ($1, $3) }
   /* (* Relational Operators *) */
-  | expr T_Equal expr 
+  | expr T_Equal expr
       { E_Equal ($1, $3) }
-  | expr T_NEqual expr 
+  | expr T_NEqual expr
       { E_NEqual ($1, $3) }
-  | expr T_Lt expr 
+  | expr T_Lt expr
       { E_Lt ($1, $3) }
-  | expr T_Gt expr 
+  | expr T_Gt expr
       { E_Gt ($1, $3) }
-  | expr T_Leq expr 
+  | expr T_Leq expr
       { E_Leq ($1, $3) }
-  | expr T_Geq expr 
+  | expr T_Geq expr
       { E_Geq ($1, $3) }
   /* (* Logical Operators *) */
-  | expr T_Andlogic expr 
+  | expr T_Andlogic expr
       { E_Andlogic ($1, $3) }
-  | expr T_Orlogic expr 
+  | expr T_Orlogic expr
       { E_Orlogic ($1, $3) }
-  | expr T_Assign expr 
+  | expr T_Assign expr
       { E_Assign ($1, $3) }
-  | expr T_Semicolon expr 
+  | expr T_Semicolon expr
       { E_Semicolon ($1, $3) }
   /* (* Unary Operators *) */
-  | T_Plus expr %prec UPLUS 
+  | T_Plus expr %prec UPLUS
       { E_UPlus $2 }
-  | T_FPlus expr %prec UFPLUS 
+  | T_FPlus expr %prec UFPLUS
       { E_UFPlus $2 }
-  | T_Minus expr %prec UMINUS 
+  | T_Minus expr %prec UMINUS
       { E_UMinus $2 }
-  | T_FMinus expr %prec UFMINUS 
+  | T_FMinus expr %prec UFMINUS
       { E_UFMinus $2 }
-  | T_Not expr %prec NOT 
+  | T_Not expr %prec NOT
       { E_Not $2 }
-  | T_New typee 
+  | T_New typee
       { E_New $2 }
-  | T_Delete expr %prec DELETE 
+  | T_Delete expr %prec DELETE
       { E_Delete $2  }
   /* (* If Stmt *) */
-  | T_If expr T_Then expr 
+  | T_If expr T_Then expr
       { E_IfStmt ($2, $4, None) }
-  | T_If expr T_Then expr T_Else expr 
+  | T_If expr T_Then expr T_Else expr
       { E_IfStmt ($2, $4, Some $6) }
   /* (*   *) */
-  | T_Dim T_LitId 
-      { E_Dim (None, $2) }
-  | T_Dim T_LitInt T_LitId 
-      { E_Dim (Some $2, $3) }
-  | T_Match expr T_With clauses T_End 
+  | T_Dim T_LitId
+      { E_Dim (None, $2.v) }
+  | T_Dim T_LitInt T_LitId
+      { E_Dim (Some $2.v, $3.v) }
+  | T_Match expr T_With clauses T_End
       { E_Match ($2, $4) }
   /* (*   *) */
-  | letdef T_In expr 
+  | letdef T_In expr
       { E_LetIn ($1, $3) }
-  | T_Begin expr T_End 
+  | T_Begin expr T_End
       { E_Block $2 }
-  | T_While expr T_Do expr T_Done 
+  | T_While expr T_Do expr T_Done
       { E_While ($2, $4) }
-  | T_For T_LitId T_Eq expr T_To expr T_Do expr T_Done 
-      { E_For ($2, UPTO, $4, $6, $8) }
-  | T_For T_LitId T_Eq expr T_Downto expr T_Do expr T_Done 
-      { E_For ($2, DOWNTO, $4, $6, $8) }
+  | T_For T_LitId T_Eq expr T_To expr T_Do expr T_Done
+      { E_For ($2.v, UPTO, $4, $6, $8) }
+  | T_For T_LitId T_Eq expr T_Downto expr T_Do expr T_Done
+      { E_For ($2.v, DOWNTO, $4, $6, $8) }
     /* (* Function Call *) */
-  | T_LitId exprs__ 
-      { E_Call ($1, $2)  }
-  | T_LitConstr exprs__ 
-      { E_Constructor ($1, $2) }
-  | expr__ 
+  | T_LitId exprs__
+      { E_Call ($1.v, $2)  }
+  | T_LitConstr exprs__
+      { E_Constructor ($1.v, $2) }
+  | expr__
       { $1 }
 
 exprs__:
-    expr__ 
+    expr__
       { [$1] }
-  | expr__ exprs__ 
+  | expr__ exprs__
       { $1 :: $2 }
 
 expr__:
-    T_Deref expr__ 
+    T_Deref expr__
       { E_Deref $2 }
-  | T_LitId 
-      { E_LitId $1 }
-  | T_LitConstr 
-      { E_LitConstr $1 }
-  | T_True 
+  | T_LitId
+      { E_LitId $1.v }
+  | T_LitConstr
+      { E_LitConstr $1.v }
+  | T_True
       { E_True }
-  | T_False 
+  | T_False
       { E_False }
-  | T_LitChar 
-      { E_LitChar $1 }
-  | T_LitInt 
-      { E_LitInt $1 }
-  | T_LitFloat 
-      { E_LitFloat $1 }
-  | T_LitString 
-      { E_LitString $1 }
-  | T_LParen T_RParen 
+  | T_LitChar
+      { E_LitChar $1.v }
+  | T_LitInt
+      { E_LitInt $1.v }
+  | T_LitFloat
+      { E_LitFloat $1.v }
+  | T_LitString
+      { E_LitString $1.v }
+  | T_LParen T_RParen
       { E_Unit }
-  | T_LParen expr T_RParen 
+  | T_LParen expr T_RParen
       { $2 }
   | T_LitId T_LBrack expr_comma_list T_RBrack /* (* array_el *) */
-      { E_ArrayEl ($1, $3) }
+      { E_ArrayEl ($1.v, $3) }
 
 clauses:
-    clause 
+    clause
       { [$1] }
-  | clauses T_Bar clause 
+  | clauses T_Bar clause
       { $1 @ [$3] }
 
 clause:
-    pattern T_Gives expr 
+    pattern T_Gives expr
       { P_Clause ($1, $3) }
 
 patterns:
-    /* nothing */ 
+    /* nothing */
       { [] }
-  | patterns simple_pattern 
+  | patterns simple_pattern
       { $1 @ [$2] }
 
 pattern:
-    T_LitConstr patterns 
-      { P_LitConstr ($1, $2) }
-  | simple_pattern 
+    T_LitConstr patterns
+      { P_LitConstr ($1.v, $2) }
+  | simple_pattern
       { $1 }
 
 simple_pattern:
-    T_True 
+    T_True
       { P_True }
-  | T_False 
+  | T_False
       { P_False }
-  | T_LitId 
-      { P_LitId $1 }
-  | T_LitChar 
-      { P_LitChar $1 }
-  | T_LitFloat 
-      { P_LitFloat $1 }
-  | T_Plus T_LitInt 
-      { P_Plus $2 }
-  | T_FPlus T_LitFloat 
-      { P_FPlus $2 }
-  | T_Minus T_LitInt 
-      { P_Minus $2 }
-  | T_FMinus T_LitFloat 
-      { P_FMinus $2 }
-  | T_LParen pattern T_RParen 
+  | T_LitId
+      { P_LitId $1.v }
+  | T_LitChar
+      { P_LitChar $1.v }
+  | T_LitFloat
+      { P_LitFloat $1.v }
+  | T_Plus T_LitInt
+      { P_Plus $2.v }
+  | T_FPlus T_LitFloat
+      { P_FPlus $2.v }
+  | T_Minus T_LitInt
+      { P_Minus $2.v }
+  | T_FMinus T_LitFloat
+      { P_FMinus $2.v }
+  | T_LParen pattern T_RParen
       { $2 }
 
