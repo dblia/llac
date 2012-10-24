@@ -1,6 +1,5 @@
 open Semantics
 open Lexing
-open Pp_ast
 open Error
 
 let main =
