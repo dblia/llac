@@ -52,6 +52,21 @@ let library_functions = [
   ( "strcat", [TY_Array (1, TY_Char); TY_Array (1, TY_Char)], TY_Unit)
 ]
 
+let cnt = ref 0
+
+(* auxilary function that insters Standard Library funtions in the Main's scope *)
+let function_create (id, args, typ) =
+  let fn =
+    try newFunction (id_make id) true
+    with Exit -> raise Terminate
+  in
+  openScope(); (* new scope for the args and body definition *)
+  (* now we add the parameters of the function *)
+  List.iter (fun typee -> P.ignore (newParameter (id_make ("par" ^
+    (string_of_int !cnt))) typee PASS_BY_VALUE fn true); cnt := !cnt + 1) args;
+  endFunctionHeader fn typ; (* end of function header *)
+  closeScope() (* close the body's scope *)
+
 (* auxilary function for adding new parameters to the scope given *)
 let new_parameter f = function
     VAR_Id (s, [], t, e) ->
@@ -69,6 +84,8 @@ let new_parameter f = function
 
 let rec typeOf = function
     PROGRAM (ldfs, tdfs) ->
+      (* first add standard library to the Main's scope *)
+      List.iter function_create library_functions;
       List.iter (fun x -> typeOfLetdef x) ldfs;
       List.iter (fun x -> typeOfTypedef x) tdfs
 
@@ -195,7 +212,7 @@ and typeOfExpr = function
         | ENTRY_parameter p -> p.parameter_type;
         | _ -> (error "E_LitId not found"; raise Terminate)
       end
-  | E_LitString s -> TY_Array (String.length s, TY_Char)
+  | E_LitString s -> TY_Array (1, TY_Char) (*FIXME:change 1 to String.length s)
   | E_UPlus e     ->
       if (=) (typeOfExpr e) TY_Int then TY_Int
       else (error "Type mismatch (U +)"; raise Terminate)
@@ -365,10 +382,10 @@ and typeOfExpr = function
           | Some _e2 ->
               if (=) typ1 (typeOfExpr _e2) then typ1
               (*else (error "Type mismatch (if-else)"; raise Terminate)*)
-              else ( 
+              else (
                 let start_pos = Parsing.rhs_start_pos 3
                 and end_pos = Parsing.rhs_end_pos 3 in
-                error "%a Type mismatch: If-stmt." print_position 
+                error "%a Type mismatch: If-stmt." print_position
                 (position_context start_pos end_pos); raise Terminate)
           | None -> typ1
         end
@@ -416,7 +433,7 @@ and typeOfExpr = function
 (* and typeOfPattern = function
     P_True        -> TY_Bool
   | P_False       -> TY_Bool
-  | P_LitId id    -> TY_Unit (* TODO *) 
+  | P_LitId id    -> TY_Unit (* TODO *)
   | P_LitChar c   -> TY_Char
   | P_LitFloat f  -> TY_Char
   | P_Plus _      -> TY_Int

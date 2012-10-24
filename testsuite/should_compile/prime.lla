@@ -11,7 +11,7 @@ let rec prime (n : int) : bool =
    else true in
    loop 3
 
-let main =
+let main : unit =
    print_string "Please, give the upper limit: ";
    let limit = read_int () in
    print_string "Prime numbers between 0 and ";
@@ -21,7 +21,7 @@ let main =
    counter := 0;
    if limit >= 2 then (incr counter; print_string "2\n");
    if limit >= 3 then (incr counter; print_string "3\n");
-   let rec loop number = 
+   let rec loop (number : int) : unit = 
       if number <= limit then
       begin
          if prime (number - 1) then
