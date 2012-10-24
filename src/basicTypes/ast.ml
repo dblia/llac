@@ -90,3 +90,79 @@ and ast_pattern =
 let get_name_of_prog = function
       PROGRAM (l, t) -> (l, t)
 ;;
+
+(*
+let ast_get_finfo = function
+    L_Let     (fi, _) -> fi
+  | L_LetRec  (fi, _) -> fi
+  | TD_Type   (fi, _) -> fi
+  | TD_TDefId (fi, _, _) -> fi
+  | TD_Constr (fi, _, _) -> fi
+  | VAR_Id    (fi, _, _, _, _) -> fi
+  | VAR_MutId (fi, _, _, _) -> fi
+*)
+let get_info_expr = function
+    E_Unit         fi -> fi 
+  | E_True         fi -> fi
+  | E_False        fi -> fi
+  | E_LitInt      (fi, _) -> fi
+  | E_LitChar     (fi, _) -> fi
+  | E_LitFloat    (fi, _) -> fi
+  | E_LitId       (fi, _) -> fi
+  | E_LitConstr   (fi, _) -> fi
+  | E_LitString   (fi, _) -> fi
+  | E_UPlus       (fi, _) -> fi
+  | E_UFPlus      (fi, _) -> fi
+  | E_UMinus      (fi, _) -> fi
+  | E_UFMinus     (fi, _) -> fi
+  | E_Not         (fi, _) -> fi
+  | E_Deref       (fi, _) -> fi
+  | E_Delete      (fi, _) -> fi
+  | E_Block       (fi, _) -> fi
+  | E_Plus        (fi, _, _) -> fi
+  | E_FPlus       (fi, _, _) -> fi
+  | E_Minus       (fi, _, _) -> fi
+  | E_FMinus      (fi, _, _) -> fi
+  | E_Mul         (fi, _, _) -> fi
+  | E_FMul        (fi, _, _) -> fi
+  | E_Div         (fi, _, _) -> fi
+  | E_FDiv        (fi, _, _) -> fi
+  | E_Mod         (fi, _, _) -> fi
+  | E_Pow         (fi, _, _) -> fi
+  | E_Eq          (fi, _, _) -> fi
+  | E_Differ      (fi, _, _) -> fi
+  | E_Equal       (fi, _, _) -> fi
+  | E_NEqual      (fi, _, _) -> fi
+  | E_Lt          (fi, _, _) -> fi
+  | E_Gt          (fi, _, _) -> fi
+  | E_Leq         (fi, _, _) -> fi
+  | E_Geq         (fi, _, _) -> fi
+  | E_Andlogic    (fi, _, _) -> fi
+  | E_Orlogic     (fi, _, _) -> fi
+  | E_Assign      (fi, _, _) -> fi
+  | E_Semicolon   (fi, _, _) -> fi
+  | E_While       (fi, _, _) -> fi
+  | E_Match       (fi, _, _) -> fi
+  | E_IfStmt      (fi, _, _, _) -> fi
+  | E_LetIn       (fi, _, _) -> fi
+  | E_Dim         (fi, _, _) -> fi
+  | E_New         (fi, _) -> fi
+  | E_Call        (fi, _, _) -> fi
+  | E_Constructor (fi, _, _) -> fi
+  | E_ArrayEl     (fi, _, _) -> fi
+  | E_For         (fi, _, _, _, _, _) -> fi
+;;
+(*
+  | P_True         fi -> fi
+  | P_False        fi -> fi
+  | P_LitId       (fi, _) -> fi
+  | P_LitChar     (fi, _) -> fi
+  | P_LitFloat    (fi, _) -> fi
+  | P_Plus        (fi, _) -> fi
+  | P_FPlus       (fi, _) -> fi
+  | P_Minus       (fi, _) -> fi
+  | P_FMinus      (fi, _) -> fi
+  | P_Clause      (fi, _, _) -> fi
+  | P_LitConstr   (fi, _, _) -> fi
+;;
+*)

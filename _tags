@@ -7,4 +7,4 @@
 <**/*.cmo>: ocaml, byte
 <**/*.cmi>: ocaml, byte, native
 <**/*.cmx>: ocaml, native
-<src/secondary> or <src/parser> or <src/typecheck> or <src/basicTypes>: include
+<src/support> or <src/parser> or <src/typecheck> or <src/basicTypes>: include

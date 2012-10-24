@@ -52,6 +52,8 @@ let library_functions = [
   ( "strcat", [TY_Array (1, TY_Char); TY_Array (1, TY_Char)], TY_Unit)
 ]
 
+(* auxilary variable used for the uniqueness of the standard's library 
+ * parameters *)
 let cnt = ref 0
 
 (* auxilary function that insters Standard Library funtions in the Main's scope *)
@@ -62,7 +64,7 @@ let function_create (id, args, typ) =
   in
   openScope(); (* new scope for the args and body definition *)
   (* now we add the parameters of the function *)
-  List.iter (fun typee -> P.ignore (newParameter (id_make ("par" ^
+  List.iter (fun typee -> P.ignore (newParameter (id_make ("param" ^
     (string_of_int !cnt))) typee PASS_BY_VALUE fn true); cnt := !cnt + 1) args;
   endFunctionHeader fn typ; (* end of function header *)
   closeScope() (* close the body's scope *)
@@ -72,14 +74,12 @@ let new_parameter f = function
     VAR_Id (fi, s, [], t, e) ->
       begin
         match t with
-        | None -> (error2 "No typeinfer you must provide a type\n";
-                  raise Terminate)
-        | Some _t ->
-            newParameter (id_make s) _t PASS_BY_VALUE f true
+        | None -> error fi "No typeinfer you must provide a type\n"
+        | Some _t -> newParameter (id_make s) _t PASS_BY_VALUE f true
       end
   | _ -> (* FIXME: currying (function parameters).
           * eg. VAR_Id (s, lst, t, e) *)
-      (error2 "Not a valid parameter form\n"; raise Terminate)
+      err "Not a valid parameter form\n"
 ;;
 
 let rec typeOf = function
@@ -182,7 +182,7 @@ and typeOfVardef rec_flag = function
             (* es types must be integers *)
             let check_array_dim ty =
               if (=) ty TY_Int then ()
-              else (error2 "Array exprs should be integers.\n"; raise Terminate)
+              else error fi "Array exprs should be integers.\n"
             in List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
             P.ignore (newVariable (id_make s)
               (TY_Array (List.length es, get t)) true)
@@ -381,10 +381,12 @@ and typeOfExpr = function
           match e2 with
           | Some _e2 ->
               if (=) typ1 (typeOfExpr _e2) then typ1
-              else (error2 "Type mismatch (if-else)"; raise Terminate)
+              else let fi2 = get_info_expr _e2 in
+                   error fi2 "This expression has wrong type"
           | None -> typ1
         end
-      else (error2 "Type mismatch (if) not bool"; raise Terminate)
+      else let fi1 = get_info_expr e in
+           error fi1 "This expression has wrong type (bool expected)"
   | E_LetIn (fi, ld, e)        -> (* local declarations *)
       typeOfLetdef ld;
       let typ = typeOfExpr e in

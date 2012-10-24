@@ -86,3 +86,4 @@ and ast_pattern =
 ;;
 
 val get_name_of_prog : ast_prog -> ast_letdef list * ast_typedef list ;;
+val get_info_expr    : ast_expr -> finfo;;

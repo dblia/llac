@@ -27,12 +27,11 @@
       pos_bol = pos.pos_cnum;       (* update the offset of the line beginning *)
     }
 
-  let lineno   = ref 1
-  and start    = ref 0
-  and filename = ref ""
+  let filename = ref ""
 
   let add_info lexbuf =
-    createInfo (!filename) (!lineno) (Lexing.lexeme_start lexbuf - !start)
+    let pos = lexbuf.lex_curr_p in
+    createInfo (!filename) (pos.pos_lnum) (pos.pos_cnum - pos.pos_bol)
 }
 
 (* Definition Section *)
