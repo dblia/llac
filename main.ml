@@ -9,6 +9,13 @@ let main =
     else stdin
   in
   let lexbuf = Lexing.from_channel input in
+  begin
+    let pos = lexbuf.lex_curr_p in
+    lexbuf.lex_curr_p <- { pos with 
+      pos_lnum = pos.pos_lnum;
+      pos_bol = pos.pos_cnum; 
+      pos_fname = "fuck!!"; }
+  end;
   try
     let ast = Parser.program Lexer.lexer lexbuf in
     (*Pp_ast.pp_prog ast;*)

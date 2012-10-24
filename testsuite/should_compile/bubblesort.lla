@@ -1,18 +1,18 @@
-let bsort x = 
-   let swap x y =
-      let t = !x in x := !y; y := t in
-   let mutable changed in
-   changed := true;
-   while !changed do
+let bsort (x : int) : int = 
+  let swap (x : int) (y : int) =
+    let t = !x in x := !y; y := t in
+    let mutable changed in
+    changed := true;
+    while !changed do
       changed := false;
       for i = 0 to dim x - 2 do
-         if !x[i] > !x[i+1] then
-         begin	
-            swap x[i] x[i+1];
-            changed := true
-         end
+        if !x[i] > !x[i+1] then
+        begin	
+          swap x[i] x[i+1];
+          changed := true
+        end
       done
-   done
+    done
 
 let main = 
    let print_array msg x = 

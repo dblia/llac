@@ -13,8 +13,43 @@ open Ast
 exception Terminate
 
 (* External functions that form the Llama's standard library *)
-let library_function = [
-  (* TODO *)
+let library_functions = [
+  (* Input/Output *)
+  ( "print_int",    [TY_Int  ], TY_Unit );
+  ( "print_float",  [TY_Float], TY_Unit );
+  ( "print_bool",   [TY_Bool ], TY_Unit );
+  ( "print_char",   [TY_Char ], TY_Unit );
+  ( "print_string", [TY_Array (1, TY_Char)], TY_Unit );
+  ( "read_int",     [TY_Unit], TY_Int) ;
+  ( "read_bool",    [TY_Unit], TY_Int) ;
+  ( "read_char",    [TY_Unit], TY_Char) ;
+  ( "read_float",   [TY_Unit], TY_Float) ;
+  ( "read_string",  [TY_Array (1, TY_Char)], TY_Int) ;
+  (* Mathematical *)
+  ( "abs" , [TY_Int  ], TY_Int  );
+  ( "fabs", [TY_Float], TY_Float);
+  ( "sqrt", [TY_Float], TY_Float);
+  ( "sin" , [TY_Float], TY_Float);
+  ( "cos" , [TY_Float], TY_Float);
+  ( "tan" , [TY_Float], TY_Float);
+  ( "atan", [TY_Float], TY_Float);
+  ( "exp" , [TY_Float], TY_Float);
+  ( "ln"  , [TY_Float], TY_Float);
+  ( "pi"  , [TY_Unit ], TY_Float);
+  (* ++/-- *)
+  ( "incr", [TY_Ref TY_Int], TY_Unit );
+  ( "decr", [TY_Ref TY_Int], TY_Unit );
+  (* Conversions *)
+  ( "float_of_int", [TY_Int  ], TY_Float );
+  ( "int_of_float", [TY_Float], TY_Int   );
+  ( "round",        [TY_Float], TY_Int   );
+  ( "int_of_char",  [TY_Char ], TY_Int   );
+  ( "char_of_int",  [TY_Int  ], TY_Char  );
+  (* String Handling *)
+  ( "strlen", [TY_Array (1, TY_Char)], TY_Int );
+  ( "strcmp", [TY_Array (1, TY_Char); TY_Array (1, TY_Char)], TY_Int);
+  ( "strcpy", [TY_Array (1, TY_Char); TY_Array (1, TY_Char)], TY_Unit);
+  ( "strcat", [TY_Array (1, TY_Char); TY_Array (1, TY_Char)], TY_Unit)
 ]
 
 (* auxilary function for adding new parameters to the scope given *)
@@ -63,7 +98,7 @@ and typeOfLetdef = function
    *
    * We should make two passes to let rec definitions. The first one is for
    * adding to the symbol table all forward functions and it's parameters, and
-   * in the second one we add all the definitions and we handle the body of 
+   * in the second one we add all the definitions and we handle the body of
    * each definition.
    *
    * In a let rec block the variable/function defined should BE visible by the
@@ -89,7 +124,7 @@ and typeOfLetdef = function
 
 
 and typeOfTypedef = function
-    TD_Type tl   -> () (* TODO *)
+    TD_Type tl   -> () (* TODO: Not supported yet *)
   | TD_TDefId _  -> () (* TODO *)
   | TD_Constr _  -> () (* TODO *)
 
@@ -124,6 +159,7 @@ and typeOfVardef rec_flag = function
       begin
         match exprl with
         | None -> (* simple variable definition *)
+            (* add a new_variable Entry to the current scope *)
             P.ignore (newVariable (id_make s) (TY_Ref (get t)) true)
         | Some es -> (* array variable definition *)
             (* es types must be integers *)
@@ -305,8 +341,8 @@ and typeOfExpr = function
       let typ = typeOfExpr e1 in
       if isRef typ then
         if (=) typ (TY_Ref (typeOfExpr e2)) then TY_Unit
-        else (error "Type mismatch (:=)"; raise Terminate)
-      else (error "Type mismatch (:=) ty_ref"; raise Terminate)
+        else (error "Type mismatch e2 (:=)"; raise Terminate)
+      else (error "Type mismatch e1 (:=) ty_ref"; raise Terminate)
   | E_Semicolon (e1, e2)   -> typeOfExpr e2 (* XXX: ignoring the first one *)
   | E_While (e1, e2)       ->
       if isBool (typeOfExpr e1) then
@@ -320,7 +356,7 @@ and typeOfExpr = function
         if isUnit (typeOfExpr e) && typ1 = TY_Int then TY_Unit
         else (error "Type mismatch (for)"; raise Terminate)
       else (error "Type mismatch (for) t1 t2"; raise Terminate)
-  | E_Match (e1, e2)       -> TY_Unit (* TODO *)
+  | E_Match (e, clauses)   -> TY_Unit (* TODO *)
   | E_IfStmt (e, e1, e2)   ->
       if isBool (typeOfExpr e) then
         let typ1 = typeOfExpr e1 in
@@ -328,7 +364,12 @@ and typeOfExpr = function
           match e2 with
           | Some _e2 ->
               if (=) typ1 (typeOfExpr _e2) then typ1
-              else (error "Type mismatch (if-else)"; raise Terminate)
+              (*else (error "Type mismatch (if-else)"; raise Terminate)*)
+              else ( 
+                let start_pos = Parsing.rhs_start_pos 3
+                and end_pos = Parsing.rhs_end_pos 3 in
+                error "%a Type mismatch: If-stmt." print_position 
+                (position_context start_pos end_pos); raise Terminate)
           | None -> typ1
         end
       else (error "Type mismatch (if) not bool"; raise Terminate)
@@ -337,7 +378,7 @@ and typeOfExpr = function
       let typ = typeOfExpr e in
       closeScope();
       typ
-  | E_Dim (i, s)           -> TY_Int
+  | E_Dim (i, s)           -> TY_Int (* TODO *)
   | E_Call (s, el)         ->
       let en = lookupEntry (id_make s) LOOKUP_ALL_SCOPES true in
       begin
@@ -369,5 +410,20 @@ and typeOfExpr = function
       | (e :: es) ->
           if (=) (typeOfExpr e) TY_Int then typeOfExpr (E_ArrayEl (s, es))
           else (error "Type mismatch (array_el) not int"; raise Terminate)
+
+(* and typeOfClause = function *)
+
+(* and typeOfPattern = function
+    P_True        -> TY_Bool
+  | P_False       -> TY_Bool
+  | P_LitId id    -> TY_Unit (* TODO *) 
+  | P_LitChar c   -> TY_Char
+  | P_LitFloat f  -> TY_Char
+  | P_Plus _      -> TY_Int
+  | P_FPlus _     -> TY_Float
+  | P_Minus _     -> TY_Int
+  | P_FMinus _    -> TY_Float
+  | P_LitConstr _ -> TY_Unit (* TODO: not supported yet *)
+*)
 ;;
 

@@ -117,7 +117,7 @@ let closeScope () =
   | None -> (* that means that you are in the outer_scope *)
       internal "cannot close the outer scope!"
 
-(* change the scope's given visibility *)
+(* changes the visibility of the scope given *)
 let hideScope sco flag =
   sco.sco_hidden <- flag
 
@@ -151,7 +151,7 @@ let newEntry id inf err =
 
 (* lookup for the entry given in the scope asked:
  * set 'err' to true or false depending on if you want to
- * print possible errors or not  *)    
+ * print possible errors or not *)    
 let lookupEntry id how err =
   let scc = !currentScope in
   let lookup () =
@@ -278,7 +278,7 @@ let newTemporary typ =
   newEntry id (ENTRY_temporary inf) false
 ;;
 
-(* find the forward definitions from the entry given *)
+(* finds the forward definitions from the entry given *)
 let forwardFunction e =
   match e.entry_info with
   | ENTRY_function inf ->
