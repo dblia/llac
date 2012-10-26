@@ -28,10 +28,39 @@
     }
 
   let filename = ref ""
+  and startLex = ref dummyinfo
 
   let add_info lexbuf =
     let pos = lexbuf.lex_curr_p in
     createInfo (!filename) (pos.pos_lnum) (pos.pos_cnum - pos.pos_bol)
+
+  let stringBuffer = ref (String.create 2048)
+  let stringEnd = ref 0
+
+  let resetStr () =
+    stringEnd := 0
+
+  let getStr () =
+    String.sub (!stringBuffer) 0 (!stringEnd)
+
+  let addStr chr =
+    let x = !stringEnd in
+    let buffer = !stringBuffer in
+    if x = String.length buffer then (* buffer fullfiled, so increase it *)
+      begin
+        let newBuffer = String.create (x*2) in
+        String.blit buffer 0 newBuffer 0 x; (* copy data to the new buffer *)
+        String.set newBuffer x chr;
+        stringBuffer := newBuffer;
+        stringEnd := x + 1
+      end
+    else
+      begin
+        String.set buffer x chr;
+        stringEnd := x + 1
+      end
+
+
 }
 
 (* Definition Section *)
@@ -45,9 +74,8 @@ let cnames = llow(letter|digit|"_")*  (* Constant names (vars, functions, types)
 let constr = lbig(letter|digit|"_")*  (* Cunstructor names *)
 let hex = digit | ['a'-'f' 'A'-'F']   (* Hex numbers *)
 let xnn = "x" hex hex                 (* Char with nn ASCII code in hexademical *)
-let esc = xnn | ['n' 't' 'r' '0' '\\' '\'' '\"']                  (* Escape chars *)
+let esc = xnn | ['n' 't' 'r' '0' '\\' '\'' '"']                  (* Escape chars *)
 let chars = ( [^ '\'' '"' '\\' '\t' '\n' '\r' '\x00'] | "\\"esc ) (* fixed *)
-let str = ([^ '"' '\n'] | "\\"esc)+
 
 let whiteSet = [' ' '\t' '\n' '\r']      (* White Spaces *)
 let white  = whiteSet # ['\n']           (* Ignore white spaces *)
@@ -131,24 +159,41 @@ rule lexer = parse
   | cnames as name     { T_LitId {i = add_info lexbuf; v = name} }
   | constr as con      { T_LitConstr {i = add_info lexbuf; v = con} }
   (* Characters and strings *)
-  | "'" chars "'"
-    { T_LitChar {i = add_info lexbuf; v = Lexing.lexeme_char lexbuf 1} }
-  | '"' str '"'
-    { T_LitChar {i = add_info lexbuf; v = Lexing.lexeme_char lexbuf 1} }
-  | '\n'               { incr_lineno lexbuf; lexer lexbuf }   (* newline *)
-  | white              { lexer lexbuf }           (* Ignore white spaces *)
-  | comm               { lexer lexbuf }              (* One line comment *)
-  | "(*"               { comment 0 lexbuf }  (* Multiline comments start *)
-  | eof                { T_Eof (add_info lexbuf) }
-  | _ as err           { Printf.printf "Invalid character: '%c' (ascii: %d)\n"
-                         err (Char.code err); T_Error }
+  | "'" chars "'" { T_LitChar {i = add_info lexbuf; v = Lexing.lexeme_char lexbuf 1} }
+  | '"'      { resetStr (); startLex := add_info lexbuf; string_parse lexbuf }
+  | '\n'     { incr_lineno lexbuf; lexer lexbuf }                (* newline *)
+  | white    { lexer lexbuf }                        (* Ignore white spaces *)
+  | comm     { lexer lexbuf }                           (* One line comment *)
+  | "(*"     { startLex := add_info lexbuf; 
+               comment 0 lexbuf }          (* Multiline line comments start *)
+  | eof      { T_Eof (add_info lexbuf) }
+  | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)\n" err 
+               (Char.code err); T_Error }
 
 (* inside comment *)
 and comment level = parse
-  | "*)"       { if level = 0 then lexer lexbuf
+    "*)"       { if level = 0 then lexer lexbuf
                  else comment (level-1) lexbuf }    (* goto the lexer rule *)
   | "(*"       { comment (level+1) lexbuf }        (* nested comment found *)
   | '\n'       { incr_lineno lexbuf; comment level lexbuf }
   | _          { comment level lexbuf }             (* skip comments *)
-  | eof        { error (dummyinfo) "Comments are not closed properly" }
+  | eof        { error (!startLex) "Comments are not closed properly" }
 
+and string_parse = parse
+    '"'  { T_LitString { i = !startLex; v = getStr () }}
+  | '\\' { addStr (escaped_parse lexbuf); string_parse lexbuf }
+  | '\n' { addStr '\n'; incr_lineno lexbuf; string_parse lexbuf }
+  | eof  { error (!startLex) "String not terminated" }
+  | _    { addStr (Lexing.lexeme_char lexbuf 0); string_parse lexbuf }
+
+and escaped_parse = parse
+    'n'  { '\n' }
+  | 't'  { '\t' }
+  | 'r'  { '\r' }
+  | '0'  { Char.chr 0 }
+  | '\\' { '\\' }
+  | '\'' { '\'' }
+  | '"'  { '"' }
+  | 'x'  { Lexing.lexeme_char lexbuf 2 }
+  | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)" err
+               (Char.code err);  error (add_info lexbuf) "Illegal character constant" }

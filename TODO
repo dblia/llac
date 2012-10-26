@@ -1,3 +1,8 @@
+-- lexer
+
+what happens with string and hex ?
+
+
 --check what happens in the following example
 
 let rec a (x : int) : int = a1 + 1
