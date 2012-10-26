@@ -60,7 +60,6 @@
         stringEnd := x + 1
       end
 
-
 }
 
 (* Definition Section *)
@@ -160,6 +159,10 @@ rule lexer = parse
   | constr as con      { T_LitConstr {i = add_info lexbuf; v = con} }
   (* Characters and strings *)
   | "'" chars "'" { T_LitChar {i = add_info lexbuf; v = Lexing.lexeme_char lexbuf 1} }
+  | '\'' xnn '\'' as c {
+    let ch = String.sub c 1 4 in ch.[0] <- '0';
+    let chr = char_of_int (int_of_string ch) in 
+    T_LitChar { i = add_info lexbuf; v = chr }}
   | '"'      { resetStr (); startLex := add_info lexbuf; string_parse lexbuf }
   | '\n'     { incr_lineno lexbuf; lexer lexbuf }                (* newline *)
   | white    { lexer lexbuf }                        (* Ignore white spaces *)
@@ -194,6 +197,5 @@ and escaped_parse = parse
   | '\\' { '\\' }
   | '\'' { '\'' }
   | '"'  { '"' }
-  | 'x'  { Lexing.lexeme_char lexbuf 2 }
   | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)" err
                (Char.code err);  error (add_info lexbuf) "Illegal character constant" }
