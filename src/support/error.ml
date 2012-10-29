@@ -22,28 +22,26 @@ let printFileInfo = function
   | UNKNOWN ->
       print_string "<Unknown file and line>: "
 
-let errf f = 
+let errf f num = 
   print_flush(); 
-  open_vbox 0; 
-  open_hvbox 0; 
   f(); 
-  print_cut(); 
-  close_box(); 
   print_newline();
-  raise (Exit 1)
+  raise (Exit num)
 
-let errfAt fi f = errf (fun()-> printFileInfo fi; print_space(); f())
+let errfAt fi f num = errf (fun() -> printFileInfo fi; print_space(); f()) num
 
-let err s = errf (fun () -> print_string "Error: "; 
-  print_string s; print_newline ())
+let err s = 
+  print_flush();
+  print_string s; 
+  print_newline();
+  exit 1
 
-let error fi s = errfAt fi (fun()-> print_string s; print_newline())
+let error fi num s = errfAt fi (fun() -> print_string s) num
 
 let warning fi s =
   printFileInfo fi; 
   print_string "Warning: "; 
-  print_string s;
-  print_newline()
+  print_string s
 
 (* ------------------------------------------------------------------------- *)
 

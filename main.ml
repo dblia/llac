@@ -39,7 +39,10 @@ let main =
     (* Pp_ast.pp_prog ast; *)
     Semantics.typeOf ast;
     exit 0
-  with Parsing.Parse_error ->
-    error (Lexer.add_info lexbuf) "Parsing error";
+  with 
+      Parsing.Parse_error ->
+        error (Lexer.add_info lexbuf) 0 "Parsing error";
+    | Error.Exit(3) ->
+        err "Semantic error";
 ;;
 

@@ -74,7 +74,7 @@ let new_parameter f = function
     VAR_Id (fi, s, [], t, e) ->
       begin
         match t with
-        | None -> error fi "No typeinfer you must provide a type\n"
+        | None -> error fi 3 "No typeinfer you must provide a type\n"
         | Some _t -> newParameter (id_make s) _t PASS_BY_VALUE f true
       end
   | _ -> (* FIXME: currying (function parameters).
@@ -182,7 +182,7 @@ and typeOfVardef rec_flag = function
             (* es types must be integers *)
             let check_array_dim ty =
               if (=) ty TY_Int then ()
-              else error fi "Array exprs should be integers.\n"
+              else error fi 3 "Array exprs should be integers.\n"
             in List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
             P.ignore (newVariable (id_make s)
               (TY_Array (List.length es, get t)) true)
@@ -202,7 +202,7 @@ and typeOfExpr = function
         | ENTRY_variable v -> v.variable_type;
         | ENTRY_parameter p -> p.parameter_type;
         | ENTRY_function f -> f.function_result;
-        | _ -> (error2 "E_LitId not found"; raise Terminate)
+        | _ -> error fi 3 "E_LitId not found"
       end
   | E_LitConstr (fi, id) -> (* XXX: check if it's right *)
       let l = lookupEntry (id_make id) LOOKUP_ALL_SCOPES true in
@@ -210,169 +210,169 @@ and typeOfExpr = function
         match l.entry_info with
         | ENTRY_variable v -> v.variable_type;
         | ENTRY_parameter p -> p.parameter_type;
-        | _ -> (error2 "E_LitId not found"; raise Terminate)
+        | _ -> error fi 3 "E_LitId not found"
       end
-  | E_LitString (fi, s) -> TY_Array (1, TY_Char) (*FIXME:change 1 to String.length s*)
+  | E_LitString (fi, s) -> TY_Array (1, TY_Char) (*FIXME: change 1 to String.length s*)
   | E_UPlus (fi, e)     ->
       if (=) (typeOfExpr e) TY_Int then TY_Int
-      else (error2 "Type mismatch (U +)"; raise Terminate)
+      else error fi 3 "Type mismatch"
   | E_UFPlus (fi, e)    ->
       if (=) (typeOfExpr e) TY_Float then TY_Float
-      else (error2 "Type mismatch (U +.)"; raise Terminate)
+      else error fi 3 "Type mismatch"
   | E_UMinus (fi, e)    ->
       if (=) (typeOfExpr e) TY_Int then TY_Int
-      else (error2 "Type mismatch (U -)"; raise Terminate)
+      else error fi 3 "Type mismatch"
   | E_UFMinus (fi, e)   ->
       if (=) (typeOfExpr e) TY_Float then TY_Float
-      else (error2 "Type mismatch (U -.)"; raise Terminate)
+      else error fi 3 "Type mismatch"
   | E_Not (fi, e)       ->
       if (=) (typeOfExpr e) TY_Bool then TY_Bool
-      else (error2 "Type mismatch (not)"; raise Terminate)
+      else error fi 3 "Type mismatch"
   | E_Deref (fi, e)     -> typeOfExpr e
   | E_New (fi, t)       ->
       if isNotArrayOrFunc t then t
-      else (error2 "Type mismatch (new)"; raise Terminate)
+      else error fi 3 "Type mismatch"
   | E_Delete (fi, e)    -> (* FIXME: check that mem was allocated dynamically *)
       if isRef (typeOfExpr e) then TY_Unit
-      else (error2 "Type mismatch (delete)"; raise Terminate)
+      else error fi 3 "Type mismatch"
   | E_Block (fi, e)     -> typeOfExpr e
   | E_Plus (fi, e1, e2) ->
       if (=) (typeOfExpr e1) TY_Int then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Int then TY_Int
-        else (error2 "Type mismatch (+ e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 +)"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch"
   | E_FPlus (fi, e1, e2)  ->
       if (=) (typeOfExpr e1) TY_Float then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Float then TY_Float
-        else (error2 "Type mismatch (+. e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 +.)"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch"
   | E_Minus (fi, e1, e2)  ->
       if (=) (typeOfExpr e1) TY_Int then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Int then TY_Int
-        else (error2 "Type mismatch (- e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 -)"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch"
   | E_FMinus (fi, e1, e2) ->
       if (=) (typeOfExpr e1) TY_Float then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Float then TY_Float
-        else (error2 "Type mismatch (-. e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 -.)"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch"
   | E_Mul (fi, e1, e2)    ->
       if (=) (typeOfExpr e1) TY_Int then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Int then TY_Int
-        else (error2 "Type mismatch (* e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 *)"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch"
   | E_FMul (fi, e1, e2)   ->
       if (=) (typeOfExpr e1) TY_Float then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Float then TY_Float
-        else (error2 "Type mismatch (*. e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 *.)"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch"
   | E_Div (fi, e1, e2)     ->
       if (=) (typeOfExpr e1) TY_Int then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Int then TY_Int
-        else (error2 "Type mismatch (/ e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 /)"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch"
   | E_FDiv (fi, e1, e2)     ->
       if (=) (typeOfExpr e1) TY_Float then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Float then TY_Float
-        else (error2 "Type mismatch (/. e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 /.)"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch"
   | E_Mod (fi, e1, e2)      ->
       if (=) (typeOfExpr e1) TY_Int then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Int then TY_Int
-        else (error2 "Type mismatch (mod e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 mod)"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch"
   | E_Pow (fi, e1, e2)       ->
       if (=) (typeOfExpr e1) TY_Float then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Float then TY_Float
-        else (error2 "Type mismatch (** e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 **)"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch"
   | E_Eq (fi, e1, e2)         ->
       let typ1 = typeOfExpr e1 in
       if isNotArrayOrFunc typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
-        else (error2 "Type mismatch (e1 = e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 =) array-func type"; raise Terminate)
+        else error fi 3 "Type mismatch (e1 = e2)"
+      else error fi 3 "Type mismatch (e1 =) array-func type"
   | E_Differ (fi, e1, e2)     ->
       let typ1 = typeOfExpr e1 in
       if isNotArrayOrFunc typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
-        else (error2 "Type mismatch (e1 <> e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 <>) array-func type"; raise Terminate)
+        else error fi 3 "Type mismatch (e1 <> e2)"
+      else error fi 3 "Type mismatch (e1 <>) array-func type"
   | E_Equal (fi, e1, e2)       ->
       let typ1 = typeOfExpr e1 in
       if isNotArrayOrFunc typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
-        else (error2 "Type mismatch (e1 == e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 ==) array-func type"; raise Terminate)
+        else error fi 3 "Type mismatch (e1 == e2)"
+      else error fi 3 "Type mismatch (e1 ==) array-func type"
   | E_NEqual (fi, e1, e2)      ->
       let typ1 = typeOfExpr e1 in
       if isNotArrayOrFunc typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
-        else (error2 "Type mismatch (e1 != e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 !=) array-func type"; raise Terminate)
+        else error fi 3 "Type mismatch (e1 != e2)"
+      else error fi 3 "Type mismatch (e1 !=) array-func type"
   | E_Lt (fi, e1, e2)          ->
       let typ1 = typeOfExpr e1 in
       if isSimpleType typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
-        else (error2 "Type mismatch (e1 < e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 <) not simple type"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch - not simple type"
   | E_Gt (fi, e1, e2)          ->
       let typ1 = typeOfExpr e1 in
       if isSimpleType typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
-        else (error2 "Type mismatch (e1 > e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 >) not simple type"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch - not simple type"
   | E_Leq (fi, e1, e2)         ->
       let typ1 = typeOfExpr e1 in
       if isSimpleType typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
-        else (error2 "Type mismatch (e1 <= e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 <=) not simple type"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch - not simple type"
   | E_Geq (fi, e1, e2)         ->
       let typ1 = typeOfExpr e1 in
       if isSimpleType typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
-        else (error2 "Type mismatch (e1 >= e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 >=) not simple type"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch - not simple type"
   | E_Andlogic (fi, e1, e2)    ->
       if (=) (typeOfExpr e1) TY_Bool then
         if (=) (typeOfExpr e2) TY_Bool then TY_Bool
-        else (error2 "Type mismatch (e1 && e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 &&) not bool"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch - not bool"
   | E_Orlogic (fi, e1, e2)     ->
       if (=) (typeOfExpr e1) TY_Bool then
         if (=) (typeOfExpr e2) TY_Bool then TY_Bool
-        else (error2 "Type mismatch (e1 ||  e2)"; raise Terminate)
-      else (error2 "Type mismatch (e1 ||) not bool"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch - not bool"
   | E_Assign (fi, e1, e2)      -> (* FIXME: check if e1 is l-value *)
       let typ = typeOfExpr e1 in
       if isRef typ then
         if (=) typ (TY_Ref (typeOfExpr e2)) then TY_Unit
-        else (error2 "Type mismatch e2 (:=)"; raise Terminate)
-      else (error2 "Type mismatch e1 (:=) ty_ref"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch - ty_ref"
   | E_Semicolon (fi, e1, e2)   -> typeOfExpr e2 (* XXX: ignoring the first one *)
   | E_While (fi, e1, e2)       ->
       if isBool (typeOfExpr e1) then
         if isUnit (typeOfExpr e2) then TY_Unit
-        else (error2 "Type mismatch (while) not unit"; raise Terminate)
-      else (error2 "Type mismatch (while) not bool"; raise Terminate)
+        else error fi 3 "Type mismatch - not unit"
+      else error fi 3 "Type mismatch - not bool"
   | E_For (fi, s, ti, e1, e2, e)  ->
       let typ1 = typeOfExpr e1 in
       let typ2 = typeOfExpr e2 in
       if (=) typ1 typ2 then
         if isUnit (typeOfExpr e) && typ1 = TY_Int then TY_Unit
-        else (error2 "Type mismatch (for)"; raise Terminate)
-      else (error2 "Type mismatch (for) t1 t2"; raise Terminate)
+        else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch t1 t2"
   | E_Match (fi, e, clauses)   -> TY_Unit (* TODO *)
   | E_IfStmt (fi, e, e1, e2)   ->
       if isBool (typeOfExpr e) then
@@ -382,11 +382,11 @@ and typeOfExpr = function
           | Some _e2 ->
               if (=) typ1 (typeOfExpr _e2) then typ1
               else let fi2 = get_info_expr _e2 in
-                   error fi2 "This expression has wrong type"
+                   error fi2 3 "This expression has wrong type"
           | None -> typ1
         end
       else let fi1 = get_info_expr e in
-           error fi1 "This expression has wrong type (bool expected)"
+           error fi1 3 "This expression has wrong type (bool expected)"
   | E_LetIn (fi, ld, e)        -> (* local declarations *)
       typeOfLetdef ld;
       let typ = typeOfExpr e in
@@ -403,19 +403,19 @@ and typeOfExpr = function
             let param_type p =
               match p.entry_info with
               | ENTRY_parameter inf -> inf.parameter_type
-              | _ -> (error2 "call: params expected\n"; raise Terminate)
+              | _ -> error fi 3 "call: params expected"
             in
             let check_call_args a b =
               if (=) (typeOfExpr a) b then ()
-              else (error2 "different call-arg types.\n"; raise Terminate)
+              else error fi 3 "different call-arg types."
             in
             try
               List.iter2 (fun x y -> check_call_args x (param_type y)) el pars;
               typ
             with Invalid_argument e ->
-              (error2 "different number of args in call.\n"; raise Terminate)
+              error fi 3 "different number of args in call."
         end
-        | _ -> (error2 "call name not a func\n"; raise Terminate)
+        | _ -> error fi 3 "call name not a func"
       end
   | E_Constructor (fi, s, el)  -> TY_Unit (* TODO *)
   | E_ArrayEl (fi, s, el)      ->
@@ -423,7 +423,7 @@ and typeOfExpr = function
       | [] -> TY_Int
       | (e :: es) ->
           if (=) (typeOfExpr e) TY_Int then typeOfExpr (E_ArrayEl (fi, s, es))
-          else (error2 "Type mismatch (array_el) not int"; raise Terminate)
+          else error fi 3 "Type mismatch (array_el) not int"
 
 (* and typeOfClause = function *)
 

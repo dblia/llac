@@ -23,13 +23,13 @@ val printFileInfo : finfo -> unit
    in a context where the formatter is processing an hvbox.  Insert
    calls to Format.print_space to print a space or, if necessary,
    break the line at that point. *)
-val errf   : (unit -> unit) -> 'a
-val errfAt : finfo -> (unit -> unit) -> 'a
+val errf   : (unit -> unit) -> int -> 'a
+val errfAt : finfo -> (unit -> unit) -> int -> 'a
 
 (* Convenient wrappers for the above, for the common case where the
    action to be performed is just to print a given string. *)
 val err   : string -> 'a
-val error : finfo -> string -> 'a
+val error : finfo -> int -> string -> 'a
 
 (* Functions that print a message without failing afterwards *)
 val warning : finfo -> string -> unit

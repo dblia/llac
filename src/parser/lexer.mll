@@ -85,8 +85,8 @@ let xnn = "x" hex hex                (* Char with nn ASCII code in hex *)
 let esc = xnn | ['n' 't' 'r' '0' '\\' '\'' '"']              (* Escape chars *)
 let chars = ( [^ '\'' '"' '\\' '\t' '\n' '\r' '\x00'] | "\\"esc ) (* fixed *)
 
-let whiteSet = [' ' '\t' '\n' '\r']      (* White Spaces *)
-let white  = whiteSet # ['\n']           (* Ignore white spaces *)
+let whiteSet = [' ' '\t' '\n' '\r']    (* White Spaces *)
+let white  = whiteSet # ['\n']         (* Ignore white spaces *)
 let comm   = "--" [^ '\n']+            (* One line comment *)
 
 (* Rule Section *)
@@ -181,7 +181,7 @@ rule lexer = parse
                comment 0 lexbuf }          (* Multiline line comments start *)
   | eof      { T_Eof (add_info lexbuf) }
   | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)\n" err
-               (Char.code err); T_Error }
+               (Char.code err); error (add_info lexbuf) 1 "T_Error" }
 
 (* inside comment *)
 and comment level = parse
@@ -190,13 +190,13 @@ and comment level = parse
   | "(*"       { comment (level+1) lexbuf }        (* nested comment found *)
   | '\n'       { incr_lineno lexbuf; comment level lexbuf }
   | _          { comment level lexbuf }             (* skip comments *)
-  | eof        { error (!startLex) "Comments are not closed properly" }
+  | eof        { error (!startLex) 1 "Comments are not closed properly" }
 
 and string_parse = parse
     '"'  { T_LitString { i = !startLex; v = getStr () }}
   | '\\' { addStr (escaped_parse lexbuf); string_parse lexbuf }
   | '\n' { addStr '\n'; incr_lineno lexbuf; string_parse lexbuf }
-  | eof  { error (!startLex) "String not terminated" }
+  | eof  { error (!startLex) 1 "String not terminated" }
   | _    { addStr (Lexing.lexeme_char lexbuf 0); string_parse lexbuf }
 
 and escaped_parse = parse
@@ -208,5 +208,5 @@ and escaped_parse = parse
   | '\'' { '\'' }
   | '"'  { '"' }
   | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)" err
-               (Char.code err);  error (add_info lexbuf) 
+               (Char.code err);  error (add_info lexbuf) 1
                "Illegal character constant" }
