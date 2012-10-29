@@ -30,9 +30,18 @@
   let filename = ref ""
   and startLex = ref dummyinfo
 
+  let create inFile stream =
+    (* if not (Filename.is_implicit inFile) then filename := inFile
+    else filename := Filename.concat (Sys.getcwd()) inFile; *)
+    filename := inFile;
+    Lexing.from_channel stream
+
+  (* Add file info to the lexbuf given  *)
   let add_info lexbuf =
     let pos = lexbuf.lex_curr_p in
     createInfo (!filename) (pos.pos_lnum) (pos.pos_cnum - pos.pos_bol)
+
+  (* String handling functions *)
 
   let stringBuffer = ref (String.create 2048)
   let stringEnd = ref 0
@@ -65,15 +74,15 @@
 (* Definition Section *)
 let digit = ['0'-'9']                 (* Digits *)
 let intnum = digit+                   (* Integer Constants *)
-let floatnum = intnum"."intnum(("E"|"e")(("+"|"-")?)intnum)?  (* Float constants *)
+let floatnum = intnum"."intnum(("E"|"e")(("+"|"-")?)intnum)? (* Float consts *)
 let llow = ['a'-'z']
 let lbig = ['A'-'Z']
-let letter = ['a'-'z' 'A'-'Z']        (* Letters *)
-let cnames = llow(letter|digit|"_")*  (* Constant names (vars, functions, types) *)
-let constr = lbig(letter|digit|"_")*  (* Cunstructor names *)
-let hex = digit | ['a'-'f' 'A'-'F']   (* Hex numbers *)
-let xnn = "x" hex hex                 (* Char with nn ASCII code in hexademical *)
-let esc = xnn | ['n' 't' 'r' '0' '\\' '\'' '"']                  (* Escape chars *)
+let letter = ['a'-'z' 'A'-'Z']       (* Letters *)
+let cnames = llow(letter|digit|"_")* (* Const names (vars, functions, types) *)
+let constr = lbig(letter|digit|"_")* (* Cunstructor names *)
+let hex = digit | ['a'-'f' 'A'-'F']  (* Hex numbers *)
+let xnn = "x" hex hex                (* Char with nn ASCII code in hex *)
+let esc = xnn | ['n' 't' 'r' '0' '\\' '\'' '"']              (* Escape chars *)
 let chars = ( [^ '\'' '"' '\\' '\t' '\n' '\r' '\x00'] | "\\"esc ) (* fixed *)
 
 let whiteSet = [' ' '\t' '\n' '\r']      (* White Spaces *)
@@ -158,19 +167,20 @@ rule lexer = parse
   | cnames as name     { T_LitId {i = add_info lexbuf; v = name} }
   | constr as con      { T_LitConstr {i = add_info lexbuf; v = con} }
   (* Characters and strings *)
-  | "'" chars "'" { T_LitChar {i = add_info lexbuf; v = Lexing.lexeme_char lexbuf 1} }
+  | "'" chars "'" 
+    { T_LitChar {i = add_info lexbuf; v = Lexing.lexeme_char lexbuf 1}}
   | '\'' xnn '\'' as c {
     let ch = String.sub c 1 4 in ch.[0] <- '0';
-    let chr = char_of_int (int_of_string ch) in 
+    let chr = char_of_int (int_of_string ch) in
     T_LitChar { i = add_info lexbuf; v = chr }}
   | '"'      { resetStr (); startLex := add_info lexbuf; string_parse lexbuf }
   | '\n'     { incr_lineno lexbuf; lexer lexbuf }                (* newline *)
   | white    { lexer lexbuf }                        (* Ignore white spaces *)
   | comm     { lexer lexbuf }                           (* One line comment *)
-  | "(*"     { startLex := add_info lexbuf; 
+  | "(*"     { startLex := add_info lexbuf;
                comment 0 lexbuf }          (* Multiline line comments start *)
   | eof      { T_Eof (add_info lexbuf) }
-  | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)\n" err 
+  | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)\n" err
                (Char.code err); T_Error }
 
 (* inside comment *)
@@ -198,4 +208,5 @@ and escaped_parse = parse
   | '\'' { '\'' }
   | '"'  { '"' }
   | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)" err
-               (Char.code err);  error (add_info lexbuf) "Illegal character constant" }
+               (Char.code err);  error (add_info lexbuf) 
+               "Illegal character constant" }
