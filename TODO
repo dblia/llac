@@ -1,14 +1,17 @@
+-- error handling
+
+add pretty_printing with args
+
+improve symbol.ml printing info
+
 -- lexer
 
 what happens with string and hex ?
-
 
 --check what happens in the following example
 
 let rec a (x : int) : int = a1 + 1
 and a1 : int = 2
-
-
 
 ***** in typecheckin create a field in ast for assigning the expr_type
       and actually make the typeOf and typeOfExpr function mutually recursive
@@ -18,10 +21,7 @@ and a1 : int = 2
             expr_type: typ
         }
 
--- Before typechecking i should create the error handling 
-   functions
 -- a master Makefile to handle the sub-Makefiles
 -- currently stopping the lexing when a false token found.
    i should change this
--- runner.py check if i can change the name printed.
 

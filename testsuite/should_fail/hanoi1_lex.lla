@@ -4,7 +4,7 @@ let main : unit =
     print_string source;
     print_string " to ";
     print_string target;
-    print_string "\n" in
+    print_string '\n" in (* WRONG *)
   let rec hanoi (rings : int) (source : array of char) (target :
     array of char) (auxil : array of char) : unit =
     if rings > 0 then

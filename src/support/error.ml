@@ -26,7 +26,8 @@ let errf f num =
   print_flush(); 
   f(); 
   print_newline();
-  raise (Exit num)
+  if num == 0 then exit 1
+  else raise (Exit num)
 
 let errfAt fi f num = errf (fun() -> printFileInfo fi; print_space(); f()) num
 

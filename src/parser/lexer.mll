@@ -181,7 +181,7 @@ rule lexer = parse
                comment 0 lexbuf }          (* Multiline line comments start *)
   | eof      { T_Eof (add_info lexbuf) }
   | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)\n" err
-               (Char.code err); error (add_info lexbuf) 1 "T_Error" }
+               (Char.code err); error (add_info lexbuf) 1 "" }
 
 (* inside comment *)
 and comment level = parse
@@ -207,6 +207,5 @@ and escaped_parse = parse
   | '\\' { '\\' }
   | '\'' { '\'' }
   | '"'  { '"' }
-  | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)" err
-               (Char.code err);  error (add_info lexbuf) 1
-               "Illegal character constant" }
+  | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)\n" err
+               (Char.code err);  error (add_info lexbuf) 1 "" }

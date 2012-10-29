@@ -42,6 +42,8 @@ let main =
   with 
       Parsing.Parse_error ->
         error (Lexer.add_info lexbuf) 0 "Parsing error";
+    | Error.Exit(1) ->
+        err "Lexical error";
     | Error.Exit(3) ->
         err "Semantic error";
 ;;
