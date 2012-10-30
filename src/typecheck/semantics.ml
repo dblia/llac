@@ -52,6 +52,8 @@ let library_functions = [
   ( "strcat", [TY_Array (1, TY_Char); TY_Array (1, TY_Char)], TY_Unit)
 ]
 
+(* Support functions *)
+
 (* auxilary variable used for the uniqueness of the standard's library 
  * parameters *)
 let cnt = ref 0
@@ -82,10 +84,14 @@ let new_parameter f = function
       err "Not a valid parameter form\n"
 ;;
 
+(* Initialize Symbol Table and other initializations *)
+let () = 
+  initSymbolTable 512;
+  (* first add standard library to the Main's scope *)
+  List.iter function_create library_functions
+
 let rec typeOf = function
     PROGRAM (ldfs, tdfs) ->
-      (* first add standard library to the Main's scope *)
-      List.iter function_create library_functions;
       List.iter (fun x -> typeOfLetdef x) ldfs;
       List.iter (fun x -> typeOfTypedef x) tdfs
 
@@ -124,9 +130,9 @@ and typeOfLetdef = function
   | L_LetRec (fi, vl) -> (* vl: vardefs connected with 'and' keyword *)
       openScope(); (* scope for the definition only *)
       let find_forwards = function
-          VAR_Id (fi, s, varl, t, e)  ->
+          VAR_Id (info, s, varl, t, e)  ->
             let fn =
-              try newFunction fi (id_make s) true
+              try newFunction info (id_make s) true
               with Exit _ -> raise Terminate
             in
             forwardFunction fn;
@@ -134,7 +140,7 @@ and typeOfLetdef = function
             List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
             closeScope();
             endFunctionHeader fn (get t);
-        | _ -> () (* for non-functions do nothing *)
+        | _ -> () (* we do nothing for non-functions *)
       in
       List.iter (fun x -> P.ignore (find_forwards x)) vl; (* first traverse *)
       List.iter (fun x -> typeOfVardef true x) vl         (* second traverse *)
@@ -154,38 +160,51 @@ and typeOfVardef rec_flag = function
             P.ignore (newVariable (id_make s) (get t) true);
             (* now we hide the definitions while we're processing the body *)
             if not rec_flag then hideScope (!currentScope) true;
-            P.ignore (typeOfExpr e);
-            hideScope (!currentScope) false
+            (* function body must conforms with the type declared *)
+            if (!=) (get t) (typeOfExpr e) then error fi 3 "Type mismatch";
+            (* now we unhide the scope if we've hidden it before *)
+            if not rec_flag then hideScope (!currentScope) false
         | _ -> (* var list not empty, so we found a function definition *)
-            (* we add a new_function Entry to the current scope *)
-            let fn =
-              try newFunction fi (id_make s) true
-              with Exit _ -> raise Terminate
-            in
-            (* in case of let we hide the definition from the body *)
-            if not rec_flag then hideScope (!currentScope) true;
-            openScope(); (* new scope for the args and body definition *)
-            (* now we add the parameters of the function *)
-            List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
-            endFunctionHeader fn (get t); (* end of function header *)
-            P.ignore (typeOfExpr e);
-            closeScope(); (* close the body's scope *)
-            hideScope (!currentScope) false;
+            match (get t) with 
+            | TY_Function _ -> 
+                let str = "Function can not return function: " in
+                error_args fi str (id_make s)
+            | _ as type_ -> (* add a new_function Entry to the current scope *)
+              let fn =
+                try newFunction fi (id_make s) true
+                with Exit _ -> raise Terminate
+              in
+              (* in case of let we hide the definition from the body *)
+              if not rec_flag then hideScope (!currentScope) true;
+              openScope(); (* new scope for the args and body definition *)
+              (* now we add the parameters of the function *)
+              List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
+              endFunctionHeader fn type_; (* end of function header *)
+              (* function body must conforms with the type declared *)
+              if (!=) (get t) (typeOfExpr e) then error fi 3 "Type mismatch";
+              closeScope(); (* close the body's scope *)
+              (* now we unhide the scope if we've hidden it before *)
+              if not rec_flag then hideScope (!currentScope) false;
       end
   | VAR_MutId (fi, s, t, exprl) ->
       begin
-        match exprl with
-        | None -> (* simple variable definition *)
-            (* add a new_variable Entry to the current scope *)
-            P.ignore (newVariable (id_make s) (TY_Ref (get t)) true)
-        | Some es -> (* array variable definition *)
-            (* es types must be integers *)
-            let check_array_dim ty =
-              if (=) ty TY_Int then ()
-              else error fi 3 "Array exprs should be integers.\n"
-            in List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
-            P.ignore (newVariable (id_make s)
-              (TY_Array (List.length es, get t)) true)
+        match (get t) with 
+        | TY_Array _ -> 
+            let str = "References to arrays are not allowed: " in
+            error_args fi str (id_make s)
+        | _ as type_ -> 
+            match exprl with
+              None -> (* simple variable definition *)
+                (* add a new_variable Entry to the current scope *)
+                P.ignore (newVariable (id_make s) (TY_Ref type_) true)
+            | Some es -> (* array variable definition *)
+                (* es types must be integers *)
+                let check_array_dim ty =
+                  if (=) ty TY_Int then ()
+                  else error fi 3 "Array exprs should be integers.\n"
+                in List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
+                P.ignore (newVariable (id_make s) 
+                (TY_Array (List.length es, type_)) true)
       end
 
 and typeOfExpr = function
@@ -195,6 +214,7 @@ and typeOfExpr = function
   | E_LitInt _    -> TY_Int
   | E_LitChar _   -> TY_Char
   | E_LitFloat _  -> TY_Float
+  | E_LitString (fi, s) -> TY_Array (1, TY_Char) (*FIXME: change 1 to String.length s*)
   | E_LitId (fi, id)    ->
       let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
       begin
@@ -202,32 +222,34 @@ and typeOfExpr = function
         | ENTRY_variable v -> v.variable_type;
         | ENTRY_parameter p -> p.parameter_type;
         | ENTRY_function f -> f.function_result;
-        | _ -> error fi 3 "E_LitId not found"
+        | _ -> 
+            let str = "E_LitId not found (is not func, param or var):" in
+            error_args fi str (id_make id);
+            raise (Exit 3)
       end
-  | E_LitConstr (fi, id) -> (* XXX: check if it's right *)
+  | E_LitConstr (fi, id) -> (* XXX: check if it's right, not supported yet *)
       let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
       begin
         match l.entry_info with
         | ENTRY_variable v -> v.variable_type;
         | ENTRY_parameter p -> p.parameter_type;
-        | _ -> error fi 3 "E_LitId not found"
+        | _ -> error fi 3 "E_LitConstr not found"
       end
-  | E_LitString (fi, s) -> TY_Array (1, TY_Char) (*FIXME: change 1 to String.length s*)
   | E_UPlus (fi, e)     ->
       if (=) (typeOfExpr e) TY_Int then TY_Int
-      else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch, TY_Int expected"
   | E_UFPlus (fi, e)    ->
       if (=) (typeOfExpr e) TY_Float then TY_Float
-      else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch, TY_Float"
   | E_UMinus (fi, e)    ->
       if (=) (typeOfExpr e) TY_Int then TY_Int
-      else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch, TY_Int expected"
   | E_UFMinus (fi, e)   ->
       if (=) (typeOfExpr e) TY_Float then TY_Float
-      else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch, TY_Float expected"
   | E_Not (fi, e)       ->
       if (=) (typeOfExpr e) TY_Bool then TY_Bool
-      else error fi 3 "Type mismatch"
+      else error fi 3 "Type mismatch, TY_Bool expected"
   | E_Deref (fi, e)     -> typeOfExpr e
   | E_New (fi, t)       ->
       if isNotArrayOrFunc t then t
