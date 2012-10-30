@@ -1,9 +1,13 @@
 open Format
 open Lexing
+open Identifier
 
 (* Taken by Benjamin Pierce tyarith intepreter: <link>  *)
 
 exception Exit of int
+
+let numErrors = ref 0
+let maxErrors = ref 10
 
 type finfo = FI of string * int * int | UNKNOWN
 type 'a withinfo = {i: finfo; v: 'a}
@@ -39,6 +43,15 @@ let err s =
 
 let error fi num s = errfAt fi (fun() -> print_string s) num
 
+let error_args fi s arg = 
+  incr numErrors;
+  print_flush();
+  printFileInfo fi;
+  print_space();
+  print_string s;
+  printf " %a " pretty_id arg;
+  print_newline()
+
 let warning fi s =
   printFileInfo fi; 
   print_string "Warning: "; 
@@ -52,8 +65,6 @@ type verbose = Vquiet | Vnormal | Vverbose
 
 let flagVerbose = ref Vnormal
 
-let numErrors = ref 0
-let maxErrors = ref 10
 let flagWarnings = ref true
 let numWarnings = ref 0
 let maxWarnings = ref 200

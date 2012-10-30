@@ -18,8 +18,8 @@ let parseArgs () =
   in
   Arg.parse argDefs anon_fun "";
   match !inFile with
-      None -> err "You must specify an input file"
-    | Some(s) -> s
+    None -> err "You must specify an input file"
+  | Some(s) -> s
 
 let openfile infile = 
   let rec trynext l = match l with

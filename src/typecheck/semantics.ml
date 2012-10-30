@@ -59,12 +59,12 @@ let cnt = ref 0
 (* auxilary function that insters Standard Library funtions in the Main's scope *)
 let function_create (id, args, typ) =
   let fn =
-    try newFunction (id_make id) true
+    try newFunction dummyinfo (id_make id) true
     with Exit _ -> raise Terminate
   in
   openScope(); (* new scope for the args and body definition *)
   (* now we add the parameters of the function *)
-  List.iter (fun typee -> P.ignore (newParameter (id_make ("param" ^
+  List.iter (fun typee -> P.ignore (newParameter dummyinfo (id_make ("param" ^
     (string_of_int !cnt))) typee PASS_BY_VALUE fn true); cnt := !cnt + 1) args;
   endFunctionHeader fn typ; (* end of function header *)
   closeScope() (* close the body's scope *)
@@ -75,7 +75,7 @@ let new_parameter f = function
       begin
         match t with
         | None -> error fi 3 "No typeinfer you must provide a type\n"
-        | Some _t -> newParameter (id_make s) _t PASS_BY_VALUE f true
+        | Some _t -> newParameter fi (id_make s) _t PASS_BY_VALUE f true
       end
   | _ -> (* FIXME: currying (function parameters).
           * eg. VAR_Id (s, lst, t, e) *)
@@ -126,7 +126,7 @@ and typeOfLetdef = function
       let find_forwards = function
           VAR_Id (fi, s, varl, t, e)  ->
             let fn =
-              try newFunction (id_make s) true
+              try newFunction fi (id_make s) true
               with Exit _ -> raise Terminate
             in
             forwardFunction fn;
@@ -159,7 +159,7 @@ and typeOfVardef rec_flag = function
         | _ -> (* var list not empty, so we found a function definition *)
             (* we add a new_function Entry to the current scope *)
             let fn =
-              try newFunction (id_make s) true
+              try newFunction fi (id_make s) true
               with Exit _ -> raise Terminate
             in
             (* in case of let we hide the definition from the body *)
@@ -196,7 +196,7 @@ and typeOfExpr = function
   | E_LitChar _   -> TY_Char
   | E_LitFloat _  -> TY_Float
   | E_LitId (fi, id)    ->
-      let l = lookupEntry (id_make id) LOOKUP_ALL_SCOPES true in
+      let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
       begin
         match l.entry_info with
         | ENTRY_variable v -> v.variable_type;
@@ -205,7 +205,7 @@ and typeOfExpr = function
         | _ -> error fi 3 "E_LitId not found"
       end
   | E_LitConstr (fi, id) -> (* XXX: check if it's right *)
-      let l = lookupEntry (id_make id) LOOKUP_ALL_SCOPES true in
+      let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
       begin
         match l.entry_info with
         | ENTRY_variable v -> v.variable_type;
@@ -394,7 +394,7 @@ and typeOfExpr = function
       typ
   | E_Dim (fi, i, s)           -> TY_Int (* TODO *)
   | E_Call (fi, s, el)         ->
-      let en = lookupEntry (id_make s) LOOKUP_ALL_SCOPES true in
+      let en = lookupEntry fi (id_make s) LOOKUP_ALL_SCOPES true in
       begin
         match en.entry_info with
         | ENTRY_function info -> begin

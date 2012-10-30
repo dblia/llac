@@ -5,6 +5,9 @@
  * program. *)
 exception Exit of int
 
+val numErrors        : int ref
+val maxErrors        : int ref
+
 (* An element of the type finfo represents a "file_position", a file name,
  * line number and the character position within the line 
  *
@@ -24,12 +27,12 @@ val printFileInfo : finfo -> unit
    calls to Format.print_space to print a space or, if necessary,
    break the line at that point. *)
 val errf   : (unit -> unit) -> int -> 'a
-val errfAt : finfo -> (unit -> unit) -> int -> 'a
 
 (* Convenient wrappers for the above, for the common case where the
    action to be performed is just to print a given string. *)
 val err   : string -> 'a
 val error : finfo -> int -> string -> 'a
+val error_args : finfo -> string -> Identifier.id -> unit
 
 (* Functions that print a message without failing afterwards *)
 val warning : finfo -> string -> unit
@@ -42,8 +45,6 @@ type verbose = Vquiet | Vnormal | Vverbose
 
 val flagVerbose      : verbose ref
 
-val numErrors        : int ref
-val maxErrors        : int ref
 val flagWarnings     : bool ref
 val numWarnings      : int ref
 val maxWarnings      : int ref

@@ -67,12 +67,12 @@ val openScope        : unit -> unit
 val closeScope       : unit -> unit
 val hideScope        : scope -> bool -> unit
 val newVariable      : Identifier.id -> Types.ty -> bool -> entry
-val newFunction      : Identifier.id -> bool -> entry
-val newParameter     : Identifier.id -> Types.ty -> pass_mode ->
+val newFunction      : Error.finfo -> Identifier.id -> bool -> entry
+val newParameter     : Error.finfo -> Identifier.id -> Types.ty -> pass_mode ->
                                         entry -> bool -> entry
 val newTemporary     : Types.ty -> entry
 
 val forwardFunction   : entry -> unit
 val endFunctionHeader : entry -> Types.ty -> unit
-val lookupEntry       : Identifier.id -> lookup_type -> bool -> entry
+val lookupEntry       : Error.finfo -> Identifier.id -> lookup_type -> bool -> entry
 

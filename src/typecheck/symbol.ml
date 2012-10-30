@@ -1,6 +1,7 @@
 open Identifier
 open Error
 open Types
+open Format
 
 let internal = Format.print_string
 
@@ -146,13 +147,13 @@ let newEntry id inf err =
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
     e
   with Failure_NewEntry e ->
-    error2 "duplicate identifier %a" pretty_id id;
+    error2 "Duplicate identifier: %a"  pretty_id id;
     e
 
 (* lookup for the entry given in the scope asked:
  * set 'err' to true or false depending on if you want to
  * print possible errors or not *)    
-let lookupEntry id how err =
+let lookupEntry fi id how err =
   let scc = !currentScope in
   let lookup () =
     match how with
@@ -174,11 +175,11 @@ let lookupEntry id how err =
     try
       lookup ()
     with Not_found ->
-      error2 "unknown identifier %a (first occurrence)"
-        pretty_id id;
+      let str = "Unknown identifier (first occurence):" in
+      error_args fi str id;
       (* put it in, so we don't see more errors *)
       H.add !tab id (no_entry id);
-      raise (Exit 1)
+      raise (Exit 3)
   else
     lookup ()
 
@@ -192,9 +193,9 @@ let newVariable id typ err =
   newEntry id (ENTRY_variable inf) err
 
 (* *)  
-let newFunction id err =
+let newFunction fi id err =
   try
-    let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in
+    let e = lookupEntry fi id LOOKUP_CURRENT_SCOPE false in
     match e.entry_info with
     | ENTRY_function inf when inf.function_isForward ->
         inf.function_isForward <- false;
@@ -203,8 +204,8 @@ let newFunction id err =
         e
     | _ ->
         if err then
-          error2 "duplicate identifier: %a" pretty_id id;
-          raise (Exit 1)
+          error2 "Duplicate identifier: %a" pretty_id id;
+          raise (Exit 3)
   with Not_found ->
     let inf = {
       function_isForward = false;
@@ -217,7 +218,7 @@ let newFunction id err =
     newEntry id (ENTRY_function inf) false
 
 (* *)
-let newParameter id typ mode f err =
+let newParameter fi id typ mode f err =
   match f.entry_info with
   | ENTRY_function inf -> begin
       match inf.function_pstatus with
@@ -237,14 +238,17 @@ let newParameter id typ mode f err =
               match p.entry_info with
               | ENTRY_parameter inf ->
                   if not (equalType inf.parameter_type typ) then
-                    error2 "Parameter type mismatch in redeclaration \
-                           of function %a" pretty_id f.entry_id
+                    let str = "Parameter type mismatch in redeclaration \
+                           of function:" in 
+                    error_args fi str f.entry_id
                   else if inf.parameter_mode != mode then
-                    error2 "Parameter passing mode mismatch in redeclaration \
-                           of function %a" pretty_id f.entry_id
+                    let str = "Parameter passing mode mismatch in redeclaration \
+                           of function:" in 
+                   error_args fi str f.entry_id
                   else if p.entry_id != id then
-                    error2 "Parameter name mismatch in redeclaration \
-                           of function %a" pretty_id f.entry_id
+                    let str = "Parameter name mismatch in redeclaration \
+                           of function:" in
+                   error_args fi str f.entry_id
                   else begin
                     H.add !tab id p;
                     !currentScope.sco_entries <- p :: !currentScope.sco_entries
@@ -252,20 +256,21 @@ let newParameter id typ mode f err =
                   p
               | _ ->
                   internal "I found a parameter that is not a parameter!";
-                  raise (Exit 1)
+                  raise (Exit 3)
             end
           | [] ->
-              error2 "More parameters than expected in redeclaration \
-                     of function %a" pretty_id f.entry_id;
-              raise (Exit 1)
+              let str = "More parameters than expected in redeclaration \
+                     of function:" in
+              error_args fi str f.entry_id;
+              raise (Exit 3)
         end
       | PARDEF_COMPLETE ->
           internal "Cannot add a parameter to an already defined function";
-          raise (Exit 1)
+          raise (Exit 3)
     end
   | _ ->
       internal "Cannot add a parameter to a non-function";
-      raise (Exit 1)
+      raise (Exit 3)
 
 let newTemporary typ =
   let id = id_make ("$" ^ string_of_int !tempNumber) in
