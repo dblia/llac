@@ -9,7 +9,7 @@ type ty =
   | TY_Ref of ty
   | TY_Array of int * ty
   | TY_UserDef of string
-  | TY_Function of ty * ty
+  | TY_Function of ty list * ty
 ;;
 
 type for_info = UPTO | DOWNTO ;;

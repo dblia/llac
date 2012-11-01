@@ -1,5 +1,7 @@
 -- error handling
 
+parisng error in testsuite typed folder (auto files)
+
 add pretty_printing with args
 
 improve symbol.ml printing info

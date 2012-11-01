@@ -70,7 +70,7 @@ and ast_expr =
   | E_New         of finfo * Types.ty
   | E_Call        of finfo * string * ast_expr list
   | E_Constructor of finfo * string * ast_expr list
-  | E_ArrayEl     of finfo * string * ast_expr list
+  | E_ArrayEl     of finfo * string * ast_expr list * int
   | E_For         of finfo * string * Types.for_info * ast_expr * ast_expr * ast_expr
 
 and ast_pattern =
@@ -149,7 +149,7 @@ let get_info_expr = function
   | E_New         (fi, _) -> fi
   | E_Call        (fi, _, _) -> fi
   | E_Constructor (fi, _, _) -> fi
-  | E_ArrayEl     (fi, _, _) -> fi
+  | E_ArrayEl     (fi, _, _, _) -> fi
   | E_For         (fi, _, _, _, _, _) -> fi
 ;;
 (*

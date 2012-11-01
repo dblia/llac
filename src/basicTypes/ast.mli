@@ -68,7 +68,7 @@ and ast_expr =
   | E_New         of finfo * Types.ty
   | E_Call        of finfo * string * ast_expr list
   | E_Constructor of finfo * string * ast_expr list
-  | E_ArrayEl     of finfo * string * ast_expr list
+  | E_ArrayEl     of finfo * string * ast_expr list * int
   | E_For         of finfo * string * Types.for_info * ast_expr * ast_expr * ast_expr
 
 and ast_pattern =

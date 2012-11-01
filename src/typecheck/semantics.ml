@@ -161,7 +161,8 @@ and typeOfVardef rec_flag = function
             (* now we hide the definitions while we're processing the body *)
             if not rec_flag then hideScope (!currentScope) true;
             (* function body must conforms with the type declared *)
-            if (!=) (get t) (typeOfExpr e) then error fi 3 "Type mismatch";
+            if not (equalType (get t) (typeOfExpr e)) 
+            then error fi 3 "Type mismatch";
             (* now we unhide the scope if we've hidden it before *)
             if not rec_flag then hideScope (!currentScope) false
         | _ -> (* var list not empty, so we found a function definition *)
@@ -181,7 +182,8 @@ and typeOfVardef rec_flag = function
               List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
               endFunctionHeader fn type_; (* end of function header *)
               (* function body must conforms with the type declared *)
-              if (!=) (get t) (typeOfExpr e) then error fi 3 "Type mismatch";
+              if not (equalType (get t) (typeOfExpr e)) 
+              then error fi 3 "Type mismatch";
               closeScope(); (* close the body's scope *)
               (* now we unhide the scope if we've hidden it before *)
               if not rec_flag then hideScope (!currentScope) false;
@@ -202,7 +204,8 @@ and typeOfVardef rec_flag = function
                 let check_array_dim ty =
                   if (=) ty TY_Int then ()
                   else error fi 3 "Array exprs should be integers.\n"
-                in List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
+                in 
+                List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
                 P.ignore (newVariable (id_make s)
                 (TY_Array (List.length es, type_)) true)
       end
@@ -223,7 +226,14 @@ and typeOfExpr = function
         match l.entry_info with
         | ENTRY_variable v -> v.variable_type;
         | ENTRY_parameter p -> p.parameter_type;
-        | ENTRY_function f -> f.function_result;
+        | ENTRY_function f ->
+            let params = List.map (
+              fun en ->  
+                match en.entry_info with
+                | ENTRY_parameter par_info -> par_info.parameter_type;
+                | _ -> error fi 3 "Wrong function entry"
+              ) f.function_paramlist
+            in TY_Function(params, f.function_result);
         | _ ->
             let str = "E_LitId not found (is not func, param or var):" in
             error_args fi str (id_make id);
@@ -257,7 +267,12 @@ and typeOfExpr = function
         if (=) typ (TY_Ref (typeOfExpr e2)) then TY_Unit
         else error fi 3 "Type mismatch, right operand"
       else error fi 3 "Type mismatch, left operand"
-  | E_Deref (fi, e)     -> typeOfExpr e
+  | E_Deref (fi, e)     ->
+     begin
+      match typeOfExpr e with
+      | TY_Ref ty_ -> ty_
+      | _          -> error fi 3 "deref should be ref type"
+     end
   (* Memory Dynamic Allocation *)
   | E_New (fi, t)       ->
       if isNotArrayOrFunc t then TY_Ref t
@@ -459,8 +474,8 @@ and typeOfExpr = function
             | ENTRY_variable v ->
                 begin
                   match v.variable_type with
-                  | TY_Array (len, type_) when len <= dm -> TY_Int
-                  | TY_Array (len, type_) when len > dm ->
+                  | TY_Array (len, type_) when dm <= len -> TY_Int
+                  | TY_Array (len, type_) when dm > len ->
                       error fi 3 "Int exceeds array dimension"
                   | _ ->
                       let str = "Not an array type:" in
@@ -470,8 +485,8 @@ and typeOfExpr = function
             | ENTRY_parameter p ->
                 begin
                   match p.parameter_type with
-                  | TY_Array (len, type_) when len <= dm -> TY_Int
-                  | TY_Array (len, type_) when len > dm ->
+                  | TY_Array (len, type_) when dm <= len -> TY_Int
+                  | TY_Array (len, type_) when dm > len ->
                       error fi 3 "Int exceeds array dimension"
                   | _ ->
                       let str = "Not an array type:" in
@@ -483,7 +498,7 @@ and typeOfExpr = function
                 error_args fi str (id_make s);
                 raise (Exit 3)
         end
-  | E_ArrayEl (fi, s, el)      ->
+  | E_ArrayEl (fi, s, el, el_len)      ->
       begin
         match el with
         | [] -> (* all expressions are integers, so look at the symbol table *)
@@ -493,9 +508,9 @@ and typeOfExpr = function
                 | ENTRY_variable v ->
                     begin
                       match v.variable_type with
-                      | TY_Array (len, type_) when len = List.length el ->
+                      | TY_Array (len, type_) when len = el_len ->
                           TY_Ref type_
-                      | TY_Array (len, type_) when len != List.length el ->
+                      | TY_Array (len, type_) when len != el_len ->
                           error fi 3 "Array has wrong number of dimensions"
                       | _ ->
                           let str = "Not an array:" in
@@ -505,9 +520,9 @@ and typeOfExpr = function
                 | ENTRY_parameter p ->
                     begin
                       match p.parameter_type with
-                      | TY_Array (len, type_) when len = List.length el ->
+                      | TY_Array (len, type_) when len = el_len ->
                           TY_Ref type_
-                      | TY_Array (len, type_) when len != List.length el ->
+                      | TY_Array (len, type_) when len != el_len ->
                           error fi 3 "Array has wrong number of dimensions"
                       | _ ->
                           let str = "Not an array:" in
@@ -520,7 +535,8 @@ and typeOfExpr = function
                     raise (Exit 3)
                 end
         | (e :: es) -> (* recursivly check array's expr if are TY_Int *)
-          if (=) (typeOfExpr e) TY_Int then typeOfExpr (E_ArrayEl (fi, s, es))
+          if (=) (typeOfExpr e) TY_Int 
+          then typeOfExpr (E_ArrayEl (fi, s, es, el_len))
           else error fi 3 "Array indexes should be integers"
       end
   (* Function and Constructor call *)
@@ -528,7 +544,8 @@ and typeOfExpr = function
       let en = lookupEntry fi (id_make s) LOOKUP_ALL_SCOPES true in
       begin
         match en.entry_info with
-        | ENTRY_function info -> begin
+        | ENTRY_function info -> 
+          begin
             let typ = info.function_result in
             let pars = info.function_paramlist in
             let param_type p =
@@ -545,7 +562,21 @@ and typeOfExpr = function
               typ
             with Invalid_argument e ->
               error fi 3 "different number of args in call."
-        end
+          end
+        | ENTRY_parameter p ->
+          begin
+            match p.parameter_type with
+            | TY_Function (par_type_list, type_) ->
+                let check_params real typical =
+                  if equalType (typeOfExpr real) typical then ()
+                  else 
+                    let str = "Funtion params type mismatch:" in
+                    error_args fi str (id_make s)
+                in
+                List.iter2 (fun x y -> check_params x y) el par_type_list;
+                type_
+            | _ -> error fi 3 "wrong func-param type"
+          end
         | _ -> 
             let str = "Function name doesn't exist:" in
             error_args fi str (id_make s);

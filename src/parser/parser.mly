@@ -230,8 +230,11 @@ typee:
       { TY_Float }
   | T_LParen typee T_RParen
       { $2 }
-  | typee T_Gives typee
-      { TY_Function ($1, $3) }
+  | typee T_Gives typee { 
+      match $3 with
+      | TY_Function (lst, type_) -> TY_Function ($1 :: lst, type_)
+      | _ as type_ -> TY_Function ([$1], type_)
+    }
   | typee T_Ref
       { TY_Ref $1 }
   | T_Array T_Of typee
@@ -377,7 +380,7 @@ expr__:
   | T_LParen expr T_RParen
       { $2 }
   | T_LitId T_LBrack expr_comma_list T_RBrack /* (* array_el *) */
-      { E_ArrayEl ($1.i, $1.v, $3) }
+      { E_ArrayEl ($1.i, $1.v, $3, List.length $3) }
 
 clauses:
     clause
