@@ -170,7 +170,7 @@ and typeOfVardef rec_flag = function
             | TY_Function _ ->
                 let str = "Function can not return function: " in
                 error_args fi str (id_make s)
-            | _ as type_ -> (* add a new_function Entry to the current scope *)
+            | _ -> (* add a new_function Entry to the current scope *)
               let fn =
                 try newFunction fi (id_make s) true
                 with Exit _ -> raise Terminate
@@ -180,10 +180,10 @@ and typeOfVardef rec_flag = function
               openScope(); (* new scope for the args and body definition *)
               (* now we add the parameters of the function *)
               List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
-              endFunctionHeader fn type_; (* end of function header *)
+              endFunctionHeader fn (get t); (* end of function header *)
               (* function body must conforms with the type declared *)
               if not (equalType (get t) (typeOfExpr e)) 
-              then error fi 3 "Type mismatch";
+              then error fi 3 "Type mismatch, in function body";
               closeScope(); (* close the body's scope *)
               (* now we unhide the scope if we've hidden it before *)
               if not rec_flag then hideScope (!currentScope) false;
@@ -407,7 +407,7 @@ and typeOfExpr = function
       else error fi 3 "Type mismatch, TY_Bool expected"
   (* Imperative Commands *)
   | E_Block (fi, e)     -> typeOfExpr e
-  | E_Semicolon (fi, e1, e2)   -> (* XXX: typeOfExpr e1; *) typeOfExpr e2
+  | E_Semicolon (fi, e1, e2)   -> P.ignore(typeOfExpr e1); typeOfExpr e2
   | E_While (fi, e1, e2)       ->
       if isBool (typeOfExpr e1) then
         if isUnit (typeOfExpr e2) then TY_Unit
