@@ -88,7 +88,7 @@ and ast_pattern =
 ;;
 
 let get_name_of_prog = function
-      PROGRAM (l, t) -> (l, t)
+    PROGRAM (l, t) -> (l, t)
 ;;
 
 (*
