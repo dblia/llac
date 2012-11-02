@@ -17,33 +17,34 @@ let createInfo name line chr = FI (name, line, chr)
 
 let printFileInfo = function
     FI (name, line, chr) ->
-      print_string name; 
-      print_string ":"; 
-      print_int line; 
-      print_string "."; 
-      print_int chr; 
+      print_string "Error: file \"";
+      print_string name;
+      print_string "\", line ";
+      print_int line;
+      print_string ", character ";
+      print_int chr;
       print_string ":"
   | UNKNOWN ->
       print_string "<Unknown file and line>: "
 
-let errf f num = 
-  print_flush(); 
-  f(); 
+let errf f num =
+  print_flush();
+  f();
   print_newline();
   if num == 0 then exit 1
   else raise (Exit num)
 
 let errfAt fi f num = errf (fun() -> printFileInfo fi; print_space(); f()) num
 
-let err s = 
+let err s =
   print_flush();
-  print_string s; 
+  print_string s;
   print_newline();
   exit 1
 
 let error fi num s = errfAt fi (fun() -> print_string s) num
 
-let error_args fi s arg = 
+let error_args fi s arg =
   incr numErrors;
   print_flush();
   printFileInfo fi;
@@ -53,8 +54,8 @@ let error_args fi s arg =
   print_newline()
 
 let warning fi s =
-  printFileInfo fi; 
-  print_string "Warning: "; 
+  printFileInfo fi;
+  print_string "Warning: ";
   print_string s
 
 (* ------------------------------------------------------------------------- *)
