@@ -46,5 +46,7 @@ let main =
         err "Lexical error";
     | Error.Exit(3) ->
         err "Semantic error";
+    | Terminate ->
+        err "Oops!! Somenthing went wrong!"
 ;;
 

@@ -76,12 +76,12 @@ let new_parameter f = function
     VAR_Id (fi, s, [], t, e) ->
       begin
         match t with
-        | None -> error fi 3 "No typeinfer you must provide a type\n"
+        | None -> error fi 3 "No type inferer support, you must provide a type"
         | Some _t -> newParameter fi (id_make s) _t PASS_BY_VALUE f true
       end
   | _ -> (* FIXME: currying (function parameters).
           * eg. VAR_Id (s, lst, t, e) *)
-      err "Not a valid parameter form\n"
+      err "Invalid parameter form"
 ;;
 
 (* Initialize Symbol Table and other initializations *)
@@ -147,9 +147,12 @@ and typeOfLetdef = function
 
 
 and typeOfTypedef = function
-    TD_Type (fi, tl)   -> () (* TODO: Not supported yet *)
-  | TD_TDefId _  -> () (* TODO *)
-  | TD_Constr _  -> () (* TODO *)
+    TD_Type (fi, tl)       -> (* TODO: Not supported yet *)
+      error fi 3 "user defined data types are not supported"
+  | TD_TDefId (fi, s, tl)  -> (* TODO: Not supported yet *)
+      error fi 3 "user defined data types are not supported"
+  | TD_Constr (fi, s, tyl) -> (* TODO: Not supported yet *)
+      error fi 3 "user defined data types are not supported"
 
 and typeOfVardef rec_flag = function
     VAR_Id (fi, s, varl, t, e) ->
@@ -161,15 +164,18 @@ and typeOfVardef rec_flag = function
             (* now we hide the definitions while we're processing the body *)
             if not rec_flag then hideScope (!currentScope) true;
             (* function body must conforms with the type declared *)
-            if not (equalType (get t) (typeOfExpr e)) 
-            then error fi 3 "Type mismatch";
+            if not (equalType (get t) (typeOfExpr e)) then (
+              let str1 = "type mismatch in definition\n" in
+              let str = "the type of constant does not match the declared type:"
+              in error_args fi (str1 ^ str) (id_make s));
             (* now we unhide the scope if we've hidden it before *)
             if not rec_flag then hideScope (!currentScope) false
         | _ -> (* var list not empty, so we found a function definition *)
             match (get t) with
             | TY_Function _ ->
-                let str = "Function can not return function: " in
-                error_args fi str (id_make s)
+                let str1 = "type mismatch in definition\n" in
+                let str = "function returns a function:"
+                in error_args fi (str1 ^ str) (id_make s)
             | _ -> (* add a new_function Entry to the current scope *)
               let fn =
                 try newFunction fi (id_make s) true
@@ -182,11 +188,14 @@ and typeOfVardef rec_flag = function
               List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
               endFunctionHeader fn (get t); (* end of function header *)
               (* function body must conforms with the type declared *)
-              if not (equalType (get t) (typeOfExpr e)) 
-              then error fi 3 "Type mismatch, in function body";
+              let typ = typeOfExpr e in
+              if not (equalType (get t) typ) then (
+                let str1 = "type mismatch in definition\n" in
+                let str = "the body of function does not match the declared type:"
+                in error_args fi (str1 ^ str) (id_make s));
               closeScope(); (* close the body's scope *)
               (* now we unhide the scope if we've hidden it before *)
-              if not rec_flag then hideScope (!currentScope) false;
+              if not rec_flag then hideScope (!currentScope) false
       end
   | VAR_MutId (fi, s, t, exprl) ->
       begin
@@ -204,7 +213,7 @@ and typeOfVardef rec_flag = function
                 let check_array_dim ty =
                   if (=) ty TY_Int then ()
                   else error fi 3 "Array exprs should be integers.\n"
-                in 
+                in
                 List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
                 P.ignore (newVariable (id_make s)
                 (TY_Array (List.length es, type_)) true)
@@ -218,7 +227,7 @@ and typeOfExpr = function
   | E_LitInt _    -> TY_Int
   | E_LitChar _   -> TY_Char
   | E_LitFloat _  -> TY_Float
-  | E_LitString (fi, s) -> TY_Array (1, TY_Char) (*FIXME: change 1 to String.length s*)
+  | E_LitString (fi, s) -> TY_Array (1, TY_Char)
   (* Names (constants, functions, parameters, constructors, expressions) *)
   | E_LitId (fi, id)    ->
       let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
@@ -228,7 +237,7 @@ and typeOfExpr = function
         | ENTRY_parameter p -> p.parameter_type;
         | ENTRY_function f ->
             let params = List.map (
-              fun en ->  
+              fun en ->
                 match en.entry_info with
                 | ENTRY_parameter par_info -> par_info.parameter_type;
                 | _ -> error fi 3 "Wrong function entry"
@@ -239,7 +248,8 @@ and typeOfExpr = function
             error_args fi str (id_make id);
             raise (Exit 3)
       end
-  | E_LitConstr (fi, id) -> (* XXX: check if it's right, not supported yet *)
+  | E_LitConstr (fi, id) -> (* TODO: not supported yet *)
+      (*
       let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
       begin
         match l.entry_info with
@@ -247,6 +257,8 @@ and typeOfExpr = function
         | ENTRY_parameter p -> p.parameter_type;
         | _ -> error fi 3 "E_LitConstr not found"
       end
+      *)
+      error fi 3 "user defined date types are not supported"
   (* Unary Arithmetic Operators *)
   | E_UPlus (fi, e)     ->
       if (=) (typeOfExpr e) TY_Int then TY_Int
@@ -428,8 +440,9 @@ and typeOfExpr = function
       else error fi 3 "Type mismatch, TY_Int expected"
   (* Decomposition of User Defined Types *)
   | E_Match (fi, e, clauses)   ->
+      (*
       let ex_type = typeOfExpr e in
-      let res_type = ref TY_Unit  in 
+      let res_type = ref TY_Unit  in
       let check_clauses typ_ clause =
         match clause with
         | P_Clause (info, pat, ex) ->
@@ -441,11 +454,13 @@ and typeOfExpr = function
       in
       List.iter (fun cl -> check_clauses ex_type cl) clauses;
       !res_type
+      *)
+      error fi 3 "user defined data types are not supported"
   (* Local definitions *)
   | E_LetIn (fi, ld, e)        -> (* local declarations *)
       typeOfLetdef ld;
       let typ = typeOfExpr e in
-      closeScope();
+      closeScope(); (* close the clope that opened in letdef *)
       typ
   (* If statement *)
   | E_IfStmt (fi, e, e1, e2)   ->
@@ -458,7 +473,7 @@ and typeOfExpr = function
               else
                 let fi2 = get_info_expr _e2 in
                 error fi2 3 "This expression has wrong type"
-          | None -> typ1 (* XXX: should be TY_Unit (check p.12) *)
+          | None -> typ1 (* FIXME: should be TY_Unit (check p.12) *)
         end
       else
         let fi1 = get_info_expr e in
@@ -535,7 +550,7 @@ and typeOfExpr = function
                     raise (Exit 3)
                 end
         | (e :: es) -> (* recursivly check array's expr if are TY_Int *)
-          if (=) (typeOfExpr e) TY_Int 
+          if (=) (typeOfExpr e) TY_Int
           then typeOfExpr (E_ArrayEl (fi, s, es, el_len))
           else error fi 3 "Array indexes should be integers"
       end
@@ -544,7 +559,7 @@ and typeOfExpr = function
       let en = lookupEntry fi (id_make s) LOOKUP_ALL_SCOPES true in
       begin
         match en.entry_info with
-        | ENTRY_function info -> 
+        | ENTRY_function info ->
           begin
             let typ = info.function_result in
             let pars = info.function_paramlist in
@@ -569,7 +584,7 @@ and typeOfExpr = function
             | TY_Function (par_type_list, type_) ->
                 let check_params real typical =
                   if equalType (typeOfExpr real) typical then ()
-                  else 
+                  else
                     let str = "Funtion params type mismatch:" in
                     error_args fi str (id_make s)
                 in
@@ -577,18 +592,19 @@ and typeOfExpr = function
                 type_
             | _ -> error fi 3 "wrong func-param type"
           end
-        | _ -> 
+        | _ ->
             let str = "Function name doesn't exist:" in
             error_args fi str (id_make s);
             raise (Exit 3)
       end
-  | E_Constructor (fi, s, el)  -> TY_Unit (* TODO: not supported yet *)
+  | E_ConstrCall (fi, s, el)  -> (* TODO: not supported yet *)
+      error fi 3 "user defined data types are not supported"
 
 
 and typeOfPattern = function
     P_True _          -> TY_Bool
   | P_False _         -> TY_Bool
-  | P_LitId (fi,id)   -> 
+  | P_LitId (fi,id)   ->
       P.ignore (newVariable (id_make id) TY_Unit true);
       TY_Unit
   | P_LitChar (fi,c)  -> TY_Char
@@ -597,7 +613,8 @@ and typeOfPattern = function
   | P_FPlus _         -> TY_Float
   | P_Minus _         -> TY_Int
   | P_FMinus _        -> TY_Float
-  | P_LitConstr _     -> TY_Unit (* TODO: not supported yet *)
+  | P_LitConstr (fi, s, patl) -> (* TODO: not supported yet *)
+      error fi 3 "user defined data types are not supported"
   | _                 -> err "Wrong pattern form"
 ;;
 

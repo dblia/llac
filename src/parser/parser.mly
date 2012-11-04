@@ -346,7 +346,7 @@ expr:
   | T_LitId exprs__
       { E_Call ($1.i, $1.v, $2)  }
   | T_LitConstr exprs__
-      { E_Constructor ($1.i, $1.v, $2) }
+      { E_ConstrCall ($1.i, $1.v, $2) }
   | expr__
       { $1 }
 
