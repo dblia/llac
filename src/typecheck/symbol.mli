@@ -40,7 +40,7 @@ and temporary_info = {                        (** Προσωρινή μεταβ�
   temporary_offset : int                      (* Offset στο Ε.Δ.       *)
 }
 
-and entry_info = 
+and entry_info =
     ENTRY_none
   | ENTRY_variable of variable_info
   | ENTRY_function of function_info
@@ -66,11 +66,11 @@ val initSymbolTable  : int -> unit
 val openScope        : unit -> unit
 val closeScope       : unit -> unit
 val hideScope        : scope -> bool -> unit
-val newVariable      : Identifier.id -> Types.ty -> bool -> entry
+val newVariable      : Error.finfo -> Identifier.id -> Types.ty -> bool -> entry
 val newFunction      : Error.finfo -> Identifier.id -> bool -> entry
 val newParameter     : Error.finfo -> Identifier.id -> Types.ty -> pass_mode ->
                                         entry -> bool -> entry
-val newTemporary     : Types.ty -> entry
+val newTemporary     : Error.finfo -> Types.ty -> entry
 
 val forwardFunction   : entry -> unit
 val endFunctionHeader : entry -> Types.ty -> unit

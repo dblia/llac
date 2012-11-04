@@ -160,7 +160,7 @@ and typeOfVardef rec_flag = function
         match varl with
         | [] -> (* var list empty, so we found a variable definition *)
             (* add a new_variable Entry to the current scope *)
-            P.ignore (newVariable (id_make s) (get t) true);
+            P.ignore (newVariable fi (id_make s) (get t) true);
             (* now we hide the definitions while we're processing the body *)
             if not rec_flag then hideScope (!currentScope) true;
             (* function body must conforms with the type declared *)
@@ -212,7 +212,7 @@ and typeOfVardef rec_flag = function
             match exprl with
               None -> (* simple variable definition *)
                 (* add a new_variable Entry to the current scope *)
-                P.ignore (newVariable (id_make s) (TY_Ref type_) true)
+                P.ignore (newVariable fi (id_make s) (TY_Ref type_) true)
             | Some es -> (* array variable definition *)
                 (* es types must be integers *)
                 let check_array_dim ty =
@@ -220,7 +220,7 @@ and typeOfVardef rec_flag = function
                   else error fi 3 "Array exprs should be integers.\n"
                 in
                 List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
-                P.ignore (newVariable (id_make s)
+                P.ignore (newVariable fi (id_make s)
                 (TY_Array (List.length es, type_)) true)
       end
 
@@ -436,7 +436,7 @@ and typeOfExpr = function
       if (=) typ1 typ2 then
         begin
           openScope();
-          P.ignore (newVariable (id_make s) TY_Int true);
+          P.ignore (newVariable fi (id_make s) TY_Int true);
           let e3 = typeOfExpr e in
           closeScope();
           if isUnit e3 && typ1 = TY_Int then TY_Unit
@@ -610,7 +610,7 @@ and typeOfPattern = function
     P_True _          -> TY_Bool
   | P_False _         -> TY_Bool
   | P_LitId (fi,id)   ->
-      P.ignore (newVariable (id_make id) TY_Unit true);
+      P.ignore (newVariable fi (id_make id) TY_Unit true);
       TY_Unit
   | P_LitChar (fi,c)  -> TY_Char
   | P_LitFloat (fi,f) -> TY_Char

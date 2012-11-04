@@ -128,13 +128,13 @@ exception Failure_NewEntry of entry
  * the type of entry depends on the inf given (see functions below).
  * set 'err' to true if you want to check for duplicate entry_id's,
  * else set 'err' to false  *)
-let newEntry id inf err =
-  try
+let newEntry fi id inf err =
     if err then begin
       try
         let e = H.find !tab id in
-        if e.entry_scope.sco_nesting = !currentScope.sco_nesting then
-           raise (Failure_NewEntry e)
+        if e.entry_scope.sco_nesting = !currentScope.sco_nesting then ( 
+          error_args fi "duplicate identifier:" id;
+          raise (Exit 3))
       with Not_found ->
         ()
     end;
@@ -145,9 +145,6 @@ let newEntry id inf err =
     } in
     H.add !tab id e;
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
-    e
-  with Failure_NewEntry e ->
-    error2 "Duplicate identifier: %a"  pretty_id id;
     e
 
 (* lookup for the entry given in the scope asked:
@@ -184,13 +181,13 @@ let lookupEntry fi id how err =
     lookup ()
 
 (* adds a new variable into the current scope *)    
-let newVariable id typ err =
+let newVariable fi id typ err =
   !currentScope.sco_negofs <- !currentScope.sco_negofs - sizeOfType typ;
   let inf = {
     variable_type = typ;
     variable_offset = !currentScope.sco_negofs
   } in
-  newEntry id (ENTRY_variable inf) err
+  newEntry fi id (ENTRY_variable inf) err
 
 (* *)  
 let newFunction fi id err =
@@ -204,7 +201,7 @@ let newFunction fi id err =
         e
     | _ ->
         if err then
-          error2 "Duplicate identifier: %a" pretty_id id;
+          error_args fi "duplicate identifier:" id;
           raise (Exit 3)
   with Not_found ->
     let inf = {
@@ -215,7 +212,7 @@ let newFunction fi id err =
       function_pstatus = PARDEF_DEFINE;
       function_initquad = 0
     } in
-    newEntry id (ENTRY_function inf) false
+    newEntry fi id (ENTRY_function inf) false
 
 (* *)
 let newParameter fi id typ mode f err =
@@ -228,7 +225,7 @@ let newParameter fi id typ mode f err =
             parameter_offset = 0;
             parameter_mode = mode
           } in
-          let e = newEntry id (ENTRY_parameter inf_p) err in
+          let e = newEntry fi id (ENTRY_parameter inf_p) err in
           inf.function_paramlist <- e :: inf.function_paramlist;
           e
       | PARDEF_CHECK -> begin
@@ -272,7 +269,7 @@ let newParameter fi id typ mode f err =
       internal "Cannot add a parameter to a non-function";
       raise (Exit 3)
 
-let newTemporary typ =
+let newTemporary fi typ =
   let id = id_make ("$" ^ string_of_int !tempNumber) in
   !currentScope.sco_negofs <- !currentScope.sco_negofs - sizeOfType typ;
   let inf = {
@@ -280,7 +277,7 @@ let newTemporary typ =
     temporary_offset = !currentScope.sco_negofs
   } in
   incr tempNumber;
-  newEntry id (ENTRY_temporary inf) false
+  newEntry fi id (ENTRY_temporary inf) false
 ;;
 
 (* finds the forward definitions from the entry given *)
