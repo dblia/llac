@@ -166,16 +166,19 @@ and typeOfVardef rec_flag = function
             (* function body must conforms with the type declared *)
             if not (equalType (get t) (typeOfExpr e)) then (
               let str1 = "type mismatch in definition\n" in
-              let str = "the type of constant does not match the declared type:"
-              in error_args fi (str1 ^ str) (id_make s));
+              let str = "the type of constant does not match the declared \
+                        type:" in 
+              error_args fi (str1 ^ str) (id_make s);
+              raise (Exit 3));
             (* now we unhide the scope if we've hidden it before *)
             if not rec_flag then hideScope (!currentScope) false
         | _ -> (* var list not empty, so we found a function definition *)
             match (get t) with
             | TY_Function _ ->
                 let str1 = "type mismatch in definition\n" in
-                let str = "function returns a function:"
-                in error_args fi (str1 ^ str) (id_make s)
+                let str = "function returns a function:" in 
+                error_args fi (str1 ^ str) (id_make s);
+                raise (Exit 3)
             | _ -> (* add a new_function Entry to the current scope *)
               let fn =
                 try newFunction fi (id_make s) true
@@ -191,8 +194,10 @@ and typeOfVardef rec_flag = function
               let typ = typeOfExpr e in
               if not (equalType (get t) typ) then (
                 let str1 = "type mismatch in definition\n" in
-                let str = "the body of function does not match the declared type:"
-                in error_args fi (str1 ^ str) (id_make s));
+                let str = "the body of function does not match the declared \
+                          type:" in 
+                error_args fi (str1 ^ str) (id_make s);
+                raise (Exit 3));
               closeScope(); (* close the body's scope *)
               (* now we unhide the scope if we've hidden it before *)
               if not rec_flag then hideScope (!currentScope) false

@@ -34,9 +34,9 @@ class ShouldFail(ParametrizedTestCase):
     def test_f(self):
         res = call([exe, fdir + "/" + self.param], stderr=err, stdout=err)
         try:
-            self.assertEqual(res, 0)
+            self.assertEqual(res, 1)
         except AssertionError:
-            print 'failed', self.param
+            print 'ok', self.param
 
 class ShouldCompile(ParametrizedTestCase):
     def test_c(self):
