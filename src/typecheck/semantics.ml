@@ -1,7 +1,9 @@
 (* Type checking and semantic analysis *)
 
+open Intermediate
 open Pervasives
 
+module I = Intermediate
 module P = Pervasives
 
 open Identifier
@@ -164,16 +166,16 @@ and typeOfVardef rec_flag = function
             (* now we hide the definitions while we're processing the body *)
             if not rec_flag then hideScope (!currentScope) true;
             (* function body must conforms with the type declared *)
-            if not (equalType (get t) (typeOfExpr e)) then (
-              let str1 = "type mismatch in definition\n" in
-              let str = "the type of constant does not match the declared \
+            if not (equalType sem.expr_type (typeOfExpr e).expr_type) then (
+              let str = "type mismatch in definition\n" in
+              let str_ = "the type of constant does not match the declared \
                         type:" in
-              error_args fi (str1 ^ str) (id_make s);
+              error_args fi (str ^ str_) (id_make s);
               raise (Exit 3));
             (* now we unhide the scope if we've hidden it before *)
             if not rec_flag then hideScope (!currentScope) false
         | _ -> (* var list not empty, so we found a function definition *)
-            match (get t) with
+            match (sem.expr_type) with
             | TY_Function _ ->
                 let str1 = "type mismatch in definition\n" in
                 let str = "function returns a function:" in
@@ -191,12 +193,11 @@ and typeOfVardef rec_flag = function
               List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
               endFunctionHeader fn (get t); (* end of function header *)
               (* function body must conforms with the type declared *)
-              let typ = typeOfExpr e in
-              if not (equalType (get t) typ) then (
-                let str1 = "type mismatch in definition\n" in
-                let str = "the body of function does not match the declared \
+              if not (equalType sem.expr_type (typeOfExpr e).expr_type) then (
+                let str = "type mismatch in definition\n" in
+                let str_ = "the body of function does not match the declared \
                           type:" in
-                error_args fi (str1 ^ str) (id_make s);
+                error_args fi (str ^ str_) (id_make s);
                 raise (Exit 3));
               closeScope(); (* close the body's scope *)
               (* now we unhide the scope if we've hidden it before *)
@@ -204,7 +205,7 @@ and typeOfVardef rec_flag = function
       end
   | VAR_MutId (sem, fi, s, t, exprl) ->
       begin
-        match (get t) with
+        match (sem.expr_type) with
         | TY_Array _ ->
             let str = "References to arrays are not allowed: " in
             error_args fi str (id_make s)
@@ -215,8 +216,8 @@ and typeOfVardef rec_flag = function
                 P.ignore (newVariable fi (id_make s) (TY_Ref type_) true)
             | Some es -> (* array variable definition *)
                 (* es types must be integers *)
-                let check_array_dim ty =
-                  if (=) ty TY_Int then ()
+                let check_array_dim sem_ex =
+                  if (equalType sem_ex.expr_type TY_Int) then ()
                   else error fi 3 "Array exprs should be integers.\n"
                 in
                 List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
@@ -226,28 +227,26 @@ and typeOfVardef rec_flag = function
 
 and typeOfExpr = function
   (* Constants Operators *)
-    E_Unit (sem, info)        -> TY_Unit
-  | E_True (sem, info)        -> TY_Bool
-  | E_False (sem, info)       -> TY_Bool
-  | E_LitInt (sem, info, _)   -> TY_Int
-  | E_LitChar (sem, info, _)  -> TY_Char
-  | E_LitFloat (sem, info, _) -> TY_Float
-  | E_LitString (sem, fi, s) -> TY_Array (1, TY_Char)
+    E_Unit (sem, info)        -> sem
+  | E_True (sem, info)        -> sem
+  | E_False (sem, info)       -> sem
+  | E_LitInt (sem, info, _)   -> sem
+  | E_LitChar (sem, info, _)  -> sem
+  | E_LitFloat (sem, info, _) -> sem
+  | E_LitString (sem, fi, s)  -> sem
   (* Names (constants, functions, parameters, constructors, expressions) *)
   | E_LitId (sem, fi, id)    ->
       let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
       begin
         match l.entry_info with
-        | ENTRY_variable v -> v.variable_type;
-        | ENTRY_parameter p -> p.parameter_type;
-        | ENTRY_function f ->
-            let params = List.map (
-              fun en ->
-                match en.entry_info with
-                | ENTRY_parameter par_info -> par_info.parameter_type;
-                | _ -> error fi 3 "Wrong function entry"
-              ) f.function_paramlist
-            in TY_Function(params, f.function_result);
+        | ENTRY_variable v -> {sem with expr_type = v.variable_type};
+        | ENTRY_parameter p -> {sem with expr_type = p.parameter_type};
+        | ENTRY_function f -> {sem with expr_type = TY_Function (List.map (
+          fun en ->
+            match en.entry_info with
+            | ENTRY_parameter par_info -> par_info.parameter_type;
+            | _ -> error fi 3 "Wrong function entry"
+        ) f.function_paramlist, f.function_result)};
         | _ ->
             let str = "E_LitId not found (is not func, param or var):" in
             error_args fi str (id_make id);
@@ -266,180 +265,199 @@ and typeOfExpr = function
       error fi 3 "user defined date types are not supported"
   (* Unary Arithmetic Operators *)
   | E_UPlus (sem, fi, e)     ->
-      if (=) (typeOfExpr e) TY_Int then TY_Int
+      if (equalType (typeOfExpr e).expr_type TY_Int)
+      then { sem with expr_type = TY_Int }
       else error fi 3 "Type mismatch, TY_Int expected"
   | E_UFPlus (sem, fi, e)    ->
-      if (=) (typeOfExpr e) TY_Float then TY_Float
+      if (equalType (typeOfExpr e).expr_type TY_Float)
+      then { sem with expr_type = TY_Float }
       else error fi 3 "Type mismatch, TY_Float"
   | E_UMinus (sem, fi, e)    ->
-      if (=) (typeOfExpr e) TY_Int then TY_Int
+      if (equalType (typeOfExpr e).expr_type TY_Int)
+      then { sem with expr_type = TY_Int }
       else error fi 3 "Type mismatch, TY_Int expected"
   | E_UFMinus (sem, fi, e)   ->
-      if (=) (typeOfExpr e) TY_Float then TY_Float
+      if (equalType (typeOfExpr e).expr_type TY_Float)
+      then { sem with expr_type = TY_Float }
       else error fi 3 "Type mismatch, TY_Float expected"
   (* References and assigments *)
   | E_Assign (sem, fi, e1, e2)      -> (* FIXME: check if e1 is l-value *)
       let typ = typeOfExpr e1 in
-      if isRef typ then
-        if (=) typ (TY_Ref (typeOfExpr e2)) then TY_Unit
+      if isRef typ.expr_type then
+        if (equalType typ.expr_type (TY_Ref (typeOfExpr e2).expr_type))
+        then { sem with expr_type = TY_Unit }
         else error fi 3 "Type mismatch, right operand"
       else error fi 3 "Type mismatch, left operand"
   | E_Deref (sem, fi, e)     ->
      begin
-      match typeOfExpr e with
-      | TY_Ref ty_ -> ty_
+      match (typeOfExpr e).expr_type with
+      | TY_Ref ty_ -> { sem with expr_type = ty_ }
       | _          -> error fi 3 "deref should be ref type"
      end
   (* Memory Dynamic Allocation *)
-  | E_New (sem, fi, t)       ->
-      if isNotArrayOrFunc t then TY_Ref t
+  | E_New (sem, fi, t)         ->
+      if isNotArrayOrFunc sem.expr_type then 
+        { sem with expr_type = TY_Ref sem.expr_type }
       else error fi 3 "Type mismatch, cannot allocate TY_Array or TY_Function."
-  | E_Delete (sem, fi, e)    -> (* FIXME: check that mem was allocated dynamically *)
-      if isRef (typeOfExpr e) then TY_Unit
+  | E_Delete (sem, fi, e)      -> (* FIXME: check that mem was allocated dynamically *)
+      if isRef (typeOfExpr e).expr_type then { sem with expr_type = TY_Unit }
       else error fi 3 "Type mismatch, only TY_Ref can be unallocated."
   (* Binary Integer Arithmetic Operators *)
-  | E_Plus (sem, fi, e1, e2) ->
-      if (=) (typeOfExpr e1) TY_Int then
-        let typ2 = typeOfExpr e2 in
-        if (=) typ2 TY_Int then TY_Int
+  | E_Plus (sem, fi, e1, e2)   ->
+      if (equalType (typeOfExpr e1).expr_type TY_Int) then
+        if (equalType (typeOfExpr e2).expr_type TY_Int)
+        then { sem with expr_type = TY_Int }
         else error fi 3 "Type mismatch, TY_Int expected"
       else error fi 3 "Type mismatch, TY_Int expected"
   | E_Minus (sem, fi, e1, e2)  ->
-      if (=) (typeOfExpr e1) TY_Int then
-        let typ2 = typeOfExpr e2 in
-        if (=) typ2 TY_Int then TY_Int
+      if (equalType (typeOfExpr e1).expr_type TY_Int) then
+        if (equalType (typeOfExpr e2).expr_type TY_Int)
+        then { sem with expr_type = TY_Int }
         else error fi 3 "Type mismatch, TY_Int expected"
       else error fi 3 "Type mismatch, TY_Int expected"
   | E_Mul (sem, fi, e1, e2)    ->
-      if (=) (typeOfExpr e1) TY_Int then
-        let typ2 = typeOfExpr e2 in
-        if (=) typ2 TY_Int then TY_Int
+      if (equalType (typeOfExpr e1).expr_type TY_Int) then
+        if (equalType (typeOfExpr e2).expr_type TY_Int)
+        then { sem with expr_type = TY_Int }
         else error fi 3 "Type mismatch, TY_Int expected"
       else error fi 3 "Type mismatch, TY_Int expected"
-  | E_Div (sem, fi, e1, e2)     ->
-      if (=) (typeOfExpr e1) TY_Int then
-        let typ2 = typeOfExpr e2 in
-        if (=) typ2 TY_Int then TY_Int
+  | E_Div (sem, fi, e1, e2)    ->
+      if (equalType (typeOfExpr e1).expr_type TY_Int) then
+        if (equalType (typeOfExpr e2).expr_type TY_Int)
+        then { sem with expr_type = TY_Int }
         else error fi 3 "Type mismatch, TY_Int expected"
       else error fi 3 "Type mismatch, TY_Int expected"
-  | E_Mod (sem, fi, e1, e2)      ->
-      if (=) (typeOfExpr e1) TY_Int then
-        let typ2 = typeOfExpr e2 in
-        if (=) typ2 TY_Int then TY_Int
+  | E_Mod (sem, fi, e1, e2)     ->
+      if (equalType (typeOfExpr e1).expr_type TY_Int) then
+        if (equalType (typeOfExpr e2).expr_type TY_Int)
+        then { sem with expr_type = TY_Int }
         else error fi 3 "Type mismatch, TY_Int expected"
       else error fi 3 "Type mismatch, TY_Int expected"
   (* Binary Float Arithmetic Operators *)
   | E_FPlus (sem, fi, e1, e2)  ->
-      if (=) (typeOfExpr e1) TY_Float then
-        let typ2 = typeOfExpr e2 in
-        if (=) typ2 TY_Float then TY_Float
+      if (equalType (typeOfExpr e1).expr_type TY_Float) then
+        if (equalType (typeOfExpr e2).expr_type TY_Float)
+        then { sem with expr_type = TY_Float }
         else error fi 3 "Type mismatch, TY_Float expected"
       else error fi 3 "Type mismatch, TY_Float expected"
   | E_FMinus (sem, fi, e1, e2) ->
-      if (=) (typeOfExpr e1) TY_Float then
-        let typ2 = typeOfExpr e2 in
-        if (=) typ2 TY_Float then TY_Float
+      if (equalType (typeOfExpr e1).expr_type TY_Float) then
+        if (equalType (typeOfExpr e2).expr_type TY_Float)
+        then { sem with expr_type = TY_Float }
         else error fi 3 "Type mismatch, TY_Float expected"
       else error fi 3 "Type mismatch, TY_Float expected"
   | E_FMul (sem, fi, e1, e2)   ->
-      if (=) (typeOfExpr e1) TY_Float then
-        let typ2 = typeOfExpr e2 in
-        if (=) typ2 TY_Float then TY_Float
+      if (equalType (typeOfExpr e1).expr_type TY_Float) then
+        if (equalType (typeOfExpr e2).expr_type TY_Float)
+        then { sem with expr_type = TY_Float }
         else error fi 3 "Type mismatch, TY_Float expected"
       else error fi 3 "Type mismatch, TY_Float expected"
-  | E_FDiv (sem, fi, e1, e2)     ->
-      if (=) (typeOfExpr e1) TY_Float then
-        let typ2 = typeOfExpr e2 in
-        if (=) typ2 TY_Float then TY_Float
+  | E_FDiv (sem, fi, e1, e2)   ->
+      if (equalType (typeOfExpr e1).expr_type TY_Float) then
+        if (equalType (typeOfExpr e2).expr_type TY_Float)
+        then { sem with expr_type = TY_Float }
         else error fi 3 "Type mismatch, TY_Float expected"
       else error fi 3 "Type mismatch, TY_Float expected"
-  | E_Pow (sem, fi, e1, e2)       ->
-      if (=) (typeOfExpr e1) TY_Float then
-        let typ2 = typeOfExpr e2 in
-        if (=) typ2 TY_Float then TY_Float
-        else error fi 3 "Type mismatch"
-      else error fi 3 "Type mismatch"
+  | E_Pow (sem, fi, e1, e2)    ->
+      if (equalType (typeOfExpr e1).expr_type TY_Float) then
+        if (equalType (typeOfExpr e2).expr_type TY_Float)
+        then { sem with expr_type = TY_Float }
+        else error fi 3 "Type mismatch, TY_Float expected"
+      else error fi 3 "Type mismatch, TY_Float expected"
   (* Structural and Natural Equality Operators *)
   | E_Eq (sem, fi, e1, e2)         ->
-      let typ1 = typeOfExpr e1 in
-      if isNotArrayOrFunc typ1 then
-        if (=) typ1 (typeOfExpr e2) then TY_Bool
+      let sem1 = typeOfExpr e1 in
+      if (isNotArrayOrFunc sem1.expr_type) then
+        if (equalType sem1.expr_type (typeOfExpr e2).expr_type)
+        then { sem with expr_type = TY_Bool }
         else error fi 3 "Type mismatch (e1 = e2)"
       else error fi 3 "Type mismatch (e1 =) array-func type"
   | E_Differ (sem, fi, e1, e2)     ->
-      let typ1 = typeOfExpr e1 in
-      if isNotArrayOrFunc typ1 then
-        if (=) typ1 (typeOfExpr e2) then TY_Bool
+      let sem1 = typeOfExpr e1 in
+      if (isNotArrayOrFunc sem1.expr_type) then
+        if (equalType sem1.expr_type (typeOfExpr e2).expr_type)
+        then { sem with expr_type = TY_Bool }
         else error fi 3 "Type mismatch (e1 <> e2)"
       else error fi 3 "Type mismatch (e1 <>) array-func type"
   | E_Equal (sem, fi, e1, e2)       ->
-      let typ1 = typeOfExpr e1 in
-      if isNotArrayOrFunc typ1 then
-        if (=) typ1 (typeOfExpr e2) then TY_Bool
+      let sem1 = typeOfExpr e1 in
+      if (isNotArrayOrFunc sem1.expr_type) then
+        if (equalType sem1.expr_type (typeOfExpr e2).expr_type)
+        then { sem with expr_type = TY_Bool }
         else error fi 3 "Type mismatch (e1 == e2)"
       else error fi 3 "Type mismatch (e1 ==) array-func type"
   | E_NEqual (sem, fi, e1, e2)      ->
-      let typ1 = typeOfExpr e1 in
-      if isNotArrayOrFunc typ1 then
-        if (=) typ1 (typeOfExpr e2) then TY_Bool
+      let sem1 = typeOfExpr e1 in
+      if (isNotArrayOrFunc sem1.expr_type) then
+        if (equalType sem1.expr_type (typeOfExpr e2).expr_type)
+        then { sem with expr_type = TY_Bool }
         else error fi 3 "Type mismatch (e1 != e2)"
       else error fi 3 "Type mismatch (e1 !=) array-func type"
   | E_Lt (sem, fi, e1, e2)          ->
-      let typ1 = typeOfExpr e1 in
-      if isSimpleType typ1 then
-        if (=) typ1 (typeOfExpr e2) then TY_Bool
+      let sem1 = typeOfExpr e1 in
+      if (isSimpleType sem1.expr_type) then
+        if (equalType sem1.expr_type (typeOfExpr e2).expr_type)
+        then { sem with expr_type = TY_Bool }
         else error fi 3 "Type mismatch"
       else error fi 3 "Type mismatch - not simple type"
   | E_Gt (sem, fi, e1, e2)          ->
-      let typ1 = typeOfExpr e1 in
-      if isSimpleType typ1 then
-        if (=) typ1 (typeOfExpr e2) then TY_Bool
+      let sem1 = typeOfExpr e1 in
+      if (isSimpleType sem1.expr_type) then
+        if (equalType sem1.expr_type (typeOfExpr e2).expr_type)
+        then { sem with expr_type = TY_Bool }
         else error fi 3 "Type mismatch"
       else error fi 3 "Type mismatch - not simple type"
   | E_Leq (sem, fi, e1, e2)         ->
-      let typ1 = typeOfExpr e1 in
-      if isSimpleType typ1 then
-        if (=) typ1 (typeOfExpr e2) then TY_Bool
+      let sem1 = typeOfExpr e1 in
+      if (isSimpleType sem1.expr_type) then
+        if (equalType sem1.expr_type (typeOfExpr e2).expr_type)
+        then { sem with expr_type = TY_Bool }
         else error fi 3 "Type mismatch"
       else error fi 3 "Type mismatch - not simple type"
   | E_Geq (sem, fi, e1, e2)         ->
-      let typ1 = typeOfExpr e1 in
-      if isSimpleType typ1 then
-        if (=) typ1 (typeOfExpr e2) then TY_Bool
+      let sem1 = typeOfExpr e1 in
+      if (isSimpleType sem1.expr_type) then
+        if (equalType sem1.expr_type (typeOfExpr e2).expr_type)
+        then { sem with expr_type = TY_Bool }
         else error fi 3 "Type mismatch"
       else error fi 3 "Type mismatch - not simple type"
   (* Logical Operators *)
   | E_Not (sem, fi, e)       ->
-      if (=) (typeOfExpr e) TY_Bool then TY_Bool
+      if (equalType (typeOfExpr e).expr_type TY_Bool)
+      then { sem with expr_type = TY_Bool }
       else error fi 3 "Type mismatch, TY_Bool expected"
   | E_Andlogic (sem, fi, e1, e2)    ->
-      if (=) (typeOfExpr e1) TY_Bool then
-        if (=) (typeOfExpr e2) TY_Bool then TY_Bool
+      if (equalType (typeOfExpr e1).expr_type TY_Bool) then
+        if (equalType (typeOfExpr e2).expr_type TY_Bool)
+        then { sem with expr_type = TY_Bool }
         else error fi 3 "Type mismatch, TY_Bool expected"
       else error fi 3 "Type mismatch, TY_Bool expected"
   | E_Orlogic (sem, fi, e1, e2)     ->
-      if (=) (typeOfExpr e1) TY_Bool then
-        if (=) (typeOfExpr e2) TY_Bool then TY_Bool
+      if (equalType (typeOfExpr e1).expr_type TY_Bool) then
+        if (equalType (typeOfExpr e2).expr_type TY_Bool)
+        then { sem with expr_type = TY_Bool }
         else error fi 3 "Type mismatch, TY_Bool expected"
       else error fi 3 "Type mismatch, TY_Bool expected"
   (* Imperative Commands *)
   | E_Block (sem, fi, e)     -> typeOfExpr e
   | E_Semicolon (sem, fi, e1, e2)   -> P.ignore(typeOfExpr e1); typeOfExpr e2
   | E_While (sem, fi, e1, e2)       ->
-      if isBool (typeOfExpr e1) then
-        if isUnit (typeOfExpr e2) then TY_Unit
+      if isBool (typeOfExpr e1).expr_type then
+        if isUnit (typeOfExpr e2).expr_type then
+          { sem with expr_type = TY_Unit }
         else error fi 3 "Type mismatch, TY_Unit expected"
       else error fi 3 "Type mismatch, TY_Bool expected"
   | E_For (sem, fi, s, ti, e1, e2, e)  ->
-      let typ1 = typeOfExpr e1 in
-      let typ2 = typeOfExpr e2 in
-      if (=) typ1 typ2 then
+      let sem1 = typeOfExpr e1 in
+      let sem2 = typeOfExpr e2 in
+      if (equalType sem1.expr_type sem2.expr_type) then
         begin
           openScope();
           P.ignore (newVariable fi (id_make s) TY_Int true);
-          let e3 = typeOfExpr e in
+          let sem3 = typeOfExpr e in
           closeScope();
-          if isUnit e3 && typ1 = TY_Int then TY_Unit
+          if isUnit sem3.expr_type && (equalType sem1.expr_type TY_Int)
+          then { sem with expr_type = TY_Unit }
           else error fi 3 "Type mismatch"
         end
       else error fi 3 "Type mismatch, TY_Int expected"
@@ -468,17 +486,17 @@ and typeOfExpr = function
       closeScope(); (* close the clope that opened in letdef *)
       typ
   (* If statement *)
-  | E_IfStmt (sem, fi, e, e1, e2)   ->
-      if isBool (typeOfExpr e) then
-        let typ1 = typeOfExpr e1 in
+  | E_IfStmt (sem, fi, e, e1, _e2)   ->
+      if isBool (typeOfExpr e).expr_type then
+        let sem1 = typeOfExpr e1 in
         begin
-          match e2 with
-          | Some _e2 ->
-              if (=) typ1 (typeOfExpr _e2) then typ1
+          match _e2 with
+          | Some e2 ->
+              if (equalType sem1.expr_type (typeOfExpr e2).expr_type) then sem1
               else
-                let fi2 = get_info_expr _e2 in
+                let fi2 = get_info_expr e2 in
                 error fi2 3 "This expression has wrong type"
-          | None -> typ1 (* FIXME: should be TY_Unit (check p.12) *)
+          | None -> sem1 (* FIXME: should be TY_Unit (check p.12) *)
         end
       else
         let fi1 = get_info_expr e in
@@ -494,7 +512,8 @@ and typeOfExpr = function
             | ENTRY_variable v ->
                 begin
                   match v.variable_type with
-                  | TY_Array (len, type_) when dm <= len -> TY_Int
+                  | TY_Array (len, type_) when dm <= len -> 
+                      { sem with expr_type = TY_Int }
                   | TY_Array (len, type_) when dm > len ->
                       error fi 3 "Int exceeds array dimension"
                   | _ ->
@@ -505,7 +524,8 @@ and typeOfExpr = function
             | ENTRY_parameter p ->
                 begin
                   match p.parameter_type with
-                  | TY_Array (len, type_) when dm <= len -> TY_Int
+                  | TY_Array (len, type_) when dm <= len -> 
+                      { sem with expr_type = TY_Int }
                   | TY_Array (len, type_) when dm > len ->
                       error fi 3 "Int exceeds array dimension"
                   | _ ->
@@ -529,7 +549,7 @@ and typeOfExpr = function
                     begin
                       match v.variable_type with
                       | TY_Array (len, type_) when len = el_len ->
-                          TY_Ref type_
+                          { sem with expr_type = TY_Ref type_ }
                       | TY_Array (len, type_) when len != el_len ->
                           error fi 3 "Array has wrong number of dimensions"
                       | _ ->
@@ -541,7 +561,7 @@ and typeOfExpr = function
                     begin
                       match p.parameter_type with
                       | TY_Array (len, type_) when len = el_len ->
-                          TY_Ref type_
+                          { sem with expr_type = TY_Ref type_ }
                       | TY_Array (len, type_) when len != el_len ->
                           error fi 3 "Array has wrong number of dimensions"
                       | _ ->
@@ -555,7 +575,7 @@ and typeOfExpr = function
                     raise (Exit 3)
                 end
         | (e :: es) -> (* recursivly check array's expr if are TY_Int *)
-          if (=) (typeOfExpr e) TY_Int
+          if (equalType (typeOfExpr e).expr_type TY_Int)
           then typeOfExpr (E_ArrayEl (sem, fi, s, es, el_len))
           else error fi 3 "Array indexes should be integers"
       end
@@ -574,12 +594,12 @@ and typeOfExpr = function
               | _ -> error fi 3 "call: params expected"
             in
             let check_call_args a b =
-              if (=) (typeOfExpr a) b then ()
+              if (equalType (typeOfExpr a).expr_type b) then ()
               else error fi 3 "different call-arg types."
             in
             try
               List.iter2 (fun x y -> check_call_args x (param_type y)) el pars;
-              typ
+              { sem with expr_type = typ }
             with Invalid_argument e ->
               error fi 3 "different number of args in call."
           end
@@ -588,13 +608,13 @@ and typeOfExpr = function
             match p.parameter_type with
             | TY_Function (par_type_list, type_) ->
                 let check_params real typical =
-                  if equalType (typeOfExpr real) typical then ()
+                  if equalType (typeOfExpr real).expr_type typical then ()
                   else
                     let str = "Funtion params type mismatch:" in
                     error_args fi str (id_make s)
                 in
                 List.iter2 (fun x y -> check_params x y) el par_type_list;
-                type_
+                { sem with expr_type = type_ }
             | _ -> error fi 3 "wrong func-param type"
           end
         | _ ->

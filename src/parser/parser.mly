@@ -174,15 +174,15 @@ vardef:
     T_LitId formals T_Eq expr
       { VAR_Id (dummy_sem, $1.i, $1.v, $2, None, $4) }
   | T_LitId formals T_Colon typee T_Eq expr
-      { VAR_Id (dummy_sem, $1.i, $1.v, $2, Some $4, $6) }
+      { VAR_Id ({dummy_sem with expr_type = $4}, $1.i, $1.v, $2, Some $4, $6) }
   | T_Mutable T_LitId
       { VAR_MutId (dummy_sem, $2.i, $2.v, None, None) }
   | T_Mutable T_LitId T_Colon typee
-      { VAR_MutId (dummy_sem, $2.i, $2.v, Some $4, None) }
+      { VAR_MutId ({dummy_sem with expr_type = $4}, $2.i, $2.v, Some $4, None) }
   | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack
       { VAR_MutId (dummy_sem, $2.i, $2.v, None, Some $4) }
   | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack T_Colon typee
-      { VAR_MutId (dummy_sem, $2.i, $2.v, Some $7, Some $4) }
+      { VAR_MutId ({dummy_sem with expr_type = $7}, $2.i, $2.v, Some $7, Some $4) }
 
 typedef:
     T_Type tdefs
@@ -208,6 +208,7 @@ constr:
     T_LitConstr
       { TD_Constr (dummy_sem, $1.i, $1.v, None) }
   | T_LitConstr T_Of typees
+  /* (* if i fix userdef types i should change expr_typ field to list *) */
       { TD_Constr (dummy_sem, $1.i, $1.v, Some $3) }
 
 formals:
@@ -221,7 +222,7 @@ param:
       { VAR_Id (dummy_sem, $1.i, $1.v, [], None,
               E_Unit (dummy_sem, dummyinfo)) }
   | T_LParen T_LitId T_Colon typee T_RParen
-      { VAR_Id (dummy_sem, $2.i, $2.v, [], Some $4,
+      { VAR_Id ({dummy_sem with expr_type = $4}, $2.i, $2.v, [], Some $4,
               E_Unit (dummy_sem, dummyinfo)) }
 
 typees:
@@ -329,7 +330,7 @@ expr:
   | T_Not expr %prec NOT
       { E_Not (dummy_sem, $1, $2) }
   | T_New typee
-      { E_New (dummy_sem, $1, $2) }
+      { E_New ({dummy_sem with expr_type = $2}, $1, $2) }
   | T_Delete expr %prec DELETE
       { E_Delete (dummy_sem, $1, $2)  }
   /* (* If Stmt *) */
@@ -377,19 +378,19 @@ expr__:
   | T_LitConstr
       { E_LitConstr (dummy_sem, $1.i, $1.v) }
   | T_True
-      { E_True (dummy_sem, $1) }
+      { E_True ({dummy_sem with expr_type = TY_Bool}, $1) }
   | T_False
-      { E_False (dummy_sem, $1) }
+      { E_False ({dummy_sem with expr_type = TY_Bool}, $1) }
   | T_LitChar
-      { E_LitChar (dummy_sem, $1.i, $1.v) }
+      { E_LitChar ({dummy_sem with expr_type = TY_Char}, $1.i, $1.v) }
   | T_LitInt
-      { E_LitInt (dummy_sem, $1.i, $1.v) }
+      { E_LitInt ({dummy_sem with expr_type = TY_Int}, $1.i, $1.v) }
   | T_LitFloat
-      { E_LitFloat (dummy_sem, $1.i, $1.v) }
+      { E_LitFloat ({dummy_sem with expr_type = TY_Float}, $1.i, $1.v) }
   | T_LitString
-      { E_LitString (dummy_sem, $1.i, $1.v) }
+      { E_LitString ({dummy_sem with expr_type = TY_Array(1, TY_Char)}, $1.i, $1.v) }
   | T_LParen T_RParen
-      { E_Unit (dummy_sem, dummyinfo) }
+      { E_Unit ({dummy_sem with expr_type = TY_Unit}, dummyinfo) }
   | T_LParen expr T_RParen
       { $2 }
   | T_LitId T_LBrack expr_comma_list T_RBrack /* (* array_el *) */
@@ -419,23 +420,23 @@ pattern:
 
 simple_pattern:
     T_True
-      { P_True (dummy_sem, $1) }
+      { P_True ({dummy_sem with expr_type = TY_Bool}, $1) }
   | T_False
-      { P_False (dummy_sem, $1) }
+      { P_False ({dummy_sem with expr_type = TY_Bool}, $1) }
   | T_LitId
       { P_LitId (dummy_sem, $1.i, $1.v) }
   | T_LitChar
-      { P_LitChar (dummy_sem, $1.i, $1.v) }
+      { P_LitChar ({dummy_sem with expr_type = TY_Char}, $1.i, $1.v) }
   | T_LitFloat
-      { P_LitFloat (dummy_sem, $1.i, $1.v) }
+      { P_LitFloat ({dummy_sem with expr_type = TY_Float}, $1.i, $1.v) }
   | T_Plus T_LitInt
-      { P_Plus (dummy_sem, $2.i, $2.v) }
+      { P_Plus ({dummy_sem with expr_type = TY_Int}, $2.i, $2.v) }
   | T_FPlus T_LitFloat
-      { P_FPlus (dummy_sem, $2.i, $2.v) }
+      { P_FPlus ({dummy_sem with expr_type = TY_Float}, $2.i, $2.v) }
   | T_Minus T_LitInt
-      { P_Minus (dummy_sem, $2.i, $2.v) }
+      { P_Minus ({dummy_sem with expr_type = TY_Int}, $2.i, $2.v) }
   | T_FMinus T_LitFloat
-      { P_FMinus (dummy_sem, $2.i, $2.v) }
+      { P_FPlus ({dummy_sem with expr_type = TY_Float}, $2.i, $2.v) }
   | T_LParen pattern T_RParen
       { $2 }
 

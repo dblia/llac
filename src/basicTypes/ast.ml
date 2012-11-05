@@ -93,16 +93,6 @@ let get_name_of_prog = function
     PROGRAM (l, t) -> (l, t)
 ;;
 
-(*
-let ast_get_finfo = function
-    L_Let     (_, fi, _) -> fi
-  | L_LetRec  (_, fi, _) -> fi
-  | TD_Type   (_, fi, _) -> fi
-  | TD_TDefId (_, fi, _, _) -> fi
-  | TD_Constr (_, fi, _, _) -> fi
-  | VAR_Id    (_, fi, _, _, _, _) -> fi
-  | VAR_MutId (_, fi, _, _, _) -> fi
-*)
 let get_info_expr = function
     E_Unit        (_, fi) -> fi 
   | E_True        (_, fi) -> fi
@@ -154,17 +144,55 @@ let get_info_expr = function
   | E_ArrayEl     (_, fi, _, _, _) -> fi
   | E_For         (_, fi, _, _, _, _, _) -> fi
 ;;
-(*
-  | P_True        (_, fi) -> fi
-  | P_False       (_, fi) -> fi
-  | P_LitId       (_, fi, _) -> fi
-  | P_LitChar     (_, fi, _) -> fi
-  | P_LitFloat    (_, fi, _) -> fi
-  | P_Plus        (_, fi, _) -> fi
-  | P_FPlus       (_, fi, _) -> fi
-  | P_Minus       (_, fi, _) -> fi
-  | P_FMinus      (_, fi, _) -> fi
-  | P_Clause      (_, fi, _, _) -> fi
-  | P_LitConstr   (_, fi, _, _) -> fi
+
+let get_sem_expr = function
+    E_Unit        (sem, _) -> sem 
+  | E_True        (sem, _) -> sem
+  | E_False       (sem, _) -> sem
+  | E_LitInt      (sem, _, _) -> sem
+  | E_LitChar     (sem, _, _) -> sem
+  | E_LitFloat    (sem, _, _) -> sem
+  | E_LitId       (sem, _, _) -> sem
+  | E_LitConstr   (sem, _, _) -> sem
+  | E_LitString   (sem, _, _) -> sem
+  | E_UPlus       (sem, _, _) -> sem
+  | E_UFPlus      (sem, _, _) -> sem
+  | E_UMinus      (sem, _, _) -> sem
+  | E_UFMinus     (sem, _, _) -> sem
+  | E_Not         (sem, _, _) -> sem
+  | E_Deref       (sem, _, _) -> sem
+  | E_Delete      (sem, _, _) -> sem
+  | E_Block       (sem, _, _) -> sem
+  | E_Plus        (sem, _, _, _) -> sem
+  | E_FPlus       (sem, _, _, _) -> sem
+  | E_Minus       (sem, _, _, _) -> sem
+  | E_FMinus      (sem, _, _, _) -> sem
+  | E_Mul         (sem, _, _, _) -> sem
+  | E_FMul        (sem, _, _, _) -> sem
+  | E_Div         (sem, _, _, _) -> sem
+  | E_FDiv        (sem, _, _, _) -> sem
+  | E_Mod         (sem, _, _, _) -> sem
+  | E_Pow         (sem, _, _, _) -> sem
+  | E_Eq          (sem, _, _, _) -> sem
+  | E_Differ      (sem, _, _, _) -> sem
+  | E_Equal       (sem, _, _, _) -> sem
+  | E_NEqual      (sem, _, _, _) -> sem
+  | E_Lt          (sem, _, _, _) -> sem
+  | E_Gt          (sem, _, _, _) -> sem
+  | E_Leq         (sem, _, _, _) -> sem
+  | E_Geq         (sem, _, _, _) -> sem
+  | E_Andlogic    (sem, _, _, _) -> sem
+  | E_Orlogic     (sem, _, _, _) -> sem
+  | E_Assign      (sem, _, _, _) -> sem
+  | E_Semicolon   (sem, _, _, _) -> sem
+  | E_While       (sem, _, _, _) -> sem
+  | E_Match       (sem, _, _, _) -> sem
+  | E_IfStmt      (sem, _, _, _, _) -> sem
+  | E_LetIn       (sem, _, _, _) -> sem
+  | E_Dim         (sem, _, _, _) -> sem
+  | E_New         (sem, _, _) -> sem
+  | E_Call        (sem, _, _, _) -> sem
+  | E_ConstrCall  (sem, _, _, _) -> sem
+  | E_ArrayEl     (sem, _, _, _, _) -> sem
+  | E_For         (sem, _, _, _, _, _, _) -> sem
 ;;
-*)
