@@ -19,8 +19,8 @@ and ast_typedef =
   | TD_Constr of sem_val * finfo * string * Types.ty list option
 
 and ast_vardef =
-    VAR_Id of sem_val * finfo * string * ast_vardef list * Types.ty option * ast_expr
-  | VAR_MutId of sem_val * finfo * string * Types.ty option * ast_expr list option
+    VAR_Id of sem_val * finfo * string * ast_vardef list * ast_expr
+  | VAR_MutId of sem_val * finfo * string * ast_expr list option
 (*  | VAR_Formal of sem_val * finfo * string * Types.ty option *)
 
 and ast_expr =
@@ -68,7 +68,7 @@ and ast_expr =
   | E_IfStmt      of sem_val * finfo * ast_expr * ast_expr * ast_expr option
   | E_LetIn       of sem_val * finfo * ast_letdef * ast_expr
   | E_Dim         of sem_val * finfo * int option * string
-  | E_New         of sem_val * finfo * Types.ty
+  | E_New         of sem_val * finfo 
   | E_Call        of sem_val * finfo * string * ast_expr list
   | E_ConstrCall  of sem_val * finfo * string * ast_expr list
   | E_ArrayEl     of sem_val * finfo * string * ast_expr list * int
@@ -138,7 +138,7 @@ let get_info_expr = function
   | E_IfStmt      (_, fi, _, _, _) -> fi
   | E_LetIn       (_, fi, _, _) -> fi
   | E_Dim         (_, fi, _, _) -> fi
-  | E_New         (_, fi, _) -> fi
+  | E_New         (_, fi)       -> fi
   | E_Call        (_, fi, _, _) -> fi
   | E_ConstrCall  (_, fi, _, _) -> fi
   | E_ArrayEl     (_, fi, _, _, _) -> fi
@@ -190,7 +190,7 @@ let get_sem_expr = function
   | E_IfStmt      (sem, _, _, _, _) -> sem
   | E_LetIn       (sem, _, _, _) -> sem
   | E_Dim         (sem, _, _, _) -> sem
-  | E_New         (sem, _, _) -> sem
+  | E_New         (sem, _)       -> sem
   | E_Call        (sem, _, _, _) -> sem
   | E_ConstrCall  (sem, _, _, _) -> sem
   | E_ArrayEl     (sem, _, _, _, _) -> sem

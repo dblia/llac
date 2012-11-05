@@ -75,14 +75,14 @@ let function_create (id, args, typ) =
 
 (* auxilary function for adding new parameters to the scope given *)
 let new_parameter f = function
-    VAR_Id (sem, fi, s, [], t, e) ->
+    VAR_Id (sem, fi, s, [], e) ->
       begin
-        match t with
-        | None -> error fi 3 "No type inferer support, you must provide a type"
-        | Some _t -> newParameter fi (id_make s) _t PASS_BY_VALUE f true
+        match sem.expr_type with
+        | TY_None -> error fi 3 "No type inferer support, you must provide a type"
+        | _t -> newParameter fi (id_make s) _t PASS_BY_VALUE f true
       end
   | _ -> (* FIXME: currying (function parameters).
-          * eg. VAR_Id (sem, ,s, lst, t, e) *)
+          * eg. VAR_Id (sem, ,s, lst, e) *)
       err "Invalid parameter form"
 ;;
 
@@ -132,7 +132,7 @@ and typeOfLetdef = function
   | L_LetRec (sem, fi, vl) -> (* vl: vardefs connected with 'and' keyword *)
       openScope(); (* scope for the definition only *)
       let find_forwards = function
-          VAR_Id (sem, info, s, varl, t, e)  ->
+          VAR_Id (sem, info, s, varl, e)  ->
             let fn =
               try newFunction info (id_make s) true
               with Exit _ -> raise Terminate
@@ -141,7 +141,7 @@ and typeOfLetdef = function
             openScope(); (* new scope for the args of forward functions *)
             List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
             closeScope();
-            endFunctionHeader fn (get t);
+            endFunctionHeader fn sem.expr_type;
         | _ -> () (* we do nothing for non-functions *)
       in
       List.iter (fun x -> P.ignore (find_forwards x)) vl; (* first traverse *)
@@ -157,12 +157,12 @@ and typeOfTypedef = function
       error fi 3 "user defined data types are not supported"
 
 and typeOfVardef rec_flag = function
-    VAR_Id (sem, fi, s, varl, t, e) ->
+    VAR_Id (sem, fi, s, varl, e) ->
       begin
         match varl with
         | [] -> (* var list empty, so we found a variable definition *)
             (* add a new_variable Entry to the current scope *)
-            P.ignore (newVariable fi (id_make s) (get t) true);
+            P.ignore (newVariable fi (id_make s) sem.expr_type true);
             (* now we hide the definitions while we're processing the body *)
             if not rec_flag then hideScope (!currentScope) true;
             (* function body must conforms with the type declared *)
@@ -191,7 +191,7 @@ and typeOfVardef rec_flag = function
               openScope(); (* new scope for the args and body definition *)
               (* now we add the parameters of the function *)
               List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
-              endFunctionHeader fn (get t); (* end of function header *)
+              endFunctionHeader fn sem.expr_type; (* end of function header *)
               (* function body must conforms with the type declared *)
               if not (equalType sem.expr_type (typeOfExpr e).expr_type) then (
                 let str = "type mismatch in definition\n" in
@@ -203,7 +203,7 @@ and typeOfVardef rec_flag = function
               (* now we unhide the scope if we've hidden it before *)
               if not rec_flag then hideScope (!currentScope) false
       end
-  | VAR_MutId (sem, fi, s, t, exprl) ->
+  | VAR_MutId (sem, fi, s, exprl) ->
       begin
         match (sem.expr_type) with
         | TY_Array _ ->
@@ -295,7 +295,7 @@ and typeOfExpr = function
       | _          -> error fi 3 "deref should be ref type"
      end
   (* Memory Dynamic Allocation *)
-  | E_New (sem, fi, t)         ->
+  | E_New (sem, fi)         ->
       if isNotArrayOrFunc sem.expr_type then 
         { sem with expr_type = TY_Ref sem.expr_type }
       else error fi 3 "Type mismatch, cannot allocate TY_Array or TY_Function."

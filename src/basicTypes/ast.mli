@@ -17,8 +17,8 @@ and ast_typedef =
   | TD_Constr of sem_val * finfo * string * Types.ty list option
 
 and ast_vardef =
-    VAR_Id of sem_val * finfo * string * ast_vardef list * Types.ty option * ast_expr
-  | VAR_MutId of sem_val * finfo * string * Types.ty option * ast_expr list option
+    VAR_Id of sem_val * finfo * string * ast_vardef list * ast_expr
+  | VAR_MutId of sem_val * finfo * string * ast_expr list option
 (*  | VAR_Formal of sem_val * finfo * string * Types.ty option *)
 
 and ast_expr =
@@ -66,7 +66,7 @@ and ast_expr =
   | E_IfStmt      of sem_val * finfo * ast_expr * ast_expr * ast_expr option
   | E_LetIn       of sem_val * finfo * ast_letdef * ast_expr
   | E_Dim         of sem_val * finfo * int option * string
-  | E_New         of sem_val * finfo * Types.ty
+  | E_New         of sem_val * finfo
   | E_Call        of sem_val * finfo * string * ast_expr list
   | E_ConstrCall  of sem_val * finfo * string * ast_expr list
   | E_ArrayEl     of sem_val * finfo * string * ast_expr list * int

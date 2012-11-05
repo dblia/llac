@@ -172,17 +172,17 @@ vardefs:
 
 vardef:
     T_LitId formals T_Eq expr
-      { VAR_Id (dummy_sem, $1.i, $1.v, $2, None, $4) }
+      { VAR_Id (dummy_sem, $1.i, $1.v, $2, $4) }
   | T_LitId formals T_Colon typee T_Eq expr
-      { VAR_Id ({dummy_sem with expr_type = $4}, $1.i, $1.v, $2, Some $4, $6) }
+      { VAR_Id ({dummy_sem with expr_type = $4}, $1.i, $1.v, $2, $6) }
   | T_Mutable T_LitId
-      { VAR_MutId (dummy_sem, $2.i, $2.v, None, None) }
+      { VAR_MutId (dummy_sem, $2.i, $2.v, None) }
   | T_Mutable T_LitId T_Colon typee
-      { VAR_MutId ({dummy_sem with expr_type = $4}, $2.i, $2.v, Some $4, None) }
+      { VAR_MutId ({dummy_sem with expr_type = $4}, $2.i, $2.v, None) }
   | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack
-      { VAR_MutId (dummy_sem, $2.i, $2.v, None, Some $4) }
+      { VAR_MutId (dummy_sem, $2.i, $2.v, Some $4) }
   | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack T_Colon typee
-      { VAR_MutId ({dummy_sem with expr_type = $7}, $2.i, $2.v, Some $7, Some $4) }
+      { VAR_MutId ({dummy_sem with expr_type = $7}, $2.i, $2.v, Some $4) }
 
 typedef:
     T_Type tdefs
@@ -219,11 +219,10 @@ formals:
 
 param:
     T_LitId
-      { VAR_Id (dummy_sem, $1.i, $1.v, [], None,
-              E_Unit (dummy_sem, dummyinfo)) }
+      { VAR_Id (dummy_sem, $1.i, $1.v, [], E_Unit (dummy_sem, dummyinfo)) }
   | T_LParen T_LitId T_Colon typee T_RParen
-      { VAR_Id ({dummy_sem with expr_type = $4}, $2.i, $2.v, [], Some $4,
-              E_Unit (dummy_sem, dummyinfo)) }
+      { VAR_Id ({dummy_sem with expr_type = $4}, $2.i, $2.v, [], 
+          E_Unit (dummy_sem, dummyinfo)) }
 
 typees:
     typee
@@ -330,7 +329,7 @@ expr:
   | T_Not expr %prec NOT
       { E_Not (dummy_sem, $1, $2) }
   | T_New typee
-      { E_New ({dummy_sem with expr_type = $2}, $1, $2) }
+      { E_New ({dummy_sem with expr_type = $2}, $1) }
   | T_Delete expr %prec DELETE
       { E_Delete (dummy_sem, $1, $2)  }
   /* (* If Stmt *) */
