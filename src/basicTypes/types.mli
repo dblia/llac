@@ -15,9 +15,10 @@ type ty =
 type for_info = UPTO | DOWNTO ;;
 
 val sizeOfType : ty -> int ;;
-val equalType : ty -> ty -> bool ;;
+val equalType  : ty -> ty -> bool ;;
+val string_of_type : ty -> string;;
 
-val isRef : ty -> bool ;;
+val isRef  : ty -> bool ;;
 val isUnit : ty -> bool ;;
 val isBool : ty -> bool ;;
 val isSimpleType : ty -> bool ;;

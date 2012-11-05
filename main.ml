@@ -41,7 +41,7 @@ let main =
     exit 0
   with 
       Parsing.Parse_error ->
-        error (Lexer.add_info lexbuf) 0 "Parsing error";
+        error (Lexer.add_info lexbuf) 0 "  syntax error";
     | Error.Exit(1) ->
         err "Lexical error";
     | Error.Exit(3) ->

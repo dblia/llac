@@ -1,6 +1,8 @@
 -- error handling
 
-parisng error in testsuite typed folder (auto files)
+syntax error can improved?
+
+add error and warning counters
 
 add pretty_printing with args
 
