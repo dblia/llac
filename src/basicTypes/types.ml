@@ -1,9 +1,10 @@
-(* Basic and auxilary AST types used by ast.ml and parser.ml  *)
+(* Basic and auxilary AST types *)
 
 open Printf
 
 type ty =
-    TY_Unit
+    TY_None
+  | TY_Unit
   | TY_Int
   | TY_Float
   | TY_Bool
@@ -20,6 +21,7 @@ type for_info = UPTO | DOWNTO ;;
 
 let rec sizeOfType t =
  match t with
+ | TY_None           -> 0
  | TY_Unit           -> 0
  | TY_Int            -> 2
  | TY_Float          -> 2
@@ -47,7 +49,8 @@ let rec equalType t1 t2 =
 ;;
 
 let rec string_of_type = function
-    TY_Unit              -> sprintf "TY_Unit"
+    TY_None              -> sprintf "TY_None"
+  | TY_Unit              -> sprintf "TY_Unit"
   | TY_Int               -> sprintf "TY_Int"
   | TY_Float             -> sprintf "TY_Float"
   | TY_Bool              -> sprintf "TY_Bool"
@@ -56,6 +59,7 @@ let rec string_of_type = function
   | TY_Array (sz, et)    -> sprintf "TY_Array of %s" (string_of_type et)
   | TY_UserDef s         -> sprintf "TY_UserDef %s" s
   | TY_Function (ls, ty) -> sprintf "TY_Function of %s" (string_of_type ty)
+;;
 
 let isRef =
   function

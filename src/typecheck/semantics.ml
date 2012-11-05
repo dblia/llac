@@ -73,14 +73,14 @@ let function_create (id, args, typ) =
 
 (* auxilary function for adding new parameters to the scope given *)
 let new_parameter f = function
-    VAR_Id (fi, s, [], t, e) ->
+    VAR_Id (sem, fi, s, [], t, e) ->
       begin
         match t with
         | None -> error fi 3 "No type inferer support, you must provide a type"
         | Some _t -> newParameter fi (id_make s) _t PASS_BY_VALUE f true
       end
   | _ -> (* FIXME: currying (function parameters).
-          * eg. VAR_Id (s, lst, t, e) *)
+          * eg. VAR_Id (sem, ,s, lst, t, e) *)
       err "Invalid parameter form"
 ;;
 
@@ -114,7 +114,7 @@ and typeOfLetdef = function
    * In a let block the variable/function defined should NOT be visible by the
    * body of the block. So we have to make it hidden by the function body.
    * rec_flag := false *)
-    L_Let (fi, vl)    -> (* vl: vardefs connected with 'and' keyword *)
+    L_Let (sem, fi, vl)    -> (* vl: vardefs connected with 'and' keyword *)
       openScope(); (* scope for the definition only *)
       List.iter (fun x -> typeOfVardef false x) vl
   (* let rec:
@@ -127,10 +127,10 @@ and typeOfLetdef = function
    * In a let rec block the variable/function defined should BE visible by the
    * body of the block. So we do NOT make it hidden from the function body.
    * rec_flag := true *)
-  | L_LetRec (fi, vl) -> (* vl: vardefs connected with 'and' keyword *)
+  | L_LetRec (sem, fi, vl) -> (* vl: vardefs connected with 'and' keyword *)
       openScope(); (* scope for the definition only *)
       let find_forwards = function
-          VAR_Id (info, s, varl, t, e)  ->
+          VAR_Id (sem, info, s, varl, t, e)  ->
             let fn =
               try newFunction info (id_make s) true
               with Exit _ -> raise Terminate
@@ -147,15 +147,15 @@ and typeOfLetdef = function
 
 
 and typeOfTypedef = function
-    TD_Type (fi, tl)       -> (* TODO: Not supported yet *)
+    TD_Type (sem, fi, tl)       -> (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
-  | TD_TDefId (fi, s, tl)  -> (* TODO: Not supported yet *)
+  | TD_TDefId (sem, fi, s, tl)  -> (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
-  | TD_Constr (fi, s, tyl) -> (* TODO: Not supported yet *)
+  | TD_Constr (sem, fi, s, tyl) -> (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
 
 and typeOfVardef rec_flag = function
-    VAR_Id (fi, s, varl, t, e) ->
+    VAR_Id (sem, fi, s, varl, t, e) ->
       begin
         match varl with
         | [] -> (* var list empty, so we found a variable definition *)
@@ -167,7 +167,7 @@ and typeOfVardef rec_flag = function
             if not (equalType (get t) (typeOfExpr e)) then (
               let str1 = "type mismatch in definition\n" in
               let str = "the type of constant does not match the declared \
-                        type:" in 
+                        type:" in
               error_args fi (str1 ^ str) (id_make s);
               raise (Exit 3));
             (* now we unhide the scope if we've hidden it before *)
@@ -176,7 +176,7 @@ and typeOfVardef rec_flag = function
             match (get t) with
             | TY_Function _ ->
                 let str1 = "type mismatch in definition\n" in
-                let str = "function returns a function:" in 
+                let str = "function returns a function:" in
                 error_args fi (str1 ^ str) (id_make s);
                 raise (Exit 3)
             | _ -> (* add a new_function Entry to the current scope *)
@@ -195,14 +195,14 @@ and typeOfVardef rec_flag = function
               if not (equalType (get t) typ) then (
                 let str1 = "type mismatch in definition\n" in
                 let str = "the body of function does not match the declared \
-                          type:" in 
+                          type:" in
                 error_args fi (str1 ^ str) (id_make s);
                 raise (Exit 3));
               closeScope(); (* close the body's scope *)
               (* now we unhide the scope if we've hidden it before *)
               if not rec_flag then hideScope (!currentScope) false
       end
-  | VAR_MutId (fi, s, t, exprl) ->
+  | VAR_MutId (sem, fi, s, t, exprl) ->
       begin
         match (get t) with
         | TY_Array _ ->
@@ -226,15 +226,15 @@ and typeOfVardef rec_flag = function
 
 and typeOfExpr = function
   (* Constants Operators *)
-    E_Unit _      -> TY_Unit
-  | E_True _      -> TY_Bool
-  | E_False _     -> TY_Bool
-  | E_LitInt _    -> TY_Int
-  | E_LitChar _   -> TY_Char
-  | E_LitFloat _  -> TY_Float
-  | E_LitString (fi, s) -> TY_Array (1, TY_Char)
+    E_Unit (sem, info)        -> TY_Unit
+  | E_True (sem, info)        -> TY_Bool
+  | E_False (sem, info)       -> TY_Bool
+  | E_LitInt (sem, info, _)   -> TY_Int
+  | E_LitChar (sem, info, _)  -> TY_Char
+  | E_LitFloat (sem, info, _) -> TY_Float
+  | E_LitString (sem, fi, s) -> TY_Array (1, TY_Char)
   (* Names (constants, functions, parameters, constructors, expressions) *)
-  | E_LitId (fi, id)    ->
+  | E_LitId (sem, fi, id)    ->
       let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
       begin
         match l.entry_info with
@@ -253,7 +253,7 @@ and typeOfExpr = function
             error_args fi str (id_make id);
             raise (Exit 3)
       end
-  | E_LitConstr (fi, id) -> (* TODO: not supported yet *)
+  | E_LitConstr (sem, fi, id) -> (* TODO: not supported yet *)
       (*
       let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
       begin
@@ -265,172 +265,172 @@ and typeOfExpr = function
       *)
       error fi 3 "user defined date types are not supported"
   (* Unary Arithmetic Operators *)
-  | E_UPlus (fi, e)     ->
+  | E_UPlus (sem, fi, e)     ->
       if (=) (typeOfExpr e) TY_Int then TY_Int
       else error fi 3 "Type mismatch, TY_Int expected"
-  | E_UFPlus (fi, e)    ->
+  | E_UFPlus (sem, fi, e)    ->
       if (=) (typeOfExpr e) TY_Float then TY_Float
       else error fi 3 "Type mismatch, TY_Float"
-  | E_UMinus (fi, e)    ->
+  | E_UMinus (sem, fi, e)    ->
       if (=) (typeOfExpr e) TY_Int then TY_Int
       else error fi 3 "Type mismatch, TY_Int expected"
-  | E_UFMinus (fi, e)   ->
+  | E_UFMinus (sem, fi, e)   ->
       if (=) (typeOfExpr e) TY_Float then TY_Float
       else error fi 3 "Type mismatch, TY_Float expected"
   (* References and assigments *)
-  | E_Assign (fi, e1, e2)      -> (* FIXME: check if e1 is l-value *)
+  | E_Assign (sem, fi, e1, e2)      -> (* FIXME: check if e1 is l-value *)
       let typ = typeOfExpr e1 in
       if isRef typ then
         if (=) typ (TY_Ref (typeOfExpr e2)) then TY_Unit
         else error fi 3 "Type mismatch, right operand"
       else error fi 3 "Type mismatch, left operand"
-  | E_Deref (fi, e)     ->
+  | E_Deref (sem, fi, e)     ->
      begin
       match typeOfExpr e with
       | TY_Ref ty_ -> ty_
       | _          -> error fi 3 "deref should be ref type"
      end
   (* Memory Dynamic Allocation *)
-  | E_New (fi, t)       ->
+  | E_New (sem, fi, t)       ->
       if isNotArrayOrFunc t then TY_Ref t
       else error fi 3 "Type mismatch, cannot allocate TY_Array or TY_Function."
-  | E_Delete (fi, e)    -> (* FIXME: check that mem was allocated dynamically *)
+  | E_Delete (sem, fi, e)    -> (* FIXME: check that mem was allocated dynamically *)
       if isRef (typeOfExpr e) then TY_Unit
       else error fi 3 "Type mismatch, only TY_Ref can be unallocated."
   (* Binary Integer Arithmetic Operators *)
-  | E_Plus (fi, e1, e2) ->
+  | E_Plus (sem, fi, e1, e2) ->
       if (=) (typeOfExpr e1) TY_Int then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Int then TY_Int
         else error fi 3 "Type mismatch, TY_Int expected"
       else error fi 3 "Type mismatch, TY_Int expected"
-  | E_Minus (fi, e1, e2)  ->
+  | E_Minus (sem, fi, e1, e2)  ->
       if (=) (typeOfExpr e1) TY_Int then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Int then TY_Int
         else error fi 3 "Type mismatch, TY_Int expected"
       else error fi 3 "Type mismatch, TY_Int expected"
-  | E_Mul (fi, e1, e2)    ->
+  | E_Mul (sem, fi, e1, e2)    ->
       if (=) (typeOfExpr e1) TY_Int then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Int then TY_Int
         else error fi 3 "Type mismatch, TY_Int expected"
       else error fi 3 "Type mismatch, TY_Int expected"
-  | E_Div (fi, e1, e2)     ->
+  | E_Div (sem, fi, e1, e2)     ->
       if (=) (typeOfExpr e1) TY_Int then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Int then TY_Int
         else error fi 3 "Type mismatch, TY_Int expected"
       else error fi 3 "Type mismatch, TY_Int expected"
-  | E_Mod (fi, e1, e2)      ->
+  | E_Mod (sem, fi, e1, e2)      ->
       if (=) (typeOfExpr e1) TY_Int then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Int then TY_Int
         else error fi 3 "Type mismatch, TY_Int expected"
       else error fi 3 "Type mismatch, TY_Int expected"
   (* Binary Float Arithmetic Operators *)
-  | E_FPlus (fi, e1, e2)  ->
+  | E_FPlus (sem, fi, e1, e2)  ->
       if (=) (typeOfExpr e1) TY_Float then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Float then TY_Float
         else error fi 3 "Type mismatch, TY_Float expected"
       else error fi 3 "Type mismatch, TY_Float expected"
-  | E_FMinus (fi, e1, e2) ->
+  | E_FMinus (sem, fi, e1, e2) ->
       if (=) (typeOfExpr e1) TY_Float then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Float then TY_Float
         else error fi 3 "Type mismatch, TY_Float expected"
       else error fi 3 "Type mismatch, TY_Float expected"
-  | E_FMul (fi, e1, e2)   ->
+  | E_FMul (sem, fi, e1, e2)   ->
       if (=) (typeOfExpr e1) TY_Float then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Float then TY_Float
         else error fi 3 "Type mismatch, TY_Float expected"
       else error fi 3 "Type mismatch, TY_Float expected"
-  | E_FDiv (fi, e1, e2)     ->
+  | E_FDiv (sem, fi, e1, e2)     ->
       if (=) (typeOfExpr e1) TY_Float then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Float then TY_Float
         else error fi 3 "Type mismatch, TY_Float expected"
       else error fi 3 "Type mismatch, TY_Float expected"
-  | E_Pow (fi, e1, e2)       ->
+  | E_Pow (sem, fi, e1, e2)       ->
       if (=) (typeOfExpr e1) TY_Float then
         let typ2 = typeOfExpr e2 in
         if (=) typ2 TY_Float then TY_Float
         else error fi 3 "Type mismatch"
       else error fi 3 "Type mismatch"
   (* Structural and Natural Equality Operators *)
-  | E_Eq (fi, e1, e2)         ->
+  | E_Eq (sem, fi, e1, e2)         ->
       let typ1 = typeOfExpr e1 in
       if isNotArrayOrFunc typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
         else error fi 3 "Type mismatch (e1 = e2)"
       else error fi 3 "Type mismatch (e1 =) array-func type"
-  | E_Differ (fi, e1, e2)     ->
+  | E_Differ (sem, fi, e1, e2)     ->
       let typ1 = typeOfExpr e1 in
       if isNotArrayOrFunc typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
         else error fi 3 "Type mismatch (e1 <> e2)"
       else error fi 3 "Type mismatch (e1 <>) array-func type"
-  | E_Equal (fi, e1, e2)       ->
+  | E_Equal (sem, fi, e1, e2)       ->
       let typ1 = typeOfExpr e1 in
       if isNotArrayOrFunc typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
         else error fi 3 "Type mismatch (e1 == e2)"
       else error fi 3 "Type mismatch (e1 ==) array-func type"
-  | E_NEqual (fi, e1, e2)      ->
+  | E_NEqual (sem, fi, e1, e2)      ->
       let typ1 = typeOfExpr e1 in
       if isNotArrayOrFunc typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
         else error fi 3 "Type mismatch (e1 != e2)"
       else error fi 3 "Type mismatch (e1 !=) array-func type"
-  | E_Lt (fi, e1, e2)          ->
+  | E_Lt (sem, fi, e1, e2)          ->
       let typ1 = typeOfExpr e1 in
       if isSimpleType typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
         else error fi 3 "Type mismatch"
       else error fi 3 "Type mismatch - not simple type"
-  | E_Gt (fi, e1, e2)          ->
+  | E_Gt (sem, fi, e1, e2)          ->
       let typ1 = typeOfExpr e1 in
       if isSimpleType typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
         else error fi 3 "Type mismatch"
       else error fi 3 "Type mismatch - not simple type"
-  | E_Leq (fi, e1, e2)         ->
+  | E_Leq (sem, fi, e1, e2)         ->
       let typ1 = typeOfExpr e1 in
       if isSimpleType typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
         else error fi 3 "Type mismatch"
       else error fi 3 "Type mismatch - not simple type"
-  | E_Geq (fi, e1, e2)         ->
+  | E_Geq (sem, fi, e1, e2)         ->
       let typ1 = typeOfExpr e1 in
       if isSimpleType typ1 then
         if (=) typ1 (typeOfExpr e2) then TY_Bool
         else error fi 3 "Type mismatch"
       else error fi 3 "Type mismatch - not simple type"
   (* Logical Operators *)
-  | E_Not (fi, e)       ->
+  | E_Not (sem, fi, e)       ->
       if (=) (typeOfExpr e) TY_Bool then TY_Bool
       else error fi 3 "Type mismatch, TY_Bool expected"
-  | E_Andlogic (fi, e1, e2)    ->
+  | E_Andlogic (sem, fi, e1, e2)    ->
       if (=) (typeOfExpr e1) TY_Bool then
         if (=) (typeOfExpr e2) TY_Bool then TY_Bool
         else error fi 3 "Type mismatch, TY_Bool expected"
       else error fi 3 "Type mismatch, TY_Bool expected"
-  | E_Orlogic (fi, e1, e2)     ->
+  | E_Orlogic (sem, fi, e1, e2)     ->
       if (=) (typeOfExpr e1) TY_Bool then
         if (=) (typeOfExpr e2) TY_Bool then TY_Bool
         else error fi 3 "Type mismatch, TY_Bool expected"
       else error fi 3 "Type mismatch, TY_Bool expected"
   (* Imperative Commands *)
-  | E_Block (fi, e)     -> typeOfExpr e
-  | E_Semicolon (fi, e1, e2)   -> P.ignore(typeOfExpr e1); typeOfExpr e2
-  | E_While (fi, e1, e2)       ->
+  | E_Block (sem, fi, e)     -> typeOfExpr e
+  | E_Semicolon (sem, fi, e1, e2)   -> P.ignore(typeOfExpr e1); typeOfExpr e2
+  | E_While (sem, fi, e1, e2)       ->
       if isBool (typeOfExpr e1) then
         if isUnit (typeOfExpr e2) then TY_Unit
         else error fi 3 "Type mismatch, TY_Unit expected"
       else error fi 3 "Type mismatch, TY_Bool expected"
-  | E_For (fi, s, ti, e1, e2, e)  ->
+  | E_For (sem, fi, s, ti, e1, e2, e)  ->
       let typ1 = typeOfExpr e1 in
       let typ2 = typeOfExpr e2 in
       if (=) typ1 typ2 then
@@ -444,7 +444,7 @@ and typeOfExpr = function
         end
       else error fi 3 "Type mismatch, TY_Int expected"
   (* Decomposition of User Defined Types *)
-  | E_Match (fi, e, clauses)   ->
+  | E_Match (sem, fi, e, clauses)   ->
       (*
       let ex_type = typeOfExpr e in
       let res_type = ref TY_Unit  in
@@ -462,13 +462,13 @@ and typeOfExpr = function
       *)
       error fi 3 "user defined data types are not supported"
   (* Local definitions *)
-  | E_LetIn (fi, ld, e)        -> (* local declarations *)
+  | E_LetIn (sem, fi, ld, e)        -> (* local declarations *)
       typeOfLetdef ld;
       let typ = typeOfExpr e in
       closeScope(); (* close the clope that opened in letdef *)
       typ
   (* If statement *)
-  | E_IfStmt (fi, e, e1, e2)   ->
+  | E_IfStmt (sem, fi, e, e1, e2)   ->
       if isBool (typeOfExpr e) then
         let typ1 = typeOfExpr e1 in
         begin
@@ -484,7 +484,7 @@ and typeOfExpr = function
         let fi1 = get_info_expr e in
         error fi1 3 "This expression has wrong type (bool expected)"
   (* Array Elements and Dimensions *)
-  | E_Dim (fi, i, s)           ->
+  | E_Dim (sem, fi, i, s)           ->
       let dm = get i in
       if (<=) dm 0 then error fi 3 "Negative array dimension"
       else
@@ -518,7 +518,7 @@ and typeOfExpr = function
                 error_args fi str (id_make s);
                 raise (Exit 3)
         end
-  | E_ArrayEl (fi, s, el, el_len)      ->
+  | E_ArrayEl (sem, fi, s, el, el_len)      ->
       begin
         match el with
         | [] -> (* all expressions are integers, so look at the symbol table *)
@@ -556,11 +556,11 @@ and typeOfExpr = function
                 end
         | (e :: es) -> (* recursivly check array's expr if are TY_Int *)
           if (=) (typeOfExpr e) TY_Int
-          then typeOfExpr (E_ArrayEl (fi, s, es, el_len))
+          then typeOfExpr (E_ArrayEl (sem, fi, s, es, el_len))
           else error fi 3 "Array indexes should be integers"
       end
   (* Function and Constructor call *)
-  | E_Call (fi, s, el)         ->
+  | E_Call (sem, fi, s, el)         ->
       let en = lookupEntry fi (id_make s) LOOKUP_ALL_SCOPES true in
       begin
         match en.entry_info with
@@ -602,23 +602,23 @@ and typeOfExpr = function
             error_args fi str (id_make s);
             raise (Exit 3)
       end
-  | E_ConstrCall (fi, s, el)  -> (* TODO: not supported yet *)
+  | E_ConstrCall (sem, fi, s, el)  -> (* TODO: not supported yet *)
       error fi 3 "user defined data types are not supported"
 
 
 and typeOfPattern = function
-    P_True _          -> TY_Bool
-  | P_False _         -> TY_Bool
-  | P_LitId (fi,id)   ->
+    P_True (sem, info)             -> TY_Bool
+  | P_False (sem, info)            -> TY_Bool
+  | P_LitId (sem, fi,id)           ->
       P.ignore (newVariable fi (id_make id) TY_Unit true);
       TY_Unit
-  | P_LitChar (fi,c)  -> TY_Char
-  | P_LitFloat (fi,f) -> TY_Char
-  | P_Plus _          -> TY_Int
-  | P_FPlus _         -> TY_Float
-  | P_Minus _         -> TY_Int
-  | P_FMinus _        -> TY_Float
-  | P_LitConstr (fi, s, patl) -> (* TODO: not supported yet *)
+  | P_LitChar (sem, fi, c)         -> TY_Char
+  | P_LitFloat (sem, fi, f)        -> TY_Char
+  | P_Plus (sem, fi, _)            -> TY_Int
+  | P_FPlus (sem, fi, _)           -> TY_Float
+  | P_Minus (sem, fi, _)           -> TY_Int
+  | P_FMinus  (sem, fi, _)         -> TY_Float
+  | P_LitConstr (sem, fi, s, patl) -> (* TODO: not supported yet *)
       error fi 3 "user defined data types are not supported"
   | _                 -> err "Wrong pattern form"
 ;;

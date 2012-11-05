@@ -1,7 +1,8 @@
 (* Types interface file *)
 
 type ty =
-    TY_Unit
+    TY_None
+  | TY_Unit
   | TY_Int
   | TY_Float
   | TY_Bool
@@ -21,7 +22,7 @@ val string_of_type : ty -> string;;
 val isRef  : ty -> bool ;;
 val isUnit : ty -> bool ;;
 val isBool : ty -> bool ;;
-val isSimpleType : ty -> bool ;;
+val isSimpleType     : ty -> bool ;;
 val isNotArrayOrFunc : ty -> bool ;;
 
 val get : 'a option -> 'a ;;
