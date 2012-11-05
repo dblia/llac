@@ -90,5 +90,3 @@ and ast_pattern =
 val get_name_of_prog : ast_prog -> ast_letdef list * ast_typedef list ;;
 (* Get file info form the expression given *)
 val get_info_expr    : ast_expr -> finfo;;
-(* Get sem_val struct from the given expression *)
-val get_sem_expr     : ast_expr -> sem_val;;
