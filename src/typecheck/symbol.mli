@@ -20,13 +20,9 @@ and variable_info = {                         (******* Μεταβλητή ******
   variable_offset : int                       (* Offset στο Ε.Δ.       *)
 }
 
-and function_info = {                         (******* Συνάρτηση *******)
-  mutable function_isForward : bool;          (* Δήλωση forward        *)
-  mutable function_paramlist : entry list;    (* Λίστα παραμέτρων      *)
-  mutable function_redeflist : entry list;    (* Λίστα παραμέτρων (2η) *)
-  mutable function_result    : Types.ty;      (* Τύπος αποτελέσματος   *)
-  mutable function_pstatus   : param_status;  (* Κατάσταση παραμέτρων  *)
-  mutable function_initquad  : int            (* Αρχική τετράδα        *)
+and temporary_info = {                        (** Προσωρινή μεταβλητή **)
+  temporary_type   : Types.ty;                (* Τύπος                 *)
+  temporary_offset : int                      (* Offset στο Ε.Δ.       *)
 }
 
 and parameter_info = {                        (****** Παράμετρος *******)
@@ -35,9 +31,13 @@ and parameter_info = {                        (****** Παράμετρος *****
   parameter_mode           : pass_mode        (* Τρόπος περάσματος     *)
 }
 
-and temporary_info = {                        (** Προσωρινή μεταβλητή **)
-  temporary_type   : Types.ty;                (* Τύπος                 *)
-  temporary_offset : int                      (* Offset στο Ε.Δ.       *)
+and function_info = {                         (******* Συνάρτηση *******)
+  mutable function_isForward : bool;          (* Δήλωση forward        *)
+  mutable function_paramlist : entry list;    (* Λίστα παραμέτρων      *)
+  mutable function_redeflist : entry list;    (* Λίστα παραμέτρων (2η) *)
+  mutable function_result    : Types.ty;      (* Τύπος αποτελέσματος   *)
+  mutable function_pstatus   : param_status;  (* Κατάσταση παραμέτρων  *)
+  mutable function_initquad  : int            (* Αρχική τετράδα        *)
 }
 
 and entry_info =

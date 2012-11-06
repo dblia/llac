@@ -1,9 +1,9 @@
 (* Type checking and semantic analysis *)
 
-open Intermediate
+open InterUtils
 open Pervasives
 
-module I = Intermediate
+module I = InterUtils
 module P = Pervasives
 
 open Identifier

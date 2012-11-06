@@ -2,7 +2,7 @@
 (* Type expressions for the llama language *)
 
 open Error
-open Intermediate
+open InterUtils
 
 type ast_prog =
     PROGRAM of ast_letdef list * ast_typedef list

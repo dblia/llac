@@ -12,7 +12,7 @@
   open Types
   open Error
   open Ast
-  open Intermediate
+  open InterUtils
 
   (* default semantic value for initialization *)
   let dummy_sem = {

@@ -2,7 +2,7 @@
 
 open Types
 open Error
-open Intermediate
+open InterUtils
 
 (* Type expressions for the llama language *)
 
