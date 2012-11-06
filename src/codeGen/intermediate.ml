@@ -1,7 +1,49 @@
 (* Intermediate code generator in quadruple form *)
 
+open Error
 open Types
 open Symbol
+open Identifier
+
+(* New datatype definitions for quadruples handling *)
+type operator_t =
+  | O_Unit | O_Endu
+  | O_Plus | O_Minus | O_Mult | O_Div | O_Mod | O_Pow
+  | O_Differ | O_Equal | O_NEqual | O_Gt | O_Lt | O_Ge | O_Le
+  | O_Andlogic | O_Orlogic | O_Not
+  | O_Assign
+  | O_Array
+  | O_Jump | O_Ifjump | O_Label
+  | O_Call | O_Par | O_Ret
+
+type pass_mode_t = V | R | RET
+
+type operand_t =
+  | Int of int
+  | Char of char
+  | True of bool
+  | False of bool
+  | String of string
+  | Invalid             (* No position specified, PLACE initializer *)
+  | Label of int                        (* Number of quad for jumps *)
+  | Pass of pass_mode_t             (* In case of parameter passing *)
+  | Nil
+  | Bachpatch
+  | Entry of Symbol.entry
+  (* The type is needed in order to ensure that a function returns the
+   * correct type *)
+  | Result of Types.ty
+  (* Pointers need two different type representations, hence the second 
+   * field denoting the type of the pointed value. *)
+  | Pointer of Symbol.entry * Types.ty
+
+type quadruple_t = {
+  label : int;
+  op    : operator_t;
+  mutable op1 : operand_t;
+  mutable op2 : operand_t;
+  mutable op3 : operand_t; (* for backpatching *)
+}
 
 (* Semantics value struct: *)
 type value_type = Lval | Rval | Dummy
@@ -9,23 +51,10 @@ type value_type = Lval | Rval | Dummy
 type sem_val = {
   val_type  : value_type;
   expr_type : Types.ty;
-  mutable place  : string;
+  mutable place  : operand_t;
   mutable next   : int list;
   mutable true_  : int list;
   mutable false_ : int list;
-}
-
-(* New datatype definitions for quadruples handling *)
-type operator = Empty
-
-type operand = Empty
-
-type quad = {
-  label : int;
-  mutable operator : operator;
-  operand1         : operand;
-  operand2         : operand;
-  mutable operand3 : operand; (* for backpatching *)
 }
 
 (* Auxilary subroutines for quadruples handling *)
@@ -35,14 +64,38 @@ let nextQuad () =
 let genQuad op x y z =
   let quadruple = {
     label = nextQuad ();
-    operator = op;
-    operand1 = x;
-    operand2 = y;
-    operand3 = z;
+    op  = op;
+    op1 = x;
+    op2 = y;
+    op3 = z;
   } in
   incr Symbol.quadNext;
   quadruple
 
+let newTemp = Symbol.newTemporary
+
+let paramType en nth = 
+  let entry_parameter_info e n =
+    let fname = id_name e.entry_id in
+    match e.entry_info with
+    | ENTRY_function f ->
+      begin try
+        let p = List.nth f.function_paramlist n in
+        match p.entry_info with
+        | ENTRY_parameter pi -> pi
+        | _ ->
+          Printf.printf "Non parameter in parameter list for function %s." fname;
+          raise (Exit 4)
+       with (Failure "nth") ->
+        Printf.printf "Invalid parameter request (%d) for function %s." n fname;
+        raise (Exit 4)
+      end
+     | _ ->
+       Printf.printf "Invalid entry type, function expected for %s." fname;
+       raise (Exit 4)
+  in (entry_parameter_info en nth).parameter_type
+
+  (*
 (* Quad storage and handling functions *)
 let quad_list = ref []
 
@@ -54,7 +107,7 @@ let add_quad q =
 
 let backpatch l z =
   let patch quad x =
-    quad.operand3 <- Label x in
+    quad.op3 <- Label x in
     let rec backpatch_ l x =
       match l with
       | h :: t ->
@@ -68,8 +121,8 @@ let backpatch l z =
 (* Auxilary functions for debugging *)
 let print_quad channel q =
   Printf.fprintf channel "%d: %s, %s, %s, %s\n"
-  q.label (str_of_operator q.operator) (str_of_operand q.operand1)
-  (str_of_operand q.operand2) (str_of_operand q.operand3)
+  q.label (str_of_operator q.op) (str_of_operand q.op1) (str_of_operand q.op2) 
+  (str_of_operand q.op3)
 
 let print_quads_to_file channel =
   Pervasive.ignore (List.map (print_quad channel) (get_quads ()))
@@ -184,4 +237,5 @@ and interOfPattern = function
       error fi 3 "user defined data types are not supported"
   | _                 -> err "Wrong pattern form"
 ;;
+*)
 *)

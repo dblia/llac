@@ -18,7 +18,7 @@
   let dummy_sem = {
     val_type  = Dummy;
     expr_type = TY_None;
-    place     = "";
+    place     = Invalid;
     next      = [];
     true_     = [];
     false_    = [];
