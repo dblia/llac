@@ -19,19 +19,20 @@ type pass_mode_t = V | R | RET
 type operand_t =
   | Int of int
   | Char of char
-  | True of bool
-  | False of bool
+  | True
+  | False
   | String of string
   | Invalid             (* No position specified, PLACE initializer *)
   | Label of int                        (* Number of quad for jumps *)
   | Pass of pass_mode_t             (* In case of parameter passing *)
   | Nil
-  | Bachpatch
+  | Backpatch
+  | Empty
   | Entry of Symbol.entry
   (* The type is needed in order to ensure that a function returns the
    * correct type *)
   | Result of Types.ty
-  (* Pointers need two different type representations, hence the second 
+  (* Pointers need two different type representations, hence the second
    * field denoting the type of the pointed value. *)
   | Pointer of Symbol.entry * Types.ty
 
@@ -70,10 +71,27 @@ val genQuad : operator_t -> operand_t -> operand_t -> operand_t -> quadruple_t ;
 (* Generates and returns a new temporary variable *)
 val newTemp : Error.finfo -> Types.ty -> Symbol.entry ;;
 
-(* Returns the the type of the n-th parameter of subprogramm e *)
+(* Auxilary function used by paramType and paramMode that returns a
+ * parameter_info struct *)
+val entry_parameter_info : Symbol.entry -> int -> Symbol.parameter_info ;;
+
+(* Returns the the type of the n-th parameter of the entry given *)
 val paramType : Symbol.entry -> int -> Types.ty ;;
 
-(*
+(* Returns the parameter_mode of the n-th parameter of the entry given *)
+val paramMode : Symbol.entry -> int -> Symbol.pass_mode ;;
+
+(* Checks if the given entry is a function *)
+val isFunction : Symbol.entry -> bool ;;
+
+(* Returns the size (in bytes) that required to save the given in memory *)
+val sizeOf : Types.ty -> int ;;
+
+(* Returns the type of the TY_Ref type given *)
+val typePtr : Types.ty -> Types.ty ;;
+
+(* Returns the type of the TY_Array type given *)
+val typeArr : Types.ty -> Types.ty ;;
 
 (* Quad storage and handling functions *)
 (* List of quadruples *)
@@ -86,6 +104,14 @@ val get_quads : unit -> quadruple_t list ;;
 val add_quad : quadruple_t -> unit ;;
 
 (* Backpatching:
- * Replace all 'backpatch' operands in quads with labels in l to z *)
+ * Replace all 'backpatch' operands in quads with labels in l with z *)
 val backpatch : int list -> int -> unit ;;
-*)
+
+(* Auxilary functions for debbuging *)
+val str_of_operator : operator_t -> string ;;
+val str_of_pm       : pass_mode_t -> string ;;
+val str_of_operand  : operand_t -> string ;;
+
+val print_quad  : out_channel -> quadruple_t -> unit ;;
+val print_quads : out_channel -> unit ;;
+val print_quads_to_file : out_channel -> unit ;;
