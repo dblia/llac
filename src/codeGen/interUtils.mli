@@ -72,6 +72,9 @@ val genQuad : operator_t -> operand_t -> operand_t -> operand_t -> quadruple_t ;
 (* Generates and returns a new temporary variable *)
 val newTemp : Error.finfo -> Types.ty -> Symbol.entry ;;
 
+(* Creates a new quad list by merging the lists [l1;l2;....;ln] given *)
+val merge : 'a list list -> 'a list ;;
+
 (* Auxilary function used by paramType and paramMode that returns a
  * parameter_info struct *)
 val entry_parameter_info : Symbol.entry -> int -> Symbol.parameter_info ;;

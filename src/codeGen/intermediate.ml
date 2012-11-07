@@ -133,7 +133,7 @@ and interOfExpr = function
       add_quad q;
       { sem with place = w }
   (* Structural and Natural Equality Operators *)
-  | E_Eq (sem, fi, e1, e2)         -> 
+  | E_Eq (sem, fi, e1, e2)       ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_SEqual (interOfExpr e1).place (interOfExpr e2).place
                       I.Backpatch in
@@ -142,7 +142,7 @@ and interOfExpr = function
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
       { sem with true_ = [quad_true]; false_ = [quad_false] }
-  | E_Differ (sem, fi, e1, e2)     -> 
+  | E_Differ (sem, fi, e1, e2)   ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_SNEqual (interOfExpr e1).place (interOfExpr e2).place
                       I.Backpatch in
@@ -151,7 +151,7 @@ and interOfExpr = function
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
       { sem with true_ = [quad_true]; false_ = [quad_false] }
-  | E_Equal (sem, fi, e1, e2)      -> 
+  | E_Equal (sem, fi, e1, e2)    ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_Equal (interOfExpr e1).place (interOfExpr e2).place
                       I.Backpatch in
@@ -160,7 +160,7 @@ and interOfExpr = function
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
       { sem with true_ = [quad_true]; false_ = [quad_false] }
-  | E_NEqual (sem, fi, e1, e2)     -> 
+  | E_NEqual (sem, fi, e1, e2)   ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_NEqual (interOfExpr e1).place (interOfExpr e2).place
                       I.Backpatch in
@@ -169,7 +169,7 @@ and interOfExpr = function
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
       { sem with true_ = [quad_true]; false_ = [quad_false] }
-  | E_Lt (sem, fi, e1, e2)         -> 
+  | E_Lt (sem, fi, e1, e2)       ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_Lt (interOfExpr e1).place (interOfExpr e2).place
                       I.Backpatch in
@@ -178,7 +178,7 @@ and interOfExpr = function
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
       { sem with true_ = [quad_true]; false_ = [quad_false] }
-  | E_Gt (sem, fi, e1, e2)         -> 
+  | E_Gt (sem, fi, e1, e2)       ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_Gt (interOfExpr e1).place (interOfExpr e2).place
                       I.Backpatch in
@@ -187,7 +187,7 @@ and interOfExpr = function
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
       { sem with true_ = [quad_true]; false_ = [quad_false] }
-  | E_Leq (sem, fi, e1, e2)        -> 
+  | E_Leq (sem, fi, e1, e2)      ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_Leq (interOfExpr e1).place (interOfExpr e2).place
                       I.Backpatch in
@@ -196,7 +196,7 @@ and interOfExpr = function
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
       { sem with true_ = [quad_true]; false_ = [quad_false] }
-  | E_Geq (sem, fi, e1, e2)        -> 
+  | E_Geq (sem, fi, e1, e2)      ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_Geq (interOfExpr e1).place (interOfExpr e2).place
                       I.Backpatch in
@@ -206,9 +206,19 @@ and interOfExpr = function
       add_quad q;
       { sem with true_ = [quad_true]; false_ = [quad_false] }
   (* Logical Operators *)
-  | E_Not (sem, fi, e)       -> sem
-  | E_Andlogic (sem, fi, e1, e2)    -> sem
-  | E_Orlogic (sem, fi, e1, e2)     -> sem
+  | E_Not (sem, fi, e)           ->
+      let inter_e = interOfExpr e in
+      { sem with true_ = inter_e.false_; false_ = inter_e.true_ }
+  | E_Andlogic (sem, fi, e1, e2) ->
+      backpatch (interOfExpr e1).true_ (nextQuad ());
+      { sem with
+          true_ = (interOfExpr e2).true_;
+          false_ = merge [(interOfExpr e1).false_; (interOfExpr e2).false_] }
+  | E_Orlogic (sem, fi, e1, e2)  ->
+      backpatch (interOfExpr e1).false_ (nextQuad ());
+      { sem with
+          true_ = merge [(interOfExpr e1).true_; (interOfExpr e2).true_];
+          false_ = (interOfExpr e2).false_ }
   (* Imperative Commands *)
   | E_Block (sem, fi, e)     -> sem
   | E_Semicolon (sem, fi, e1, e2)   -> sem

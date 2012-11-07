@@ -78,6 +78,10 @@ let genQuad op x y z =
 let newTemp =
   Symbol.newTemporary
 
+let rec merge = function
+  | [] -> []
+  | h :: t -> List.rev_append h (merge t)
+
 let entry_parameter_info e n =
   let fname = id_name e.entry_id in
   match e.entry_info with
