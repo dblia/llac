@@ -248,7 +248,24 @@ and interOfExpr = function
   (* Local definitions *)
   | E_LetIn (sem, fi, ld, e)        -> sem (* local declarations *)
   (* If statement *)
-  | E_IfStmt (sem, fi, e, e1, _e2)   -> sem
+  | E_IfStmt (sem, fi, e, e1, _e2)   ->
+      let cond_sem = interOfExpr e in
+      let stmt1_sem = interOfExpr e1 in
+      backpatch cond_sem.true_ (nextQuad ());
+      let l1 = cond_sem.false_ in
+      let l2 = [] in begin
+      match _e2 with
+      | Some e2 -> (* else stmt *)
+          let stmt2_sem = interOfExpr e2 in
+          let l1 = [nextQuad ()] in
+          let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
+          add_quad q;
+          backpatch cond_sem.false_ (nextQuad ());
+          let l2 = stmt2_sem.next in
+          { sem with next = merge [l1; stmt1_sem.next; l2] }
+      | None    -> (* no else stmt *)
+          { sem with next = merge [l1; stmt1_sem.next; l2] }
+      end
   (* Array Elements and Dimensions *)
   | E_Dim (sem, fi, i, s)           -> sem
   | E_ArrayEl (sem, fi, s, el, el_len)      -> sem
