@@ -8,6 +8,8 @@ module I = InterUtils
 
 open Ast
 open Error
+open Symbol
+open Identifier
 
 let rec interOf = function
     PROGRAM (ldfs, tdfs) ->
@@ -32,21 +34,29 @@ and interOfVardef rec_flag = function
 and interOfExpr = function
   (* Constants Operators *)
     E_Unit (sem, info)        ->
-      { sem with val_type = I.Rval; place = I.Unit }
+      { sem with place = I.Unit }
   | E_True (sem, info)        ->
-      { sem with val_type = I.Rval; place = I.True }
+      { sem with place = I.True }
   | E_False (sem, info)       ->
-      { sem with val_type = I.Rval; place = I.False }
+      { sem with place = I.False }
   | E_LitInt (sem, info, i)   ->
-      { sem with val_type = I.Rval; place = I.Int i }
+      { sem with place = I.Int i }
   | E_LitChar (sem, info, c)  ->
-      { sem with val_type = I.Rval; place = I.Char c }
+      { sem with place = I.Char c }
   | E_LitFloat (sem, info, f) ->
-      { sem with val_type = I.Rval; place = I.Float f }
+      { sem with place = I.Float f }
   | E_LitString (sem, fi, s)  ->
-      { sem with val_type = I.Rval; place = I.String s }
+      { sem with place = I.String s }
   (* Names (constants, functions, parameters, constructors, expressions) *)
-  | E_LitId (sem, fi, id)    -> sem
+  | E_LitId (sem, fi, id)    -> 
+      begin (* FIXME: what about ENTRY_FUNCTION call, Lval check *)
+        let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
+        match l.entry_info with
+        | ENTRY_parameter _ | ENTRY_variable _ ->
+            { sem with place = I.Entry l }
+        | ENTRY_function _ -> raise (Exit 4)
+        | _ -> raise Terminate
+      end
   | E_LitConstr (sem, fi, id) -> (* TODO: not supported yet *)
       error fi 3 "user defined date types are not supported"
   (* Unary Arithmetic Operators *)
@@ -65,11 +75,19 @@ and interOfExpr = function
       add_quad q;
       { sem with place = w }
   (* References and assigments *)
-  | E_Assign (sem, fi, e1, e2)      -> sem (* FIXME: check if e1 is l-value *)
-  | E_Deref  (sem, fi, e)     -> sem
+  | E_Assign (sem, fi, e1, e2)  ->
+      let q = genQuad I.O_Assign (interOfExpr e2).place I.Empty 
+              (interOfExpr e1).place in
+      add_quad q;
+      { sem with next = [] }
+  | E_Deref  (sem, fi, e)       -> (* FIXME: type should be ref? *)
+      let w = newTemp fi sem.expr_type in
+      let q = genQuad I.O_Assign (interOfExpr e).place I.Empty (I.Entry w) in
+      add_quad q;
+      { sem with place = I.Pointer (w, sem.expr_type) }
   (* Memory Dynamic Allocation *)
-  | E_New    (sem, fi)         -> sem
-  | E_Delete (sem, fi, e)      -> sem (* FIXME: check that mem was allocated dynamically *)
+  | E_New    (sem, fi)          -> sem
+  | E_Delete (sem, fi, e)       -> sem (* FIXME: check that mem was allocated dynamically *)
   (* Binary Integer Arithmetic Operators *)
   | E_Plus  (sem, fi, e1, e2)   ->
       let w = I.Entry (newTemp fi sem.expr_type) in

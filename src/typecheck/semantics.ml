@@ -227,20 +227,23 @@ and typeOfVardef rec_flag = function
 
 and typeOfExpr = function
   (* Constants Operators *)
-    E_Unit (sem, info)        -> sem
-  | E_True (sem, info)        -> sem
-  | E_False (sem, info)       -> sem
-  | E_LitInt (sem, info, _)   -> sem
-  | E_LitChar (sem, info, _)  -> sem
-  | E_LitFloat (sem, info, _) -> sem
-  | E_LitString (sem, fi, s)  -> sem
+    E_Unit (sem, info)        -> { sem with val_type = I.Rval }
+  | E_True (sem, info)        -> { sem with val_type = I.Rval }
+  | E_False (sem, info)       -> { sem with val_type = I.Rval }
+  | E_LitInt (sem, info, _)   -> { sem with val_type = I.Rval }
+  | E_LitChar (sem, info, _)  -> { sem with val_type = I.Rval }
+  | E_LitFloat (sem, info, _) -> { sem with val_type = I.Rval }
+  | E_LitString (sem, fi, s)  -> { sem with val_type = I.Rval }
   (* Names (constants, functions, parameters, constructors, expressions) *)
   | E_LitId (sem, fi, id)    ->
       let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
       begin
         match l.entry_info with
-        | ENTRY_variable v -> {sem with expr_type = v.variable_type};
-        | ENTRY_parameter p -> {sem with expr_type = p.parameter_type};
+        | ENTRY_variable v -> 
+            { sem with val_type = I.Lval; expr_type = v.variable_type };
+        | ENTRY_parameter p ->
+            { sem with val_type = I.Lval; expr_type = p.parameter_type };
+            (* FIXME: what about val_type of function *)
         | ENTRY_function f -> {sem with expr_type = TY_Function (List.map (
           fun en ->
             match en.entry_info with
