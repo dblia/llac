@@ -1,4 +1,3 @@
-(* Intermediate code generator in quadruple form *)
 
 open Printf
 
@@ -21,15 +20,16 @@ type operator_t =
 type pass_mode_t = V | R | RET
 
 type operand_t =
-  | Int of int
-  | Char of char
+    Unit
   | True
   | False
+  | Int of int
+  | Float of float
+  | Char of char
   | String of string
   | Invalid             (* No position specified, PLACE initializer *)
   | Label of int                        (* Number of quad for jumps *)
   | Pass of pass_mode_t             (* In case of parameter passing *)
-  | Nil
   | Backpatch
   | Empty
   | Entry of Symbol.entry
@@ -185,21 +185,21 @@ let str_of_pm = function
   | RET -> "RET"
 
 let str_of_operand = function
-    Int i            -> string_of_int i
-  | Char c           -> "'" ^ Char.escaped c ^ "'"
+    Unit             -> "unit"
   | True             -> "true"
   | False            -> "false"
+  | Int i            -> string_of_int i
+  | Float f          -> string_of_float f
+  | Char c           -> "'" ^ Char.escaped c ^ "'"
   | String s         -> "" ^ s ^ "" 
   | Invalid          -> "invalid"
   | Label i          -> string_of_int i
   | Pass pm          -> str_of_pm pm
-  | Nil              -> "nil"
   | Backpatch        -> "*"
   | Empty            -> "-"
   | Entry en         -> id_name en.entry_id
   | Result _         -> "$$"
   | Pointer (en ,_)  -> "[" ^ (id_name en.entry_id)  ^ "]"
-
 
 let print_quad channel q =
   fprintf channel "%d: %s, %s, %s, %s\n"

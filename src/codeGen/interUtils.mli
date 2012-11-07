@@ -17,15 +17,16 @@ type pass_mode_t = V | R | RET
 
 (* Operand type *)
 type operand_t =
-  | Int of int
-  | Char of char
+    Unit
   | True
   | False
+  | Int of int
+  | Float of float
+  | Char of char
   | String of string
   | Invalid             (* No position specified, PLACE initializer *)
   | Label of int                        (* Number of quad for jumps *)
   | Pass of pass_mode_t             (* In case of parameter passing *)
-  | Nil
   | Backpatch
   | Empty
   | Entry of Symbol.entry
