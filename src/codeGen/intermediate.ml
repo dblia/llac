@@ -133,14 +133,78 @@ and interOfExpr = function
       add_quad q;
       { sem with place = w }
   (* Structural and Natural Equality Operators *)
-  | E_Eq (sem, fi, e1, e2)         -> sem
-  | E_Differ (sem, fi, e1, e2)     -> sem
-  | E_Equal (sem, fi, e1, e2)       -> sem
-  | E_NEqual (sem, fi, e1, e2)      -> sem
-  | E_Lt (sem, fi, e1, e2)          -> sem
-  | E_Gt (sem, fi, e1, e2)          -> sem
-  | E_Leq (sem, fi, e1, e2)         -> sem
-  | E_Geq (sem, fi, e1, e2)         -> sem
+  | E_Eq (sem, fi, e1, e2)         -> 
+      let quad_true = nextQuad () in
+      let q = genQuad I.O_SEqual (interOfExpr e1).place (interOfExpr e2).place
+                      I.Backpatch in
+      add_quad q;
+      let quad_false = nextQuad () in
+      let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
+      add_quad q;
+      { sem with true_ = [quad_true]; false_ = [quad_false] }
+  | E_Differ (sem, fi, e1, e2)     -> 
+      let quad_true = nextQuad () in
+      let q = genQuad I.O_SNEqual (interOfExpr e1).place (interOfExpr e2).place
+                      I.Backpatch in
+      add_quad q;
+      let quad_false = nextQuad () in
+      let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
+      add_quad q;
+      { sem with true_ = [quad_true]; false_ = [quad_false] }
+  | E_Equal (sem, fi, e1, e2)      -> 
+      let quad_true = nextQuad () in
+      let q = genQuad I.O_Equal (interOfExpr e1).place (interOfExpr e2).place
+                      I.Backpatch in
+      add_quad q;
+      let quad_false = nextQuad () in
+      let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
+      add_quad q;
+      { sem with true_ = [quad_true]; false_ = [quad_false] }
+  | E_NEqual (sem, fi, e1, e2)     -> 
+      let quad_true = nextQuad () in
+      let q = genQuad I.O_NEqual (interOfExpr e1).place (interOfExpr e2).place
+                      I.Backpatch in
+      add_quad q;
+      let quad_false = nextQuad () in
+      let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
+      add_quad q;
+      { sem with true_ = [quad_true]; false_ = [quad_false] }
+  | E_Lt (sem, fi, e1, e2)         -> 
+      let quad_true = nextQuad () in
+      let q = genQuad I.O_Lt (interOfExpr e1).place (interOfExpr e2).place
+                      I.Backpatch in
+      add_quad q;
+      let quad_false = nextQuad () in
+      let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
+      add_quad q;
+      { sem with true_ = [quad_true]; false_ = [quad_false] }
+  | E_Gt (sem, fi, e1, e2)         -> 
+      let quad_true = nextQuad () in
+      let q = genQuad I.O_Gt (interOfExpr e1).place (interOfExpr e2).place
+                      I.Backpatch in
+      add_quad q;
+      let quad_false = nextQuad () in
+      let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
+      add_quad q;
+      { sem with true_ = [quad_true]; false_ = [quad_false] }
+  | E_Leq (sem, fi, e1, e2)        -> 
+      let quad_true = nextQuad () in
+      let q = genQuad I.O_Leq (interOfExpr e1).place (interOfExpr e2).place
+                      I.Backpatch in
+      add_quad q;
+      let quad_false = nextQuad () in
+      let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
+      add_quad q;
+      { sem with true_ = [quad_true]; false_ = [quad_false] }
+  | E_Geq (sem, fi, e1, e2)        -> 
+      let quad_true = nextQuad () in
+      let q = genQuad I.O_Geq (interOfExpr e1).place (interOfExpr e2).place
+                      I.Backpatch in
+      add_quad q;
+      let quad_false = nextQuad () in
+      let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
+      add_quad q;
+      { sem with true_ = [quad_true]; false_ = [quad_false] }
   (* Logical Operators *)
   | E_Not (sem, fi, e)       -> sem
   | E_Andlogic (sem, fi, e1, e2)    -> sem

@@ -10,7 +10,7 @@ open Types
 type operator_t =
   | O_Unit | O_Endu
   | O_Plus | O_Minus | O_Mult | O_Div | O_Mod | O_Pow
-  | O_Differ | O_Equal | O_NEqual | O_Gt | O_Lt | O_Ge | O_Le
+  | O_SEqual | O_SNEqual | O_Equal | O_NEqual | O_Gt | O_Lt | O_Geq | O_Leq
   | O_Andlogic | O_Orlogic | O_Not
   | O_Assign
   | O_Array
@@ -160,13 +160,14 @@ let str_of_operator = function
   | O_Div      -> "/"
   | O_Mod      -> "%"
   | O_Pow      -> "**"
-  | O_Differ   -> "<>"
+  | O_SEqual   -> "="
   | O_Equal    -> "=="
+  | O_SNEqual  -> "<>"
   | O_NEqual   -> "!="
   | O_Gt       -> ">"
   | O_Lt       -> "<"
-  | O_Ge       -> ">="
-  | O_Le       -> "<="
+  | O_Geq      -> ">="
+  | O_Leq      -> "<="
   | O_Andlogic -> "&&"
   | O_Orlogic  -> "||"
   | O_Not      -> "not"
