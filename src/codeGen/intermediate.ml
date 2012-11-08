@@ -9,6 +9,7 @@ module I = InterUtils
 open Ast
 open Error
 open Symbol
+open Types
 open Identifier
 
 let rec interOf = function
@@ -19,6 +20,7 @@ let rec interOf = function
 and interOfLetdef = function
     L_Let (sem, fi, vl)    -> () (* vl: vardefs connected with 'and' keyword *)
   | L_LetRec (sem, fi, vl) -> () (* vl: vardefs connected with 'and' keyword *)
+
 and interOfTypedef = function
     TD_Type (sem, fi, tl)       ->  (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
@@ -85,9 +87,17 @@ and interOfExpr = function
       let q = genQuad I.O_Assign (interOfExpr e).place I.Empty (I.Entry w) in
       add_quad q;
       { sem with place = I.Pointer (w, sem.expr_type) }
-  (* Memory Dynamic Allocation *)
-  | E_New    (sem, fi)          -> sem
-  | E_Delete (sem, fi, e)       -> sem (* FIXME: check that mem was allocated dynamically *)
+  (* FIXME: Memory Dynamic Allocation *)
+  | E_New    (sem, fi)          ->
+      let size = sizeOfType sem.expr_type in
+      add_quad (genQuad I.O_Par (I.Int size) (I.Pass V) I.Empty);
+      add_quad (genQuad I.O_Par sem.place (I.Pass RET) I.Empty);
+      add_quad (genQuad I.O_Call I.Empty I.Empty I.New);
+      { sem with next = [] }
+  | E_Delete (sem, fi, e)       -> (* FIXME: check that mem was allocated dynamically *)
+      add_quad (genQuad I.O_Par (interOfExpr e).place (I.Pass R) I.Empty);
+      add_quad (genQuad I.O_Call I.Empty I.Empty I.Delete);
+      { sem with next = [] }
   (* Binary Integer Arithmetic Operators *)
   | E_Plus  (sem, fi, e1, e2)   ->
       let w = I.Entry (newTemp fi sem.expr_type) in
@@ -239,16 +249,33 @@ and interOfExpr = function
           false_ = (interOfExpr e2).false_ }
   (* Imperative Commands *)
   | E_Block (sem, fi, e)     -> sem
-  | E_Semicolon (sem, fi, e1, e2)   -> sem
-  | E_While (sem, fi, e1, e2)       -> sem
-  | E_For (sem, fi, s, ti, e1, e2, e)  -> sem
+  | E_Semicolon (sem, fi, e1, e2)  -> sem
+  | E_While (sem, fi, e1, e2)      ->
+      let q = nextQuad () in
+      backpatch (interOfExpr e1).true_ (nextQuad ());
+      backpatch (interOfExpr e2).next q;
+      let quad = genQuad I.O_Jump I.Empty I.Empty (I.Label q) in
+      add_quad quad;
+      { sem with next = (interOfExpr e1).false_ }
+  | E_For (sem, fi, s, ti, e1, e2, e) -> (* FIXME: is it correct? *)
+      let cond_q = nextQuad ()
+      and cond_true = (interOfExpr e2).true_
+      and cond_false = (interOfExpr e2).false_
+      and simple_quad = nextQuad ()
+      and body_fst_quad = nextQuad () + 1 in
+      let q1 = genQuad I.O_Jump I.Empty I.Empty (I.Label cond_q) in
+      add_quad q1;
+      backpatch cond_true body_fst_quad;
+      let q2 = genQuad I.O_Jump I.Empty I.Empty (I.Label simple_quad) in
+      add_quad q2;
+      { sem with next = cond_false }
   (* Decomposition of User Defined Types *)
   | E_Match (sem, fi, e, clauses)   ->
       error fi 3 "user defined data types are not supported"
   (* Local definitions *)
   | E_LetIn (sem, fi, ld, e)        -> sem (* local declarations *)
   (* If statement *)
-  | E_IfStmt (sem, fi, e, e1, _e2)   ->
+  | E_IfStmt (sem, fi, e, e1, _e2)  ->
       let cond_sem = interOfExpr e in
       let stmt1_sem = interOfExpr e1 in
       backpatch cond_sem.true_ (nextQuad ());
@@ -267,17 +294,17 @@ and interOfExpr = function
           { sem with next = merge [l1; stmt1_sem.next; l2] }
       end
   (* Array Elements and Dimensions *)
-  | E_Dim (sem, fi, i, s)           -> sem
-  | E_ArrayEl (sem, fi, s, el, el_len)      -> sem
+  | E_Dim (sem, fi, i, s)          -> sem
+  | E_ArrayEl (sem, fi, s, el, el_len) -> sem
   (* Function and Constructor call *)
-  | E_Call (sem, fi, s, el)         -> sem
+  | E_Call (sem, fi, s, el)        -> sem
   | E_ConstrCall (sem, fi, s, el)  ->  (* TODO: not supported yet *)
       error fi 3 "user defined data types are not supported"
 
 
 and interOfPattern = function
-    P_True (sem, info)             -> sem
-  | P_False (sem, info)            -> sem
+    P_True (sem, fi)             -> sem
+  | P_False (sem, fi)            -> sem
   | P_LitId (sem, fi,id)           -> sem
   | P_LitChar (sem, fi, c)         -> sem
   | P_LitFloat (sem, fi, f)        -> sem

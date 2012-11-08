@@ -29,6 +29,8 @@ type operand_t =
   | Pass of pass_mode_t             (* In case of parameter passing *)
   | Backpatch
   | Empty
+  | New
+  | Delete
   | Entry of Symbol.entry
   (* The type is needed in order to ensure that a function returns the
    * correct type *)
