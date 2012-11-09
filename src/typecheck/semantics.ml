@@ -230,7 +230,8 @@ and typeOfExpr = function
     E_Unit (sem, info)        -> { sem with val_type = I.Rval }
   | E_True (sem, info)        -> { sem with val_type = I.Rval }
   | E_False (sem, info)       -> { sem with val_type = I.Rval }
-  | E_LitInt (sem, info, _)   -> { sem with val_type = I.Rval }
+  | E_LitInt (sem, info, _)   -> 
+      { sem with val_type = I.Rval }
   | E_LitChar (sem, info, _)  -> { sem with val_type = I.Rval }
   | E_LitFloat (sem, info, _) -> { sem with val_type = I.Rval }
   | E_LitString (sem, fi, s)  -> { sem with val_type = I.Rval }
@@ -239,7 +240,7 @@ and typeOfExpr = function
       let l = lookupEntry fi sem.entry.entry_id LOOKUP_ALL_SCOPES true in
       begin
         match l.entry_info with
-        | ENTRY_variable v -> 
+        | ENTRY_variable v ->
             { sem with 
               entry = l; val_type = I.Lval; expr_type = v.variable_type };
         | ENTRY_parameter p ->

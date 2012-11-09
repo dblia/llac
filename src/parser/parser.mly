@@ -181,9 +181,9 @@ vardefs:
 
 vardef:
     T_LitId formals T_Eq expr
-      { VAR_Id (dummy_sem "", $1.i, $1.v, $2, $4) }
+      { VAR_Id (dummy_sem $1.v, $1.i, $1.v, $2, $4) }
   | T_LitId formals T_Colon typee T_Eq expr
-      { VAR_Id ({(dummy_sem "") with expr_type = $4}, $1.i, $1.v, $2, $6) }
+      { VAR_Id ({(dummy_sem $1.v) with expr_type = $4}, $1.i, $1.v, $2, $6) }
   | T_Mutable T_LitId
       { VAR_MutId (dummy_sem "", $2.i, $2.v, None) }
   | T_Mutable T_LitId T_Colon typee
@@ -228,9 +228,9 @@ formals:
 
 param:
     T_LitId
-      { VAR_Id (dummy_sem "", $1.i, $1.v, [], E_Unit (dummy_sem "", dummyinfo)) }
+      { VAR_Id (dummy_sem $1.v, $1.i, $1.v, [], E_Unit (dummy_sem "", dummyinfo)) }
   | T_LParen T_LitId T_Colon typee T_RParen
-      { VAR_Id ({(dummy_sem "") with expr_type = $4}, $2.i, $2.v, [], 
+      { VAR_Id ({(dummy_sem $2.v) with expr_type = $4}, $2.i, $2.v, [], 
           E_Unit (dummy_sem "", dummyinfo)) }
 
 typees:

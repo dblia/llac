@@ -76,3 +76,5 @@ val forwardFunction   : entry -> unit
 val endFunctionHeader : entry -> Types.ty -> unit
 val lookupEntry       : Error.finfo -> Identifier.id -> lookup_type -> bool -> entry
 
+
+val print_symbol_table : unit -> unit ;;

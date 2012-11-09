@@ -18,7 +18,7 @@ let rec interOf = function
       List.iter (fun x -> interOfTypedef x) tdfs
 
 and interOfLetdef = function
-    L_Let (sem, fi, vl)    -> () (* vl: vardefs connected with 'and' keyword *)
+    L_Let (sem, fi, vl)    -> ()
   | L_LetRec (sem, fi, vl) -> () (* vl: vardefs connected with 'and' keyword *)
 
 and interOfTypedef = function
@@ -30,7 +30,7 @@ and interOfTypedef = function
       error fi 3 "user defined data types are not supported"
 
 and interOfVardef rec_flag = function
-    VAR_Id (sem, fi, s, varl, e) -> sem
+    VAR_Id (sem, fi, s, varl, e) -> sem 
   | VAR_MutId (sem, fi, s, exprl) -> sem
 
 and interOfExpr = function
@@ -52,10 +52,9 @@ and interOfExpr = function
   (* Names (constants, functions, parameters, constructors, expressions) *)
   | E_LitId (sem, fi)    ->
       begin (* FIXME: what about ENTRY_FUNCTION call, Lval check *)
-        let l = lookupEntry fi sem.entry.entry_id LOOKUP_ALL_SCOPES true in
-        match l.entry_info with
+        match sem.entry.entry_info with
         | ENTRY_parameter _ | ENTRY_variable _ ->
-            { sem with place = I.Entry l }
+            { sem with place = I.Entry sem.entry }
         | ENTRY_function _ -> raise (Exit 4)
         | _ -> raise Terminate
       end

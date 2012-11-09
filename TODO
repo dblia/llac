@@ -1,5 +1,7 @@
 -- general fixes
 
+add sem.entry fixes to semantics.ml
+
 AST_FIXES:
  remove string name from ast (i hold it now in sem_val struct)
 
