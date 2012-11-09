@@ -12,17 +12,30 @@ open Symbol
 open Types
 open Identifier
 
+(* prints the entry attributes of the sem_val given *)
+let pp_print sem = 
+  Printf.printf "error: %s, %s\n" (id_name sem.entry.entry_id)
+  (str_of_entry_info sem.entry.entry_info);
+  pretty_typ Format.std_formatter sem.expr_type;
+  Format.print_newline()
+
 let rec interOf = function
     PROGRAM (ldfs, tdfs) ->
       List.iter (fun x -> interOfLetdef x) ldfs;
       List.iter (fun x -> interOfTypedef x) tdfs
 
 and interOfLetdef = function
-    L_Let (sem, fi, vl)    -> ()
-  | L_LetRec (sem, fi, vl) -> () (* vl: vardefs connected with 'and' keyword *)
+  (* vl: vardefs connected with 'and' keyword *)
+    L_Let (sem, fi, vl)    ->
+      let printer v = 
+        Printf.printf "L_Let: %s, %d, %s\n" (id_name v.entry_id) 
+        v.entry_scope.sco_nesting (str_of_entry_info v.entry_info)
+      in
+      List.iter (fun x -> printer (interOfVardef false x).entry) vl
+  | L_LetRec (sem, fi, vl) -> ()
 
 and interOfTypedef = function
-    TD_Type (sem, fi, tl)       ->  (* TODO: Not supported yet *)
+    TD_Type (sem, fi, tl)    ->  (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
   | TD_TDefId (sem, fi, tl)  ->  (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
@@ -30,7 +43,7 @@ and interOfTypedef = function
       error fi 3 "user defined data types are not supported"
 
 and interOfVardef rec_flag = function
-    VAR_Id (sem, fi, varl, e) -> sem
+    VAR_Id (sem, fi, varl, e) -> interOfExpr e
   | VAR_MutId (sem, fi, exprl) -> sem
 
 and interOfExpr = function
@@ -56,7 +69,8 @@ and interOfExpr = function
         | ENTRY_parameter _ | ENTRY_variable _ ->
             { sem with place = I.Entry sem.entry }
         | ENTRY_function _ -> raise (Exit 4)
-        | _ -> raise Terminate
+        | _ -> 
+            raise Terminate
       end
   | E_LitConstr (sem, fi) -> (* TODO: not supported yet *)
       error fi 3 "user defined date types are not supported"

@@ -1,10 +1,3 @@
--- general fixes
-
-add sem.entry fixes to semantics.ml
-
-AST_FIXES:
- remove string name from ast (i hold it now in sem_val struct)
-
 -- error handling
 
 syntax error can improved?
@@ -15,22 +8,10 @@ add pretty_printing with args
 
 improve symbol.ml printing info
 
--- lexer
-
-what happens with string and hex ?
-
 --check what happens in the following example
 
 let rec a (x : int) : int = a1 + 1
 and a1 : int = 2
-
-***** in typecheckin create a field in ast for assigning the expr_type
-      and actually make the typeOf and typeOfExpr function mutually recursive
-      This will be done by a struct eg.
-
-       type sem_val = {
-            expr_type: typ
-        }
 
 -- a master Makefile to handle the sub-Makefiles
 -- currently stopping the lexing when a false token found.

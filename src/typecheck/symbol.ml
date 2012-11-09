@@ -328,6 +328,14 @@ open Format
 
 let show_offsets = true
 
+
+let str_of_entry_info = function
+    ENTRY_none        -> "ENTRY_none"
+  | ENTRY_variable _  -> "ENTRY_variable"
+  | ENTRY_function _  -> "ENTRY_function"
+  | ENTRY_parameter _ -> "ENTRY_parameter"
+  | ENTRY_temporary _ -> "ENTRY_temporary"
+
 let rec pretty_typ ppf = function
   | TY_None ->
       fprintf ppf "<undefined>"
@@ -355,8 +363,7 @@ let rec pretty_typ ppf = function
   | TY_Function (_, ty) ->
       fprintf ppf "function"
 
-let pretty_mode ppf mode =
-  match mode with
+let pretty_mode ppf = function
   | PASS_BY_REFERENCE ->
       fprintf ppf "reference "
   | _ ->

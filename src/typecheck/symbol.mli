@@ -77,4 +77,7 @@ val endFunctionHeader : entry -> Types.ty -> unit
 val lookupEntry       : Error.finfo -> Identifier.id -> lookup_type -> bool -> entry
 
 (* Pretty Printing functions *)
+val str_of_entry_info  : entry_info -> string ;;
+val pretty_typ  : Format.formatter -> Types.ty -> unit ;;
+val pretty_mode : Format.formatter -> pass_mode -> unit ;;
 val print_symbol_table : unit -> unit ;;
