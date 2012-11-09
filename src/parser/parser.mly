@@ -181,17 +181,17 @@ vardefs:
 
 vardef:
     T_LitId formals T_Eq expr
-      { VAR_Id (dummy_sem $1.v, $1.i, $1.v, $2, $4) }
+      { VAR_Id (dummy_sem $1.v, $1.i, $2, $4) }
   | T_LitId formals T_Colon typee T_Eq expr
-      { VAR_Id ({(dummy_sem $1.v) with expr_type = $4}, $1.i, $1.v, $2, $6) }
+      { VAR_Id ({(dummy_sem $1.v) with expr_type = $4}, $1.i, $2, $6) }
   | T_Mutable T_LitId
-      { VAR_MutId (dummy_sem "", $2.i, $2.v, None) }
+      { VAR_MutId (dummy_sem $2.v, $2.i, None) }
   | T_Mutable T_LitId T_Colon typee
-      { VAR_MutId ({(dummy_sem "") with expr_type = $4}, $2.i, $2.v, None) }
+      { VAR_MutId ({(dummy_sem $2.v) with expr_type = $4}, $2.i, None) }
   | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack
-      { VAR_MutId (dummy_sem "", $2.i, $2.v, Some $4) }
+      { VAR_MutId (dummy_sem $2.v, $2.i, Some $4) }
   | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack T_Colon typee
-      { VAR_MutId ({(dummy_sem "") with expr_type = $7}, $2.i, $2.v, Some $4) }
+      { VAR_MutId ({(dummy_sem $2.v) with expr_type = $7}, $2.i, Some $4) }
 
 typedef:
     T_Type tdefs
@@ -205,7 +205,7 @@ tdefs:
 
 tdef:
     T_LitId T_Eq constrs
-      { TD_TDefId (dummy_sem "", $1.i, $1.v, $3) }
+      { TD_TDefId (dummy_sem $1.v, $1.i, $3) }
 
 constrs:
     constr
@@ -215,10 +215,10 @@ constrs:
 
 constr:
     T_LitConstr
-      { TD_Constr (dummy_sem "", $1.i, $1.v, None) }
+      { TD_Constr (dummy_sem $1.v, $1.i, None) }
   | T_LitConstr T_Of typees
   /* (* if i fix userdef types i should change expr_typ field to list *) */
-      { TD_Constr (dummy_sem "", $1.i, $1.v, Some $3) }
+      { TD_Constr (dummy_sem $1.v, $1.i, Some $3) }
 
 formals:
     /* nothing */
@@ -228,9 +228,9 @@ formals:
 
 param:
     T_LitId
-      { VAR_Id (dummy_sem $1.v, $1.i, $1.v, [], E_Unit (dummy_sem "", dummyinfo)) }
+      { VAR_Id (dummy_sem $1.v, $1.i, [], E_Unit (dummy_sem "", dummyinfo)) }
   | T_LParen T_LitId T_Colon typee T_RParen
-      { VAR_Id ({(dummy_sem $2.v) with expr_type = $4}, $2.i, $2.v, [], 
+      { VAR_Id ({(dummy_sem $2.v) with expr_type = $4}, $2.i, [], 
           E_Unit (dummy_sem "", dummyinfo)) }
 
 typees:
@@ -432,7 +432,7 @@ simple_pattern:
   | T_False
       { P_False ({(dummy_sem "") with expr_type = TY_Bool}, $1) }
   | T_LitId
-      { P_LitId (dummy_sem "", $1.i, $1.v) }
+      { P_LitId (dummy_sem $1.v, $1.i) }
   | T_LitChar
       { P_LitChar ({(dummy_sem "") with expr_type = TY_Char}, $1.i, $1.v) }
   | T_LitFloat

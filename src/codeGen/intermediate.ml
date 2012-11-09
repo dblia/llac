@@ -24,14 +24,14 @@ and interOfLetdef = function
 and interOfTypedef = function
     TD_Type (sem, fi, tl)       ->  (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
-  | TD_TDefId (sem, fi, s, tl)  ->  (* TODO: Not supported yet *)
+  | TD_TDefId (sem, fi, tl)  ->  (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
-  | TD_Constr (sem, fi, s, tyl) ->  (* TODO: Not supported yet *)
+  | TD_Constr (sem, fi, tyl) ->  (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
 
 and interOfVardef rec_flag = function
-    VAR_Id (sem, fi, s, varl, e) -> sem 
-  | VAR_MutId (sem, fi, s, exprl) -> sem
+    VAR_Id (sem, fi, varl, e) -> sem
+  | VAR_MutId (sem, fi, exprl) -> sem
 
 and interOfExpr = function
   (* Constants Operators *)
@@ -304,7 +304,7 @@ and interOfExpr = function
 and interOfPattern = function
     P_True (sem, fi)            -> sem
   | P_False (sem, fi)           -> sem
-  | P_LitId (sem, fi,id)        -> sem
+  | P_LitId (sem, fi)        -> sem
   | P_LitChar (sem, fi, c)      -> sem
   | P_LitFloat (sem, fi, f)     -> sem
   | P_Plus (sem, fi, _)         -> sem

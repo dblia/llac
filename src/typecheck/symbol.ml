@@ -322,7 +322,38 @@ let endFunctionHeader e typ =
       inf.function_pstatus <- PARDEF_COMPLETE
   | _ ->
       internal "Cannot end parameters in a non-function"
-open Format 
+
+(* Pretty printing. *)
+open Format
+
+let show_offsets = true
+
+let rec pretty_typ ppf = function
+  | TY_None ->
+      fprintf ppf "<undefined>"
+  | TY_Int ->
+      fprintf ppf "int"
+  | TY_Float ->
+      fprintf ppf "float"
+  | TY_Unit ->
+      fprintf ppf "unit"
+  | TY_Char ->
+      fprintf ppf "char"
+  | TY_Bool ->
+      fprintf ppf "bool"
+  | TY_Ref ty ->
+      fprintf ppf "ref";
+      pretty_typ ppf ty
+  | TY_Array (sz, et) ->
+      pretty_typ ppf et;
+      if sz > 0 then
+        fprintf ppf " [%d]" sz
+      else
+        fprintf ppf " []"
+  | TY_UserDef s ->
+      fprintf ppf "Userdef: %s" s
+  | TY_Function (_, ty) ->
+      fprintf ppf "function"
 
 let pretty_mode ppf mode =
   match mode with
@@ -330,6 +361,7 @@ let pretty_mode ppf mode =
       fprintf ppf "reference "
   | _ ->
       ()
+
 let print_symbol_table () =
   let rec walk ppf scp =
     if scp.sco_nesting <> 0 then begin
@@ -340,15 +372,16 @@ let print_symbol_table () =
         | ENTRY_none ->
             fprintf ppf "<none>"
         | ENTRY_variable inf ->
-            if true then
+            if show_offsets then
               fprintf ppf "[%d]" inf.variable_offset
         | ENTRY_function inf ->
             let param ppf e =
               match e.entry_info with
                 | ENTRY_parameter inf ->
-                   fprintf ppf "%a%a"
+                   fprintf ppf "%a%a : %a"
                       pretty_mode inf.parameter_mode
                       pretty_id e.entry_id
+                      pretty_typ inf.parameter_type
                 | _ ->
                     fprintf ppf "<invalid>" in
             let rec params ppf ps =
@@ -359,13 +392,14 @@ let print_symbol_table () =
                   fprintf ppf "%a; %a" param p params ps;
               | [] ->
                   () in
-            fprintf ppf "(%a)"
+            fprintf ppf "(%a) : %a"
               params inf.function_paramlist
+              pretty_typ inf.function_result
         | ENTRY_parameter inf ->
-            if true then
+            if show_offsets then
               fprintf ppf "[%d]" inf.parameter_offset
         | ENTRY_temporary inf ->
-            if true then
+            if show_offsets then
               fprintf ppf "[%d]" inf.temporary_offset in
       let rec entries ppf es =
         match es with

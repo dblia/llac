@@ -75,11 +75,11 @@ let function_create (id, args, typ) =
 
 (* auxilary function for adding new parameters to the scope given *)
 let new_parameter f = function
-    VAR_Id (sem, fi, s, [], e) ->
+    VAR_Id (sem, fi, [], e) ->
       begin
         match sem.expr_type with
         | TY_None -> error fi 3 "No type inferer support, you must provide a type"
-        | _t -> newParameter fi (id_make s) _t PASS_BY_VALUE f true
+        | _t -> newParameter fi sem.entry.entry_id _t PASS_BY_VALUE f true
       end
   | _ -> (* FIXME: currying (function parameters).
           * eg. VAR_Id (sem, ,s, lst, e) *)
@@ -132,9 +132,9 @@ and typeOfLetdef = function
   | L_LetRec (sem, fi, vl) -> (* vl: vardefs connected with 'and' keyword *)
       openScope(); (* scope for the definition only *)
       let find_forwards = function
-          VAR_Id (sem, info, s, varl, e)  ->
+          VAR_Id (sem, info, varl, e)  ->
             let fn =
-              try newFunction info (id_make s) true
+              try newFunction info sem.entry.entry_id true
               with Exit _ -> raise Terminate
             in
             forwardFunction fn;
@@ -151,18 +151,18 @@ and typeOfLetdef = function
 and typeOfTypedef = function
     TD_Type (sem, fi, tl)       -> (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
-  | TD_TDefId (sem, fi, s, tl)  -> (* TODO: Not supported yet *)
+  | TD_TDefId (sem, fi, tl)  -> (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
-  | TD_Constr (sem, fi, s, tyl) -> (* TODO: Not supported yet *)
+  | TD_Constr (sem, fi, tyl) -> (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
 
 and typeOfVardef rec_flag = function
-    VAR_Id (sem, fi, s, varl, e) ->
+    VAR_Id (sem, fi, varl, e) ->
       begin
         match varl with
         | [] -> (* var list empty, so we found a variable definition *)
             (* add a new_variable Entry to the current scope *)
-            P.ignore (newVariable fi (id_make s) sem.expr_type true);
+            P.ignore (newVariable fi sem.entry.entry_id sem.expr_type true);
             (* now we hide the definitions while we're processing the body *)
             if not rec_flag then hideScope (!currentScope) true;
             (* function body must conforms with the type declared *)
@@ -170,7 +170,7 @@ and typeOfVardef rec_flag = function
               let str = "type mismatch in definition\n" in
               let str_ = "the type of constant does not match the declared \
                         type:" in
-              error_args fi (str ^ str_) (id_make s);
+              error_args fi (str ^ str_) sem.entry.entry_id;
               raise (Exit 3));
             (* now we unhide the scope if we've hidden it before *)
             if not rec_flag then hideScope (!currentScope) false
@@ -179,11 +179,11 @@ and typeOfVardef rec_flag = function
             | TY_Function _ ->
                 let str1 = "type mismatch in definition\n" in
                 let str = "function returns a function:" in
-                error_args fi (str1 ^ str) (id_make s);
+                error_args fi (str1 ^ str) sem.entry.entry_id;
                 raise (Exit 3)
             | _ -> (* add a new_function Entry to the current scope *)
               let fn =
-                try newFunction fi (id_make s) true
+                try newFunction fi sem.entry.entry_id true
                 with Exit _ -> raise Terminate
               in
               (* in case of let we hide the definition from the body *)
@@ -197,23 +197,23 @@ and typeOfVardef rec_flag = function
                 let str = "type mismatch in definition\n" in
                 let str_ = "the body of function does not match the declared \
                           type:" in
-                error_args fi (str ^ str_) (id_make s);
+                error_args fi (str ^ str_) sem.entry.entry_id;
                 raise (Exit 3));
               closeScope(); (* close the body's scope *)
               (* now we unhide the scope if we've hidden it before *)
               if not rec_flag then hideScope (!currentScope) false
       end
-  | VAR_MutId (sem, fi, s, exprl) ->
+  | VAR_MutId (sem, fi, exprl) ->
       begin
         match (sem.expr_type) with
         | TY_Array _ ->
             let str = "References to arrays are not allowed: " in
-            error_args fi str (id_make s)
+            error_args fi str sem.entry.entry_id
         | _ as type_ ->
             match exprl with
               None -> (* simple variable definition *)
                 (* add a new_variable Entry to the current scope *)
-                P.ignore (newVariable fi (id_make s) (TY_Ref type_) true)
+                P.ignore (newVariable fi sem.entry.entry_id (TY_Ref type_) true)
             | Some es -> (* array variable definition *)
                 (* es types must be integers *)
                 let check_array_dim sem_ex =
@@ -221,7 +221,7 @@ and typeOfVardef rec_flag = function
                   else error fi 3 "Array exprs should be integers.\n"
                 in
                 List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
-                P.ignore (newVariable fi (id_make s)
+                P.ignore (newVariable fi sem.entry.entry_id
                 (TY_Array (List.length es, type_)) true)
       end
 
@@ -636,8 +636,8 @@ and typeOfExpr = function
 and typeOfPattern = function
     P_True (sem, info)          -> TY_Bool
   | P_False (sem, info)         -> TY_Bool
-  | P_LitId (sem, fi, id)        ->
-      P.ignore (newVariable fi (id_make id) TY_Unit true);
+  | P_LitId (sem, fi)        ->
+      P.ignore (newVariable fi sem.entry.entry_id TY_Unit true);
       TY_Unit
   | P_LitChar (sem, fi, c)      -> TY_Char
   | P_LitFloat (sem, fi, f)     -> TY_Char
