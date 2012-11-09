@@ -1,3 +1,9 @@
+-- general fixes
+
+AST_FIXES:
+ remove string name from ast in cases where i hold it in entry struct
+ remove el_len from E_ArrayEl (don't needed anymore)
+
 -- error handling
 
 syntax error can improved?
