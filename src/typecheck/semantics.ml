@@ -240,11 +240,14 @@ and typeOfExpr = function
       begin
         match l.entry_info with
         | ENTRY_variable v -> 
-            { sem with val_type = I.Lval; expr_type = v.variable_type };
+            { sem with 
+              entry = l; val_type = I.Lval; expr_type = v.variable_type };
         | ENTRY_parameter p ->
-            { sem with val_type = I.Lval; expr_type = p.parameter_type };
+            { sem with 
+              entry = l; val_type = I.Lval; expr_type = p.parameter_type };
             (* FIXME: what about val_type of function *)
-        | ENTRY_function f -> {sem with expr_type = TY_Function (List.map (
+        | ENTRY_function f -> 
+          {sem with entry = l; expr_type = TY_Function (List.map (
           fun en ->
             match en.entry_info with
             | ENTRY_parameter par_info -> par_info.parameter_type;
@@ -516,7 +519,7 @@ and typeOfExpr = function
                 begin
                   match v.variable_type with
                   | TY_Array (len, type_) when dm <= len -> 
-                      { sem with expr_type = TY_Int }
+                      { sem with entry = l; expr_type = TY_Int }
                   | TY_Array (len, type_) when dm > len ->
                       error fi 3 "Int exceeds array dimension"
                   | _ ->
@@ -528,7 +531,7 @@ and typeOfExpr = function
                 begin
                   match p.parameter_type with
                   | TY_Array (len, type_) when dm <= len -> 
-                      { sem with expr_type = TY_Int }
+                      { sem with entry = l; expr_type = TY_Int }
                   | TY_Array (len, type_) when dm > len ->
                       error fi 3 "Int exceeds array dimension"
                   | _ ->
@@ -557,7 +560,7 @@ and typeOfExpr = function
               begin
                 match v.variable_type with
                 | TY_Array (len, type_) when len = List.length el ->
-                    { sem with expr_type = TY_Ref type_ }
+                    { sem with entry = en; expr_type = TY_Ref type_ }
                 | TY_Array (len, type_) when len != List.length el ->
                     error fi 3 "Array has wrong number of dimensions"
                 | _ ->
@@ -569,7 +572,7 @@ and typeOfExpr = function
               begin
                 match p.parameter_type with
                 | TY_Array (len, type_) when len = List.length el ->
-                    { sem with expr_type = TY_Ref type_ }
+                    { sem with entry = en; expr_type = TY_Ref type_ }
                 | TY_Array (len, type_) when len != List.length el ->
                     error fi 3 "Array has wrong number of dimensions"
                 | _ ->
@@ -602,7 +605,7 @@ and typeOfExpr = function
             in
             try
               List.iter2 (fun x y -> check_call_args x (param_type y)) el pars;
-              { sem with expr_type = typ }
+              { sem with entry = en; expr_type = typ }
             with Invalid_argument e ->
               error fi 3 "different number of args in call."
           end
@@ -617,7 +620,7 @@ and typeOfExpr = function
                     error_args fi str sem.entry.entry_id
                 in
                 List.iter2 (fun x y -> check_params x y) el par_type_list;
-                { sem with expr_type = type_ }
+                { sem with entry = en; expr_type = type_ }
             | _ -> error fi 3 "wrong func-param type"
           end
         | _ ->
