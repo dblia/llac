@@ -9,13 +9,22 @@
 ****************************************************************)
 
 (* Header Section *)
+  open Ast
   open Types
   open Error
-  open Ast
+  open Symbol
   open InterUtils
 
+  (* default entry type for initialization *)
+  let dummy_entry id = { 
+    entry_id = Identifier.id_make id;
+    entry_scope = !currentScope;
+    entry_info = ENTRY_none;
+  }
+
   (* default semantic value for initialization *)
-  let dummy_sem = {
+  let dummy_sem id = {
+    entry     = dummy_entry id;
     val_type  = Dummy;
     expr_type = TY_None;
     place     = Invalid;
@@ -160,9 +169,9 @@ pdef:
 
 letdef:
     T_Let vardefs
-      { L_Let (dummy_sem, $1, $2) }
+      { L_Let (dummy_sem "", $1, $2) }
   | T_Let T_Rec vardefs
-      { L_LetRec (dummy_sem, $1, $3) }
+      { L_LetRec (dummy_sem "", $1, $3) }
 
 vardefs:
     vardef
@@ -172,21 +181,21 @@ vardefs:
 
 vardef:
     T_LitId formals T_Eq expr
-      { VAR_Id (dummy_sem, $1.i, $1.v, $2, $4) }
+      { VAR_Id (dummy_sem "", $1.i, $1.v, $2, $4) }
   | T_LitId formals T_Colon typee T_Eq expr
-      { VAR_Id ({dummy_sem with expr_type = $4}, $1.i, $1.v, $2, $6) }
+      { VAR_Id ({(dummy_sem "") with expr_type = $4}, $1.i, $1.v, $2, $6) }
   | T_Mutable T_LitId
-      { VAR_MutId (dummy_sem, $2.i, $2.v, None) }
+      { VAR_MutId (dummy_sem "", $2.i, $2.v, None) }
   | T_Mutable T_LitId T_Colon typee
-      { VAR_MutId ({dummy_sem with expr_type = $4}, $2.i, $2.v, None) }
+      { VAR_MutId ({(dummy_sem "") with expr_type = $4}, $2.i, $2.v, None) }
   | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack
-      { VAR_MutId (dummy_sem, $2.i, $2.v, Some $4) }
+      { VAR_MutId (dummy_sem "", $2.i, $2.v, Some $4) }
   | T_Mutable T_LitId T_LBrack expr_comma_list T_RBrack T_Colon typee
-      { VAR_MutId ({dummy_sem with expr_type = $7}, $2.i, $2.v, Some $4) }
+      { VAR_MutId ({(dummy_sem "") with expr_type = $7}, $2.i, $2.v, Some $4) }
 
 typedef:
     T_Type tdefs
-      { TD_Type (dummy_sem, $1, $2) }
+      { TD_Type (dummy_sem "", $1, $2) }
 
 tdefs:
     tdef
@@ -196,7 +205,7 @@ tdefs:
 
 tdef:
     T_LitId T_Eq constrs
-      { TD_TDefId (dummy_sem, $1.i, $1.v, $3) }
+      { TD_TDefId (dummy_sem "", $1.i, $1.v, $3) }
 
 constrs:
     constr
@@ -206,10 +215,10 @@ constrs:
 
 constr:
     T_LitConstr
-      { TD_Constr (dummy_sem, $1.i, $1.v, None) }
+      { TD_Constr (dummy_sem "", $1.i, $1.v, None) }
   | T_LitConstr T_Of typees
   /* (* if i fix userdef types i should change expr_typ field to list *) */
-      { TD_Constr (dummy_sem, $1.i, $1.v, Some $3) }
+      { TD_Constr (dummy_sem "", $1.i, $1.v, Some $3) }
 
 formals:
     /* nothing */
@@ -219,10 +228,10 @@ formals:
 
 param:
     T_LitId
-      { VAR_Id (dummy_sem, $1.i, $1.v, [], E_Unit (dummy_sem, dummyinfo)) }
+      { VAR_Id (dummy_sem "", $1.i, $1.v, [], E_Unit (dummy_sem "", dummyinfo)) }
   | T_LParen T_LitId T_Colon typee T_RParen
-      { VAR_Id ({dummy_sem with expr_type = $4}, $2.i, $2.v, [], 
-          E_Unit (dummy_sem, dummyinfo)) }
+      { VAR_Id ({(dummy_sem "") with expr_type = $4}, $2.i, $2.v, [], 
+          E_Unit (dummy_sem "", dummyinfo)) }
 
 typees:
     typee
@@ -272,94 +281,94 @@ expr_comma_list:
 expr:
   /* (* Binary Operators *) */
     expr T_Plus expr
-      { E_Plus (dummy_sem, $2, $1, $3) }
+      { E_Plus (dummy_sem "", $2, $1, $3) }
   | expr T_FPlus expr
-      { E_FPlus (dummy_sem, $2, $1, $3) }
+      { E_FPlus (dummy_sem "", $2, $1, $3) }
   | expr T_Minus expr
-      { E_Minus (dummy_sem, $2, $1, $3) }
+      { E_Minus (dummy_sem "", $2, $1, $3) }
   | expr T_FMinus expr
-      { E_FMinus (dummy_sem, $2, $1, $3) }
+      { E_FMinus (dummy_sem "", $2, $1, $3) }
   | expr T_Mul expr
-      { E_Mul (dummy_sem, $2, $1, $3) }
+      { E_Mul (dummy_sem "", $2, $1, $3) }
   | expr T_FMul expr
-      { E_FMul (dummy_sem, $2, $1, $3) }
+      { E_FMul (dummy_sem "", $2, $1, $3) }
   | expr T_Div expr
-      { E_Div (dummy_sem, $2, $1, $3) }
+      { E_Div (dummy_sem "", $2, $1, $3) }
   | expr T_FDiv expr
-      { E_FDiv (dummy_sem, $2, $1, $3) }
+      { E_FDiv (dummy_sem "", $2, $1, $3) }
   | expr T_Mod expr
-      { E_Mod (dummy_sem, $2, $1, $3) }
+      { E_Mod (dummy_sem "", $2, $1, $3) }
   | expr T_Pow expr
-      { E_Pow (dummy_sem, $2, $1, $3) }
+      { E_Pow (dummy_sem "", $2, $1, $3) }
   | expr T_Eq expr
-      { E_Eq (dummy_sem, $2, $1, $3) }
+      { E_Eq (dummy_sem "", $2, $1, $3) }
   | expr T_Differ expr
-      { E_Differ (dummy_sem, $2, $1, $3) }
+      { E_Differ (dummy_sem "", $2, $1, $3) }
   /* (* Relational Operators *) */
   | expr T_Equal expr
-      { E_Equal (dummy_sem, $2, $1, $3) }
+      { E_Equal (dummy_sem "", $2, $1, $3) }
   | expr T_NEqual expr
-      { E_NEqual (dummy_sem, $2, $1, $3) }
+      { E_NEqual (dummy_sem "", $2, $1, $3) }
   | expr T_Lt expr
-      { E_Lt (dummy_sem, $2, $1, $3) }
+      { E_Lt (dummy_sem "", $2, $1, $3) }
   | expr T_Gt expr
-      { E_Gt (dummy_sem, $2, $1, $3) }
+      { E_Gt (dummy_sem "", $2, $1, $3) }
   | expr T_Leq expr
-      { E_Leq (dummy_sem, $2, $1, $3) }
+      { E_Leq (dummy_sem "", $2, $1, $3) }
   | expr T_Geq expr
-      { E_Geq (dummy_sem, $2, $1, $3) }
+      { E_Geq (dummy_sem "", $2, $1, $3) }
   /* (* Logical Operators *) */
   | expr T_Andlogic expr
-      { E_Andlogic (dummy_sem, $2, $1, $3) }
+      { E_Andlogic (dummy_sem "", $2, $1, $3) }
   | expr T_Orlogic expr
-      { E_Orlogic (dummy_sem, $2, $1, $3) }
+      { E_Orlogic (dummy_sem "", $2, $1, $3) }
   | expr T_Assign expr
-      { E_Assign (dummy_sem, $2, $1, $3) }
+      { E_Assign (dummy_sem "", $2, $1, $3) }
   | expr T_Semicolon expr
-      { E_Semicolon (dummy_sem, $2, $1, $3) }
+      { E_Semicolon (dummy_sem "", $2, $1, $3) }
   /* (* Unary Operators *) */
   | T_Plus expr %prec UPLUS
-      { E_UPlus (dummy_sem, $1, $2) }
+      { E_UPlus (dummy_sem "", $1, $2) }
   | T_FPlus expr %prec UFPLUS
-      { E_UFPlus (dummy_sem, $1, $2) }
+      { E_UFPlus (dummy_sem "", $1, $2) }
   | T_Minus expr %prec UMINUS
-      { E_UMinus (dummy_sem, $1, $2) }
+      { E_UMinus (dummy_sem "", $1, $2) }
   | T_FMinus expr %prec UFMINUS
-      { E_UFMinus (dummy_sem, $1, $2) }
+      { E_UFMinus (dummy_sem "", $1, $2) }
   | T_Not expr %prec NOT
-      { E_Not (dummy_sem, $1, $2) }
+      { E_Not (dummy_sem "", $1, $2) }
   | T_New typee
-      { E_New ({dummy_sem with expr_type = $2}, $1) }
+      { E_New ({(dummy_sem "") with expr_type = $2}, $1) }
   | T_Delete expr %prec DELETE
-      { E_Delete (dummy_sem, $1, $2)  }
+      { E_Delete (dummy_sem "", $1, $2)  }
   /* (* If Stmt *) */
   | T_If expr T_Then expr
-      { E_IfStmt (dummy_sem, $1, $2, $4, None) }
+      { E_IfStmt (dummy_sem "", $1, $2, $4, None) }
   | T_If expr T_Then expr T_Else expr
-      { E_IfStmt (dummy_sem, $1, $2, $4, Some $6) }
+      { E_IfStmt (dummy_sem "", $1, $2, $4, Some $6) }
   /* (*   *) */
   | T_Dim T_LitId
-      { E_Dim (dummy_sem, $2.i, None, $2.v) }
+      { E_Dim (dummy_sem "", $2.i, None, $2.v) }
   | T_Dim T_LitInt T_LitId
-      { E_Dim (dummy_sem, $3.i, Some $2.v, $3.v) }
+      { E_Dim (dummy_sem "", $3.i, Some $2.v, $3.v) }
   | T_Match expr T_With clauses T_End
-      { E_Match (dummy_sem, $1, $2, $4) }
+      { E_Match (dummy_sem "", $1, $2, $4) }
   /* (*   *) */
   | letdef T_In expr
-      { E_LetIn (dummy_sem, $2, $1, $3) }
+      { E_LetIn (dummy_sem "", $2, $1, $3) }
   | T_Begin expr T_End
-      { E_Block (dummy_sem, $1, $2) }
+      { E_Block (dummy_sem "", $1, $2) }
   | T_While expr T_Do expr T_Done
-      { E_While (dummy_sem, $1, $2, $4) }
+      { E_While (dummy_sem "", $1, $2, $4) }
   | T_For T_LitId T_Eq expr T_To expr T_Do expr T_Done
-      { E_For (dummy_sem, $2.i, $2.v, UPTO, $4, $6, $8) }
+      { E_For (dummy_sem "", $2.i, $2.v, UPTO, $4, $6, $8) }
   | T_For T_LitId T_Eq expr T_Downto expr T_Do expr T_Done
-      { E_For (dummy_sem, $2.i, $2.v, DOWNTO, $4, $6, $8) }
+      { E_For (dummy_sem "", $2.i, $2.v, DOWNTO, $4, $6, $8) }
     /* (* Function Call *) */
   | T_LitId exprs__
-      { E_Call (dummy_sem, $1.i, $1.v, $2)  }
+      { E_Call (dummy_sem "", $1.i, $1.v, $2)  }
   | T_LitConstr exprs__
-      { E_ConstrCall (dummy_sem, $1.i, $1.v, $2) }
+      { E_ConstrCall (dummy_sem "", $1.i, $1.v, $2) }
   | expr__
       { $1 }
 
@@ -371,29 +380,29 @@ exprs__:
 
 expr__:
     T_Deref expr__
-      { E_Deref (dummy_sem, $1, $2) }
+      { E_Deref (dummy_sem "", $1, $2) }
   | T_LitId
-      { E_LitId (dummy_sem, $1.i, $1.v) }
+      { E_LitId (dummy_sem "", $1.i, $1.v) }
   | T_LitConstr
-      { E_LitConstr (dummy_sem, $1.i, $1.v) }
+      { E_LitConstr (dummy_sem "", $1.i, $1.v) }
   | T_True
-      { E_True ({dummy_sem with expr_type = TY_Bool}, $1) }
+      { E_True ({(dummy_sem "") with expr_type = TY_Bool}, $1) }
   | T_False
-      { E_False ({dummy_sem with expr_type = TY_Bool}, $1) }
+      { E_False ({(dummy_sem "") with expr_type = TY_Bool}, $1) }
   | T_LitChar
-      { E_LitChar ({dummy_sem with expr_type = TY_Char}, $1.i, $1.v) }
+      { E_LitChar ({(dummy_sem "") with expr_type = TY_Char}, $1.i, $1.v) }
   | T_LitInt
-      { E_LitInt ({dummy_sem with expr_type = TY_Int}, $1.i, $1.v) }
+      { E_LitInt ({(dummy_sem "") with expr_type = TY_Int}, $1.i, $1.v) }
   | T_LitFloat
-      { E_LitFloat ({dummy_sem with expr_type = TY_Float}, $1.i, $1.v) }
+      { E_LitFloat ({(dummy_sem "") with expr_type = TY_Float}, $1.i, $1.v) }
   | T_LitString
-      { E_LitString ({dummy_sem with expr_type = TY_Array(1, TY_Char)}, $1.i, $1.v) }
+      { E_LitString ({(dummy_sem "") with expr_type = TY_Array(1, TY_Char)}, $1.i, $1.v) }
   | T_LParen T_RParen
-      { E_Unit ({dummy_sem with expr_type = TY_Unit}, dummyinfo) }
+      { E_Unit ({(dummy_sem "") with expr_type = TY_Unit}, dummyinfo) }
   | T_LParen expr T_RParen
       { $2 }
   | T_LitId T_LBrack expr_comma_list T_RBrack /* (* array_el *) */
-      { E_ArrayEl (dummy_sem, $1.i, $1.v, $3, List.length $3) }
+      { E_ArrayEl (dummy_sem "", $1.i, $1.v, $3, List.length $3) }
 
 clauses:
     clause
@@ -403,7 +412,7 @@ clauses:
 
 clause:
     pattern T_Gives expr
-      { P_Clause (dummy_sem, $2, $1, $3) }
+      { P_Clause (dummy_sem "", $2, $1, $3) }
 
 patterns:
     /* nothing */
@@ -413,29 +422,29 @@ patterns:
 
 pattern:
     T_LitConstr patterns
-      { P_LitConstr (dummy_sem, $1.i, $1.v, $2) }
+      { P_LitConstr (dummy_sem "", $1.i, $1.v, $2) }
   | simple_pattern
       { $1 }
 
 simple_pattern:
     T_True
-      { P_True ({dummy_sem with expr_type = TY_Bool}, $1) }
+      { P_True ({(dummy_sem "") with expr_type = TY_Bool}, $1) }
   | T_False
-      { P_False ({dummy_sem with expr_type = TY_Bool}, $1) }
+      { P_False ({(dummy_sem "") with expr_type = TY_Bool}, $1) }
   | T_LitId
-      { P_LitId (dummy_sem, $1.i, $1.v) }
+      { P_LitId (dummy_sem "", $1.i, $1.v) }
   | T_LitChar
-      { P_LitChar ({dummy_sem with expr_type = TY_Char}, $1.i, $1.v) }
+      { P_LitChar ({(dummy_sem "") with expr_type = TY_Char}, $1.i, $1.v) }
   | T_LitFloat
-      { P_LitFloat ({dummy_sem with expr_type = TY_Float}, $1.i, $1.v) }
+      { P_LitFloat ({(dummy_sem "") with expr_type = TY_Float}, $1.i, $1.v) }
   | T_Plus T_LitInt
-      { P_Plus ({dummy_sem with expr_type = TY_Int}, $2.i, $2.v) }
+      { P_Plus ({(dummy_sem "") with expr_type = TY_Int}, $2.i, $2.v) }
   | T_FPlus T_LitFloat
-      { P_FPlus ({dummy_sem with expr_type = TY_Float}, $2.i, $2.v) }
+      { P_FPlus ({(dummy_sem "") with expr_type = TY_Float}, $2.i, $2.v) }
   | T_Minus T_LitInt
-      { P_Minus ({dummy_sem with expr_type = TY_Int}, $2.i, $2.v) }
+      { P_Minus ({(dummy_sem "") with expr_type = TY_Int}, $2.i, $2.v) }
   | T_FMinus T_LitFloat
-      { P_FPlus ({dummy_sem with expr_type = TY_Float}, $2.i, $2.v) }
+      { P_FPlus ({(dummy_sem "") with expr_type = TY_Float}, $2.i, $2.v) }
   | T_LParen pattern T_RParen
       { $2 }
 

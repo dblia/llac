@@ -54,6 +54,7 @@ type quadruple_t = {
 type value_type = Lval | Rval | Dummy
 
 type sem_val = {
+  entry     : Symbol.entry;
   val_type  : value_type;
   expr_type : Types.ty;
   mutable place  : operand_t;
