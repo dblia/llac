@@ -235,8 +235,8 @@ and typeOfExpr = function
   | E_LitFloat (sem, info, _) -> { sem with val_type = I.Rval }
   | E_LitString (sem, fi, s)  -> { sem with val_type = I.Rval }
   (* Names (constants, functions, parameters, constructors, expressions) *)
-  | E_LitId (sem, fi, id)    ->
-      let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
+  | E_LitId (sem, fi)    ->
+      let l = lookupEntry fi sem.entry.entry_id LOOKUP_ALL_SCOPES true in
       begin
         match l.entry_info with
         | ENTRY_variable v -> 
@@ -252,10 +252,10 @@ and typeOfExpr = function
         ) f.function_paramlist, f.function_result)};
         | _ ->
             let str = "E_LitId not found (is not func, param or var):" in
-            error_args fi str (id_make id);
+            error_args fi str sem.entry.entry_id;
             raise (Exit 3)
       end
-  | E_LitConstr (sem, fi, id) -> (* TODO: not supported yet *)
+  | E_LitConstr (sem, fi) -> (* TODO: not supported yet *)
       (*
       let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
       begin
@@ -450,13 +450,13 @@ and typeOfExpr = function
           { sem with expr_type = TY_Unit }
         else error fi 3 "Type mismatch, TY_Unit expected"
       else error fi 3 "Type mismatch, TY_Bool expected"
-  | E_For (sem, fi, s, ti, e1, e2, e)  ->
+  | E_For (sem, fi, ti, e1, e2, e)  ->
       let sem1 = typeOfExpr e1 in
       let sem2 = typeOfExpr e2 in
       if (equalType sem1.expr_type sem2.expr_type) then
         begin
           openScope();
-          P.ignore (newVariable fi (id_make s) TY_Int true);
+          P.ignore (newVariable fi sem.entry.entry_id TY_Int true);
           let sem3 = typeOfExpr e in
           closeScope();
           if isUnit sem3.expr_type && (equalType sem1.expr_type TY_Int)
@@ -505,12 +505,12 @@ and typeOfExpr = function
         let fi1 = get_info_expr e in
         error fi1 3 "This expression has wrong type (bool expected)"
   (* Array Elements and Dimensions *)
-  | E_Dim (sem, fi, i, s)           ->
+  | E_Dim (sem, fi, i)           ->
       let dm = get i in
       if (<=) dm 0 then error fi 3 "Negative array dimension"
       else
         begin
-          let l = lookupEntry fi (id_make s) LOOKUP_ALL_SCOPES true in
+          let l = lookupEntry fi sem.entry.entry_id LOOKUP_ALL_SCOPES true in
             match l.entry_info with
             | ENTRY_variable v ->
                 begin
@@ -521,7 +521,7 @@ and typeOfExpr = function
                       error fi 3 "Int exceeds array dimension"
                   | _ ->
                       let str = "Not an array type:" in
-                      error_args fi str (id_make s);
+                      error_args fi str sem.entry.entry_id;
                       raise (Exit 3)
                 end
             | ENTRY_parameter p ->
@@ -533,15 +533,15 @@ and typeOfExpr = function
                       error fi 3 "Int exceeds array dimension"
                   | _ ->
                       let str = "Not an array type:" in
-                      error_args fi str (id_make s);
+                      error_args fi str sem.entry.entry_id;
                       raise (Exit 3)
                 end
             | _ ->
                 let str = "Name is not a variable or parameter:" in
-                error_args fi str (id_make s);
+                error_args fi str sem.entry.entry_id;
                 raise (Exit 3)
         end
-  | E_ArrayEl (sem, fi, s, el, el_len)      ->
+  | E_ArrayEl (sem, fi, el)      ->
       (* Recursively do semantics for all indexes and ensure that all these
        * indexes are integers *)
       let check_array_type ex = 
@@ -551,40 +551,40 @@ and typeOfExpr = function
       List.iter (fun x -> check_array_type x) el;
       (* now find the array in the symbol table *)
       begin
-        let en = lookupEntry fi (id_make s) LOOKUP_ALL_SCOPES true in
+        let en = lookupEntry fi sem.entry.entry_id LOOKUP_ALL_SCOPES true in
           match en.entry_info with
           | ENTRY_variable v ->
               begin
                 match v.variable_type with
-                | TY_Array (len, type_) when len = el_len ->
+                | TY_Array (len, type_) when len = List.length el ->
                     { sem with expr_type = TY_Ref type_ }
-                | TY_Array (len, type_) when len != el_len ->
+                | TY_Array (len, type_) when len != List.length el ->
                     error fi 3 "Array has wrong number of dimensions"
                 | _ ->
                     let str = "Not an array:" in
-                    error_args fi str (id_make s);
+                    error_args fi str sem.entry.entry_id;
                     raise (Exit 3)
               end
           | ENTRY_parameter p ->
               begin
                 match p.parameter_type with
-                | TY_Array (len, type_) when len = el_len ->
+                | TY_Array (len, type_) when len = List.length el ->
                     { sem with expr_type = TY_Ref type_ }
-                | TY_Array (len, type_) when len != el_len ->
+                | TY_Array (len, type_) when len != List.length el ->
                     error fi 3 "Array has wrong number of dimensions"
                 | _ ->
                     let str = "Not an array:" in
-                    error_args fi str (id_make s);
+                    error_args fi str sem.entry.entry_id;
                     raise (Exit 3)
               end
           | _ ->
               let str = "Name is not a variable or parameter:" in
-              error_args fi str (id_make s);
+              error_args fi str sem.entry.entry_id;
               raise (Exit 3)
       end
   (* Function and Constructor call *)
-  | E_Call (sem, fi, s, el)         ->
-      let en = lookupEntry fi (id_make s) LOOKUP_ALL_SCOPES true in
+  | E_Call (sem, fi, el)         ->
+      let en = lookupEntry fi sem.entry.entry_id LOOKUP_ALL_SCOPES true in
       begin
         match en.entry_info with
         | ENTRY_function info ->
@@ -614,7 +614,7 @@ and typeOfExpr = function
                   if equalType (typeOfExpr real).expr_type typical then ()
                   else
                     let str = "Funtion params type mismatch:" in
-                    error_args fi str (id_make s)
+                    error_args fi str sem.entry.entry_id
                 in
                 List.iter2 (fun x y -> check_params x y) el par_type_list;
                 { sem with expr_type = type_ }
@@ -622,26 +622,26 @@ and typeOfExpr = function
           end
         | _ ->
             let str = "Function name doesn't exist:" in
-            error_args fi str (id_make s);
+            error_args fi str sem.entry.entry_id;
             raise (Exit 3)
       end
-  | E_ConstrCall (sem, fi, s, el)  -> (* TODO: not supported yet *)
+  | E_ConstrCall (sem, fi, el)  -> (* TODO: not supported yet *)
       error fi 3 "user defined data types are not supported"
 
 
 and typeOfPattern = function
-    P_True (sem, info)             -> TY_Bool
-  | P_False (sem, info)            -> TY_Bool
-  | P_LitId (sem, fi,id)           ->
+    P_True (sem, info)          -> TY_Bool
+  | P_False (sem, info)         -> TY_Bool
+  | P_LitId (sem, fi, id)        ->
       P.ignore (newVariable fi (id_make id) TY_Unit true);
       TY_Unit
-  | P_LitChar (sem, fi, c)         -> TY_Char
-  | P_LitFloat (sem, fi, f)        -> TY_Char
-  | P_Plus (sem, fi, _)            -> TY_Int
-  | P_FPlus (sem, fi, _)           -> TY_Float
-  | P_Minus (sem, fi, _)           -> TY_Int
-  | P_FMinus  (sem, fi, _)         -> TY_Float
-  | P_LitConstr (sem, fi, s, patl) -> (* TODO: not supported yet *)
+  | P_LitChar (sem, fi, c)      -> TY_Char
+  | P_LitFloat (sem, fi, f)     -> TY_Char
+  | P_Plus (sem, fi, _)         -> TY_Int
+  | P_FPlus (sem, fi, _)        -> TY_Float
+  | P_Minus (sem, fi, _)        -> TY_Int
+  | P_FMinus  (sem, fi, _)      -> TY_Float
+  | P_LitConstr (sem, fi, patl) -> (* TODO: not supported yet *)
       error fi 3 "user defined data types are not supported"
   | _                 -> err "Wrong pattern form"
 ;;

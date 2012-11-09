@@ -28,8 +28,8 @@ and ast_expr =
   | E_LitInt      of sem_val * finfo * int
   | E_LitChar     of sem_val * finfo * char
   | E_LitFloat    of sem_val * finfo * float
-  | E_LitId       of sem_val * finfo * string
-  | E_LitConstr   of sem_val * finfo * string
+  | E_LitId       of sem_val * finfo
+  | E_LitConstr   of sem_val * finfo
   | E_LitString   of sem_val * finfo * string
   | E_UPlus       of sem_val * finfo * ast_expr
   | E_UFPlus      of sem_val * finfo * ast_expr
@@ -65,12 +65,13 @@ and ast_expr =
   | E_Match       of sem_val * finfo * ast_expr * ast_pattern list
   | E_IfStmt      of sem_val * finfo * ast_expr * ast_expr * ast_expr option
   | E_LetIn       of sem_val * finfo * ast_letdef * ast_expr
-  | E_Dim         of sem_val * finfo * int option * string
+  | E_Dim         of sem_val * finfo * int option
   | E_New         of sem_val * finfo
-  | E_Call        of sem_val * finfo * string * ast_expr list
-  | E_ConstrCall  of sem_val * finfo * string * ast_expr list
-  | E_ArrayEl     of sem_val * finfo * string * ast_expr list * int
-  | E_For         of sem_val * finfo * string * Types.for_info * ast_expr * ast_expr * ast_expr
+  | E_Call        of sem_val * finfo * ast_expr list
+  | E_ConstrCall  of sem_val * finfo * ast_expr list
+  | E_ArrayEl     of sem_val * finfo * ast_expr list
+  | E_For         of sem_val * finfo * Types.for_info * ast_expr * ast_expr * 
+                     ast_expr
 
 and ast_pattern =
     P_True      of sem_val * finfo
@@ -83,7 +84,7 @@ and ast_pattern =
   | P_Minus     of sem_val * finfo * int
   | P_FMinus    of sem_val * finfo * float
   | P_Clause    of sem_val * finfo * ast_pattern * ast_expr
-  | P_LitConstr of sem_val * finfo * string * ast_pattern list
+  | P_LitConstr of sem_val * finfo * ast_pattern list
 ;;
 
 (* Removes the PROGRAM name and keeps the letdef and userdef lists *)

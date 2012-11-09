@@ -50,16 +50,16 @@ and interOfExpr = function
   | E_LitString (sem, fi, s)  ->
       { sem with place = I.String s }
   (* Names (constants, functions, parameters, constructors, expressions) *)
-  | E_LitId (sem, fi, id)    -> 
+  | E_LitId (sem, fi)    ->
       begin (* FIXME: what about ENTRY_FUNCTION call, Lval check *)
-        let l = lookupEntry fi (id_make id) LOOKUP_ALL_SCOPES true in
+        let l = lookupEntry fi sem.entry.entry_id LOOKUP_ALL_SCOPES true in
         match l.entry_info with
         | ENTRY_parameter _ | ENTRY_variable _ ->
             { sem with place = I.Entry l }
         | ENTRY_function _ -> raise (Exit 4)
         | _ -> raise Terminate
       end
-  | E_LitConstr (sem, fi, id) -> (* TODO: not supported yet *)
+  | E_LitConstr (sem, fi) -> (* TODO: not supported yet *)
       error fi 3 "user defined date types are not supported"
   (* Unary Arithmetic Operators *)
   | E_UPlus   (sem, fi, e)     ->
@@ -78,7 +78,7 @@ and interOfExpr = function
       { sem with place = w }
   (* References and assigments *)
   | E_Assign (sem, fi, e1, e2)  ->
-      let q = genQuad I.O_Assign (interOfExpr e2).place I.Empty 
+      let q = genQuad I.O_Assign (interOfExpr e2).place I.Empty
               (interOfExpr e1).place in
       add_quad q;
       { sem with next = [] }
@@ -257,7 +257,7 @@ and interOfExpr = function
       let quad = genQuad I.O_Jump I.Empty I.Empty (I.Label q) in
       add_quad quad;
       { sem with next = (interOfExpr e1).false_ }
-  | E_For (sem, fi, s, ti, e1, e2, e) -> (* FIXME: is it correct? *)
+  | E_For (sem, fi,ti, e1, e2, e) -> (* FIXME: is it correct? *)
       let cond_q = nextQuad ()
       and cond_true = (interOfExpr e2).true_
       and cond_false = (interOfExpr e2).false_
@@ -294,25 +294,25 @@ and interOfExpr = function
           { sem with next = merge [l1; stmt1_sem.next; l2] }
       end
   (* Array Elements and Dimensions *)
-  | E_Dim (sem, fi, i, s)          -> sem
-  | E_ArrayEl (sem, fi, s, el, el_len) -> sem
+  | E_Dim (sem, fi, i)      -> sem
+  | E_ArrayEl (sem, fi, el) -> sem
   (* Function and Constructor call *)
-  | E_Call (sem, fi, s, el)        -> sem
-  | E_ConstrCall (sem, fi, s, el)  ->  (* TODO: not supported yet *)
+  | E_Call (sem, fi, el)    -> sem
+  | E_ConstrCall (sem, fi,el) ->  (* TODO: not supported yet *)
       error fi 3 "user defined data types are not supported"
 
 
 and interOfPattern = function
-    P_True (sem, fi)             -> sem
-  | P_False (sem, fi)            -> sem
-  | P_LitId (sem, fi,id)           -> sem
-  | P_LitChar (sem, fi, c)         -> sem
-  | P_LitFloat (sem, fi, f)        -> sem
-  | P_Plus (sem, fi, _)            -> sem
-  | P_FPlus (sem, fi, _)           -> sem
-  | P_Minus (sem, fi, _)           -> sem
-  | P_FMinus  (sem, fi, _)         -> sem
-  | P_LitConstr (sem, fi, s, patl) -> (* TODO: not supported yet *)
+    P_True (sem, fi)            -> sem
+  | P_False (sem, fi)           -> sem
+  | P_LitId (sem, fi,id)        -> sem
+  | P_LitChar (sem, fi, c)      -> sem
+  | P_LitFloat (sem, fi, f)     -> sem
+  | P_Plus (sem, fi, _)         -> sem
+  | P_FPlus (sem, fi, _)        -> sem
+  | P_Minus (sem, fi, _)        -> sem
+  | P_FMinus  (sem, fi, _)      -> sem
+  | P_LitConstr (sem, fi, patl) -> (* TODO: not supported yet *)
       error fi 3 "user defined data types are not supported"
   | _                 -> err "Wrong pattern form"
 ;;

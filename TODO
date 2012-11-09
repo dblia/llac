@@ -1,8 +1,7 @@
 -- general fixes
 
 AST_FIXES:
- remove string name from ast in cases where i hold it in entry struct
- remove el_len from E_ArrayEl (don't needed anymore)
+ remove string name from ast (i hold it now in sem_val struct)
 
 -- error handling
 

@@ -348,9 +348,9 @@ expr:
       { E_IfStmt (dummy_sem "", $1, $2, $4, Some $6) }
   /* (*   *) */
   | T_Dim T_LitId
-      { E_Dim (dummy_sem "", $2.i, None, $2.v) }
+      { E_Dim (dummy_sem $2.v, $2.i, None) }
   | T_Dim T_LitInt T_LitId
-      { E_Dim (dummy_sem "", $3.i, Some $2.v, $3.v) }
+      { E_Dim (dummy_sem $3.v, $3.i, Some $2.v) }
   | T_Match expr T_With clauses T_End
       { E_Match (dummy_sem "", $1, $2, $4) }
   /* (*   *) */
@@ -361,14 +361,14 @@ expr:
   | T_While expr T_Do expr T_Done
       { E_While (dummy_sem "", $1, $2, $4) }
   | T_For T_LitId T_Eq expr T_To expr T_Do expr T_Done
-      { E_For (dummy_sem "", $2.i, $2.v, UPTO, $4, $6, $8) }
+      { E_For (dummy_sem $2.v, $2.i, UPTO, $4, $6, $8) }
   | T_For T_LitId T_Eq expr T_Downto expr T_Do expr T_Done
-      { E_For (dummy_sem "", $2.i, $2.v, DOWNTO, $4, $6, $8) }
+      { E_For (dummy_sem $2.v, $2.i, DOWNTO, $4, $6, $8) }
     /* (* Function Call *) */
   | T_LitId exprs__
-      { E_Call (dummy_sem "", $1.i, $1.v, $2)  }
+      { E_Call (dummy_sem $1.v, $1.i, $2)  }
   | T_LitConstr exprs__
-      { E_ConstrCall (dummy_sem "", $1.i, $1.v, $2) }
+      { E_ConstrCall (dummy_sem $1.v, $1.i, $2) }
   | expr__
       { $1 }
 
@@ -382,9 +382,9 @@ expr__:
     T_Deref expr__
       { E_Deref (dummy_sem "", $1, $2) }
   | T_LitId
-      { E_LitId (dummy_sem "", $1.i, $1.v) }
+      { E_LitId (dummy_sem $1.v, $1.i) }
   | T_LitConstr
-      { E_LitConstr (dummy_sem "", $1.i, $1.v) }
+      { E_LitConstr (dummy_sem $1.v, $1.i) }
   | T_True
       { E_True ({(dummy_sem "") with expr_type = TY_Bool}, $1) }
   | T_False
@@ -402,7 +402,7 @@ expr__:
   | T_LParen expr T_RParen
       { $2 }
   | T_LitId T_LBrack expr_comma_list T_RBrack /* (* array_el *) */
-      { E_ArrayEl (dummy_sem "", $1.i, $1.v, $3, List.length $3) }
+      { E_ArrayEl (dummy_sem $1.v, $1.i, $3) }
 
 clauses:
     clause
@@ -422,7 +422,7 @@ patterns:
 
 pattern:
     T_LitConstr patterns
-      { P_LitConstr (dummy_sem "", $1.i, $1.v, $2) }
+      { P_LitConstr (dummy_sem $1.v, $1.i, $2) }
   | simple_pattern
       { $1 }
 
