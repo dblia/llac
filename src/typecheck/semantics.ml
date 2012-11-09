@@ -542,45 +542,45 @@ and typeOfExpr = function
                 raise (Exit 3)
         end
   | E_ArrayEl (sem, fi, s, el, el_len)      ->
+      (* Recursively do semantics for all indexes and ensure that all these
+       * indexes are integers *)
+      let check_array_type ex = 
+        if (equalType (typeOfExpr ex).expr_type TY_Int) then ()
+        else error fi 3 "Array indexes should be integers"
+      in
+      List.iter (fun x -> check_array_type x) el;
+      (* now find the array in the symbol table *)
       begin
-        match el with
-        | [] -> (* all expressions are integers, so look at the symbol table *)
-            begin
-              let en = lookupEntry fi (id_make s) LOOKUP_ALL_SCOPES true in
-                match en.entry_info with
-                | ENTRY_variable v ->
-                    begin
-                      match v.variable_type with
-                      | TY_Array (len, type_) when len = el_len ->
-                          { sem with expr_type = TY_Ref type_ }
-                      | TY_Array (len, type_) when len != el_len ->
-                          error fi 3 "Array has wrong number of dimensions"
-                      | _ ->
-                          let str = "Not an array:" in
-                          error_args fi str (id_make s);
-                          raise (Exit 3)
-                    end
-                | ENTRY_parameter p ->
-                    begin
-                      match p.parameter_type with
-                      | TY_Array (len, type_) when len = el_len ->
-                          { sem with expr_type = TY_Ref type_ }
-                      | TY_Array (len, type_) when len != el_len ->
-                          error fi 3 "Array has wrong number of dimensions"
-                      | _ ->
-                          let str = "Not an array:" in
-                          error_args fi str (id_make s);
-                          raise (Exit 3)
-                    end
+        let en = lookupEntry fi (id_make s) LOOKUP_ALL_SCOPES true in
+          match en.entry_info with
+          | ENTRY_variable v ->
+              begin
+                match v.variable_type with
+                | TY_Array (len, type_) when len = el_len ->
+                    { sem with expr_type = TY_Ref type_ }
+                | TY_Array (len, type_) when len != el_len ->
+                    error fi 3 "Array has wrong number of dimensions"
                 | _ ->
-                    let str = "Name is not a variable or parameter:" in
+                    let str = "Not an array:" in
                     error_args fi str (id_make s);
                     raise (Exit 3)
-                end
-        | (e :: es) -> (* recursivly check array's expr if are TY_Int *)
-          if (equalType (typeOfExpr e).expr_type TY_Int)
-          then typeOfExpr (E_ArrayEl (sem, fi, s, es, el_len))
-          else error fi 3 "Array indexes should be integers"
+              end
+          | ENTRY_parameter p ->
+              begin
+                match p.parameter_type with
+                | TY_Array (len, type_) when len = el_len ->
+                    { sem with expr_type = TY_Ref type_ }
+                | TY_Array (len, type_) when len != el_len ->
+                    error fi 3 "Array has wrong number of dimensions"
+                | _ ->
+                    let str = "Not an array:" in
+                    error_args fi str (id_make s);
+                    raise (Exit 3)
+              end
+          | _ ->
+              let str = "Name is not a variable or parameter:" in
+              error_args fi str (id_make s);
+              raise (Exit 3)
       end
   (* Function and Constructor call *)
   | E_Call (sem, fi, s, el)         ->
