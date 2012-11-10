@@ -137,7 +137,7 @@ and typeOfLetdef = function
   | L_LetRec (sem, fi, vl) -> (* vl: vardefs connected with 'and' keyword *)
       openScope(); (* scope for the definition only *)
       let find_forwards = function
-          VAR_Id (sem, info, varl, e)  ->
+          VAR_Id (sem, info, varl, e) when varl != [] ->
             let fn =
               try newFunction info sem.entry.entry_id true
               with Exit _ -> raise Terminate
@@ -148,10 +148,9 @@ and typeOfLetdef = function
             closeScope();
             endFunctionHeader fn sem.expr_type;
         | _ -> ()
-            
       in
-      List.iter (fun x -> P.ignore (find_forwards x)) vl; (* first traverse *)
-      List.iter (fun x -> typeOfVardef true x) vl         (* second traverse *)
+      List.iter (fun x -> P.ignore (find_forwards x)) vl;  (* first traversal *)
+      List.iter (fun x -> typeOfVardef true x) vl         (* second traversal *)
 
 
 and typeOfTypedef = function

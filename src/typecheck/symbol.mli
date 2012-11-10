@@ -78,6 +78,6 @@ val lookupEntry       : Error.finfo -> Identifier.id -> lookup_type -> bool -> e
 
 (* Pretty Printing functions *)
 val str_of_entry_info  : entry_info -> string ;;
-val pretty_typ  : Format.formatter -> Types.ty -> unit ;;
+val pretty_type : Format.formatter -> Types.ty -> unit ;;
 val pretty_mode : Format.formatter -> pass_mode -> unit ;;
 val print_symbol_table : unit -> unit ;;

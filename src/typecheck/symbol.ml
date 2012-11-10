@@ -336,7 +336,7 @@ let str_of_entry_info = function
   | ENTRY_parameter _ -> "ENTRY_parameter"
   | ENTRY_temporary _ -> "ENTRY_temporary"
 
-let rec pretty_typ ppf = function
+let rec pretty_type ppf = function
   | TY_None ->
       fprintf ppf "<undefined>"
   | TY_Int ->
@@ -351,9 +351,9 @@ let rec pretty_typ ppf = function
       fprintf ppf "bool"
   | TY_Ref ty ->
       fprintf ppf "ref";
-      pretty_typ ppf ty
+      pretty_type ppf ty
   | TY_Array (sz, et) ->
-      pretty_typ ppf et;
+      pretty_type ppf et;
       if sz > 0 then
         fprintf ppf " [%d]" sz
       else
@@ -388,7 +388,7 @@ let print_symbol_table () =
                    fprintf ppf "%a%a : %a"
                       pretty_mode inf.parameter_mode
                       pretty_id e.entry_id
-                      pretty_typ inf.parameter_type
+                      pretty_type inf.parameter_type
                 | _ ->
                     fprintf ppf "<invalid>" in
             let rec params ppf ps =
@@ -401,7 +401,7 @@ let print_symbol_table () =
                   () in
             fprintf ppf "(%a) : %a"
               params inf.function_paramlist
-              pretty_typ inf.function_result
+              pretty_type inf.function_result
         | ENTRY_parameter inf ->
             if show_offsets then
               fprintf ppf "[%d]" inf.parameter_offset

@@ -16,7 +16,7 @@ open Identifier
 let pp_print sem = 
   Printf.printf "error: %s, %s\n" (id_name sem.entry.entry_id)
   (str_of_entry_info sem.entry.entry_info);
-  pretty_typ Format.std_formatter sem.expr_type;
+  pretty_type Format.std_formatter sem.expr_type;
   Format.print_newline()
 
 let rec interOf = function
