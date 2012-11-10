@@ -1,0 +1,5 @@
+let rec ident (x:int) : int = x
+and identif (x:int) : int = ident 4
+
+let rec boo (x : int) : int = a1 + 1
+and a1 : int = 3
