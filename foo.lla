@@ -1,3 +1,6 @@
+let rec baz (x:int) : int = baz2 x
+and baz2 (x:int) : int = x + 2
+
 let rec ident (x:int) : int = x
 and identif (x:int) : int = ident 4
 
