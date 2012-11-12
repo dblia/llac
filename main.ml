@@ -1,6 +1,7 @@
-open Semantics
-open Lexing
 open Error
+open Lexing
+open Semantics
+open InterUtils
 
 let searchpath = ref [""]
 
@@ -39,6 +40,7 @@ let main =
     (* Pp_ast.pp_prog ast; *)
     Semantics.typeOf ast;
     Intermediate.interOf ast;
+    print_quads_to_file (open_out "myfoo.qua");
     exit 0
   with 
       Parsing.Parse_error ->

@@ -91,7 +91,8 @@ let new_parameter f = function
       begin
         match sem.expr_type with
         | TY_None -> error fi 3 "No type inferer support, you must provide a type"
-        | _t -> newParameter fi sem.entry.entry_id _t PASS_BY_VALUE f true
+        | _t -> 
+            sem.entry <- newParameter fi sem.entry.entry_id _t PASS_BY_VALUE f true
       end
   | _ -> (* FIXME: currying (function parameters).
           * eg. VAR_Id (sem, ,s, lst, e) *)
@@ -150,7 +151,7 @@ and typeOfLetdef = function
       forward_functions := [];
       openScope(); (* scope for the definition only *)
       let find_forwards = function
-          VAR_Id (sem, info, varl, e) as v when varl != [] ->
+          VAR_Id (sem_, info, varl, e) as v when varl != [] ->
             let fn =
               try newFunction info sem.entry.entry_id true
               with Exit _ -> raise Terminate
@@ -160,10 +161,11 @@ and typeOfLetdef = function
             List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
             closeScope();
             endFunctionHeader fn sem.expr_type;
+            sem_.entry <- fn;
             forward_functions := v :: !forward_functions
-        | VAR_Id (sem, info, varl, e) ->
+        | VAR_Id (sem_, info, varl, e) ->
             (* add a new_variable Entry to the current scope *)
-            P.ignore (newVariable fi sem.entry.entry_id sem.expr_type true);
+            sem_.entry <- newVariable fi sem.entry.entry_id sem.expr_type true;
             (* now we hide the definitions while we're processing the body *)
             (* function body must conforms with the type declared *)
             if not (equalType sem.expr_type (typeOfExpr e).expr_type) then (
@@ -195,7 +197,7 @@ and typeOfVardef rec_flag = function
         match varl with
         | [] -> (* var list empty, so we found a variable definition *)
             (* add a new_variable Entry to the current scope *)
-            P.ignore (newVariable fi sem.entry.entry_id sem.expr_type true);
+            sem.entry <- newVariable fi sem.entry.entry_id sem.expr_type true;
             (* now we hide the definitions while we're processing the body *)
             if not rec_flag then hideScope (!currentScope) true;
             (* function body must conforms with the type declared *)
@@ -235,7 +237,8 @@ and typeOfVardef rec_flag = function
                 raise (Exit 3));
               closeScope(); (* close the body's scope *)
               (* now we unhide the scope if we've hidden it before *)
-              if not rec_flag then hideScope (!currentScope) false
+              if not rec_flag then hideScope (!currentScope) false;
+              sem.entry <- fn
       end
   | VAR_MutId (sem, fi, exprl) ->
       begin

@@ -2,6 +2,8 @@
  * traverses the ast, informs the appropriate variables and structs and
  * generates the quadruples *)
 
+open Printf
+
 open InterUtils
 
 module I = InterUtils
@@ -13,9 +15,10 @@ open Types
 open Identifier
 
 (* prints the entry attributes of the sem_val given *)
-let pp_print sem = 
-  Printf.printf "error: %s, %s\n" (id_name sem.entry.entry_id)
-  (str_of_entry_info sem.entry.entry_info);
+let pp_print id sem =
+  Printf.printf "%s: %s, %s, %d, " (id_name sem.entry.entry_id) id
+  (str_of_entry_info sem.entry.entry_info)
+  (sem.entry.entry_scope.sco_nesting);
   pretty_type Format.std_formatter sem.expr_type;
   Format.print_newline()
 
@@ -27,11 +30,16 @@ let rec interOf = function
 and interOfLetdef = function
   (* vl: vardefs connected with 'and' keyword *)
     L_Let (sem, fi, vl)    ->
-      let printer v = 
-        Printf.printf "L_Let: %s, %d, %s\n" (id_name v.entry_id) 
-        v.entry_scope.sco_nesting (str_of_entry_info v.entry_info)
-      in
-      List.iter (fun x -> printer (interOfVardef false x).entry) vl
+      let check_entry_info sem_ =
+        match sem_.entry.entry_info with
+        | ENTRY_variable _ -> error fi 4 "not supported yet"
+        | ENTRY_function _ -> 
+            let name = id_name sem_.entry.entry_id in
+            backpatch sem_.next (nextQuad ());
+            add_quad (genQuad I.O_Endu (I.String name) I.Empty I.Empty)
+        | _ -> error fi 4 "wrong entry_info type"
+        in
+        List.iter (fun x -> check_entry_info (interOfVardef x)) vl
   | L_LetRec (sem, fi, vl) -> ()
 
 and interOfTypedef = function
@@ -42,8 +50,12 @@ and interOfTypedef = function
   | TD_Constr (sem, fi, tyl) ->  (* TODO: Not supported yet *)
       error fi 3 "user defined data types are not supported"
 
-and interOfVardef rec_flag = function
-    VAR_Id (sem, fi, varl, e) -> interOfExpr e
+and interOfVardef = function
+    VAR_Id (sem, fi, varl, e) -> 
+      let name = id_name sem.entry.entry_id in
+      add_quad (genQuad I.O_Unit (I.String name) I.Empty I.Empty);
+      Pervasives.ignore (interOfExpr e);
+      sem
   | VAR_MutId (sem, fi, exprl) -> sem
 
 and interOfExpr = function
@@ -55,7 +67,8 @@ and interOfExpr = function
   | E_False (sem, info)   ->
       sem.place <- I.False; sem
   | E_LitInt (sem, info, i)   ->
-      sem.place <- I.Int i; sem
+      sem.place <- I.Int i; 
+      sem
   | E_LitChar (sem, info, c)  ->
       sem.place <- I.Char c; sem
   | E_LitFloat (sem, info, f) ->
@@ -67,7 +80,8 @@ and interOfExpr = function
       begin (* FIXME: what about ENTRY_FUNCTION call, Lval check *)
         match sem.entry.entry_info with
         | ENTRY_parameter _ | ENTRY_variable _ ->
-            sem.place <- I.Entry sem.entry; sem
+            sem.place <- I.Entry sem.entry;
+            sem
         | ENTRY_function _ -> raise (Exit 4)
         | _ -> raise Terminate
       end
@@ -92,9 +106,8 @@ and interOfExpr = function
       sem
   (* References and assigments *)
   | E_Assign (sem, fi, e1, e2)  ->
-      let q = genQuad I.O_Assign (interOfExpr e2).place I.Empty
-              (interOfExpr e1).place in
-      add_quad q;
+      add_quad (genQuad I.O_Assign (interOfExpr e2).place I.Empty
+               (interOfExpr e1).place);
       sem.next <- [];
       sem
   | E_Deref  (sem, fi, e)       -> (* FIXME: type should be ref? *)
@@ -197,7 +210,7 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      sem.true_ <- [quad_true]; 
+      sem.true_ <- [quad_true];
       sem.false_ <- [quad_false];
       sem
   | E_Differ (sem, fi, e1, e2)   ->
@@ -208,7 +221,7 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      sem.true_ <- [quad_true]; 
+      sem.true_ <- [quad_true];
       sem.false_ <- [quad_false];
       sem
   | E_Equal (sem, fi, e1, e2)    ->
@@ -219,7 +232,7 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      sem.true_ <- [quad_true]; 
+      sem.true_ <- [quad_true];
       sem.false_ <- [quad_false];
       sem
   | E_NEqual (sem, fi, e1, e2)   ->
@@ -230,7 +243,7 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      sem.true_ <- [quad_true]; 
+      sem.true_ <- [quad_true];
       sem.false_ <- [quad_false];
       sem
   | E_Lt (sem, fi, e1, e2)       ->
@@ -241,7 +254,7 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      sem.true_ <- [quad_true]; 
+      sem.true_ <- [quad_true];
       sem.false_ <- [quad_false];
       sem
   | E_Gt (sem, fi, e1, e2)       ->
@@ -252,7 +265,7 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      sem.true_ <- [quad_true]; 
+      sem.true_ <- [quad_true];
       sem.false_ <- [quad_false];
       sem
   | E_Leq (sem, fi, e1, e2)      ->
@@ -263,7 +276,7 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      sem.true_ <- [quad_true]; 
+      sem.true_ <- [quad_true];
       sem.false_ <- [quad_false];
       sem
   | E_Geq (sem, fi, e1, e2)      ->
@@ -274,15 +287,15 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      sem.true_ <- [quad_true]; 
+      sem.true_ <- [quad_true];
       sem.false_ <- [quad_false];
       sem
   (* Logical Operators *)
   | E_Not (sem, fi, e)           ->
       let inter_e = interOfExpr e in
-      sem.true_ <- inter_e.false_; 
+      sem.true_ <- inter_e.false_;
       sem.false_ <- inter_e.true_;
-      sem 
+      sem
   | E_Andlogic (sem, fi, e1, e2) ->
       backpatch (interOfExpr e1).true_ (nextQuad ());
       sem.true_ <- (interOfExpr e2).true_;
