@@ -61,7 +61,16 @@ let library_functions = [
 (* auxilary variable used for the uniqueness of the standard's library
  * parameters *)
 let cnt = ref 0
-let forwards = ref []
+
+(* used for holding the forwards functions in let rec definitions so that it
+ * would be able to add their parameters later:
+ * used for fixing the bug in letrec with mutul recursion when we define a
+ * variable later,
+ * e.g:
+ *  let rec f x = a + x
+ *  and a = 4
+ *)
+let forward_functions = ref []
 
 (* auxilary function that insters Standard Library funtions in the Main's scope *)
 let function_create (id, args, typ) =
@@ -127,16 +136,18 @@ and typeOfLetdef = function
       List.iter (fun x -> typeOfVardef false x) vl
   (* let rec:
    *
-   * We should make two passes to let rec definitions. The first one is for
-   * adding to the symbol table all forward functions and it's parameters, and
-   * in the second one we add all the definitions and we handle the body of
-   * each definition.
+   * We should make two traverses to let rec definitions:
+   * The first one is for adding to the symbol table all functions found as
+   * forwards (and inform the forward_functions list with these functions), and
+   * the the variable definition found.
+   * In the second one we add all the parameters in the forwards functions that
+   * found and marked in first traversal.
    *
    * In a let rec block the variable/function defined should BE visible by the
    * body of the block. So we do NOT make it hidden from the function body.
    * rec_flag := true *)
   | L_LetRec (sem, fi, vl) -> (* vl: vardefs connected with 'and' keyword *)
-      forwards := [];
+      forward_functions := [];
       openScope(); (* scope for the definition only *)
       let find_forwards = function
           VAR_Id (sem, info, varl, e) as v when varl != [] ->
@@ -148,8 +159,8 @@ and typeOfLetdef = function
             openScope(); (* new scope for the args of forward functions *)
             List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
             closeScope();
-            forwards := v :: !forwards;
-            endFunctionHeader fn sem.expr_type
+            endFunctionHeader fn sem.expr_type;
+            forward_functions := v :: !forward_functions
         | VAR_Id (sem, info, varl, e) ->
             (* add a new_variable Entry to the current scope *)
             P.ignore (newVariable fi sem.entry.entry_id sem.expr_type true);
@@ -164,8 +175,10 @@ and typeOfLetdef = function
             (* now we unhide the scope if we've hidden it before *)
         | _ -> raise Terminate
       in
-      List.iter (fun x -> P.ignore (find_forwards x)) vl;  (* first traversal *)
-      List.iter (fun x -> typeOfVardef true x) !forwards         (* second traversal *)
+      (* first traversal *)
+      List.iter (fun x -> P.ignore (find_forwards x)) vl;
+      (* second traversal *)
+      List.iter (fun x -> typeOfVardef true x) !forward_functions
 
 
 and typeOfTypedef = function
@@ -204,7 +217,7 @@ and typeOfVardef rec_flag = function
             | _ -> (* add a new_function Entry to the current scope *)
               let fn =
                 try newFunction fi sem.entry.entry_id true
-                with Exit _ -> 
+                with Exit _ ->
                   raise Terminate
               in
               (* in case of let we hide the definition from the body *)
@@ -261,15 +274,15 @@ and typeOfExpr = function
       begin
         match l.entry_info with
         | ENTRY_variable v ->
-            sem.entry <- l; sem.val_type <- I.Lval; 
+            sem.entry <- l; sem.val_type <- I.Lval;
             sem.expr_type <- v.variable_type;
             sem
         | ENTRY_parameter p ->
-            sem.entry <- l; sem.val_type <- I.Lval; 
+            sem.entry <- l; sem.val_type <- I.Lval;
             sem.expr_type <- p.parameter_type;
             sem
             (* FIXME: what about val_type of function *)
-        | ENTRY_function f -> 
+        | ENTRY_function f ->
             sem.entry <- l; sem.expr_type <- TY_Function (List.map (
               fun en ->
                 match en.entry_info with
@@ -306,7 +319,7 @@ and typeOfExpr = function
       then (sem.expr_type <- TY_Int; sem)
       else error fi 3 "Type mismatch, TY_Int expected"
   | E_UFMinus (sem, fi, e)   ->
-      if (equalType (typeOfExpr e).expr_type TY_Float) 
+      if (equalType (typeOfExpr e).expr_type TY_Float)
       then (sem.expr_type <- TY_Float; sem)
       else error fi 3 "Type mismatch, TY_Float expected"
   (* References and assigments *)
@@ -329,7 +342,7 @@ and typeOfExpr = function
         (sem.expr_type <- TY_Ref sem.expr_type; sem)
       else error fi 3 "Type mismatch, cannot allocate TY_Array or TY_Function."
   | E_Delete (sem, fi, e)      -> (* FIXME: check that mem was allocated dynamically *)
-      if isRef (typeOfExpr e).expr_type 
+      if isRef (typeOfExpr e).expr_type
       then (sem.expr_type <- TY_Int; sem)
       else error fi 3 "Type mismatch, only TY_Ref can be unallocated."
   (* Binary Integer Arithmetic Operators *)
@@ -470,8 +483,8 @@ and typeOfExpr = function
       else error fi 3 "Type mismatch, TY_Bool expected"
   (* Imperative Commands *)
   | E_Block (sem, fi, e)     -> let sem = typeOfExpr e in sem
-  | E_Semicolon (sem, fi, e1, e2)   -> 
-      P.ignore(typeOfExpr e1); 
+  | E_Semicolon (sem, fi, e1, e2)   ->
+      P.ignore(typeOfExpr e1);
       let sem = typeOfExpr e2 in sem
   | E_While (sem, fi, e1, e2)       ->
       if isBool (typeOfExpr e1).expr_type then
@@ -524,7 +537,7 @@ and typeOfExpr = function
         begin
           match _e2 with
           | Some e2 ->
-              if (equalType sem1.expr_type (typeOfExpr e2).expr_type) 
+              if (equalType sem1.expr_type (typeOfExpr e2).expr_type)
               then let sem = sem1 in sem
               else
                 let fi2 = get_info_expr e2 in
@@ -547,7 +560,7 @@ and typeOfExpr = function
                 begin
                   match v.variable_type with
                   | TY_Array (len, type_) when dm <= len ->
-                      sem.entry <- l; sem.expr_type <- TY_Int; 
+                      sem.entry <- l; sem.expr_type <- TY_Int;
                       sem
                   | TY_Array (len, type_) when dm > len ->
                       error fi 3 "Int exceeds array dimension"

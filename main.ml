@@ -38,7 +38,7 @@ let main =
     let ast = Parser.program Lexer.lexer lexbuf in
     (* Pp_ast.pp_prog ast; *)
     Semantics.typeOf ast;
-    (* Intemediate.typeOf ast; *)
+    Intermediate.interOf ast;
     exit 0
   with 
       Parsing.Parse_error ->
