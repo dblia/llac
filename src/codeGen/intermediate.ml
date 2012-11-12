@@ -48,131 +48,146 @@ and interOfVardef rec_flag = function
 
 and interOfExpr = function
   (* Constants Operators *)
-    E_Unit (sem, info)        ->
-      { sem with place = I.Unit }
-  | E_True (sem, info)        ->
-      { sem with place = I.True }
-  | E_False (sem, info)       ->
-      { sem with place = I.False }
+    E_Unit (sem, info)    ->
+      sem.place <- I.Unit; sem
+  | E_True (sem, info)    ->
+      sem.place <- I.True; sem
+  | E_False (sem, info)   ->
+      sem.place <- I.False; sem
   | E_LitInt (sem, info, i)   ->
-      { sem with place = I.Int i }
+      sem.place <- I.Int i; sem
   | E_LitChar (sem, info, c)  ->
-      { sem with place = I.Char c }
+      sem.place <- I.Char c; sem
   | E_LitFloat (sem, info, f) ->
-      { sem with place = I.Float f }
+      sem.place <- I.Float f; sem
   | E_LitString (sem, fi, s)  ->
-      { sem with place = I.String s }
+      sem.place <- I.String s; sem
   (* Names (constants, functions, parameters, constructors, expressions) *)
   | E_LitId (sem, fi)    ->
       begin (* FIXME: what about ENTRY_FUNCTION call, Lval check *)
         match sem.entry.entry_info with
         | ENTRY_parameter _ | ENTRY_variable _ ->
-            { sem with place = I.Entry sem.entry }
+            sem.place <- I.Entry sem.entry; sem
         | ENTRY_function _ -> raise (Exit 4)
-        | _ -> 
-            raise Terminate
+        | _ -> raise Terminate
       end
   | E_LitConstr (sem, fi) -> (* TODO: not supported yet *)
       error fi 3 "user defined date types are not supported"
   (* Unary Arithmetic Operators *)
   | E_UPlus   (sem, fi, e)     ->
-      { sem with place = (interOfExpr e).place }
+      sem.place <- (interOfExpr e).place; sem
   | E_UFPlus  (sem, fi, e)    ->
-      { sem with place = (interOfExpr e).place }
+      sem.place <- (interOfExpr e).place; sem
   | E_UMinus  (sem, fi, e)    ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Minus (interOfExpr e).place I.Empty w in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   | E_UFMinus (sem, fi, e)   ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Minus (interOfExpr e).place I.Empty w in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   (* References and assigments *)
   | E_Assign (sem, fi, e1, e2)  ->
       let q = genQuad I.O_Assign (interOfExpr e2).place I.Empty
               (interOfExpr e1).place in
       add_quad q;
-      { sem with next = [] }
+      sem.next <- [];
+      sem
   | E_Deref  (sem, fi, e)       -> (* FIXME: type should be ref? *)
       let w = newTemp fi sem.expr_type in
       let q = genQuad I.O_Assign (interOfExpr e).place I.Empty (I.Entry w) in
       add_quad q;
-      { sem with place = I.Pointer (w, sem.expr_type) }
+      sem.place <- I.Pointer (w, sem.expr_type);
+      sem
   (* FIXME: Memory Dynamic Allocation *)
   | E_New    (sem, fi)          ->
       let size = sizeOfType sem.expr_type in
       add_quad (genQuad I.O_Par (I.Int size) (I.Pass V) I.Empty);
       add_quad (genQuad I.O_Par sem.place (I.Pass RET) I.Empty);
       add_quad (genQuad I.O_Call I.Empty I.Empty I.New);
-      { sem with next = [] }
+      sem.next <- [];
+      sem
   | E_Delete (sem, fi, e)       -> (* FIXME: check that mem was allocated dynamically *)
       add_quad (genQuad I.O_Par (interOfExpr e).place (I.Pass R) I.Empty);
       add_quad (genQuad I.O_Call I.Empty I.Empty I.Delete);
-      { sem with next = [] }
+      sem.next <- [];
+      sem
   (* Binary Integer Arithmetic Operators *)
   | E_Plus  (sem, fi, e1, e2)   ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Plus (interOfExpr e1).place (interOfExpr e2).place w
       in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   | E_Minus (sem, fi, e1, e2)  ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Minus (interOfExpr e1).place (interOfExpr e2).place w
       in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   | E_Mul   (sem, fi, e1, e2)    ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Mult (interOfExpr e1).place (interOfExpr e2).place w
       in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   | E_Div   (sem, fi, e1, e2)    ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Div (interOfExpr e1).place (interOfExpr e2).place w
       in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   | E_Mod   (sem, fi, e1, e2)     ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Mod (interOfExpr e1).place (interOfExpr e2).place w
       in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   (* Binary Float Arithmetic Operators *)
   | E_FPlus (sem, fi, e1, e2)  ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Plus (interOfExpr e1).place (interOfExpr e2).place w
       in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   | E_FMinus (sem, fi, e1, e2) ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Minus (interOfExpr e1).place (interOfExpr e2).place w
       in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   | E_FMul (sem, fi, e1, e2)   ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Mult (interOfExpr e1).place (interOfExpr e2).place w
       in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   | E_FDiv (sem, fi, e1, e2)   ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Div (interOfExpr e1).place (interOfExpr e2).place w
       in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   | E_Pow (sem, fi, e1, e2)    ->
       let w = I.Entry (newTemp fi sem.expr_type) in
       let q = genQuad I.O_Pow (interOfExpr e1).place (interOfExpr e2).place w
       in
       add_quad q;
-      { sem with place = w }
+      sem.place <- w;
+      sem
   (* Structural and Natural Equality Operators *)
   | E_Eq (sem, fi, e1, e2)       ->
       let quad_true = nextQuad () in
@@ -182,7 +197,9 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      { sem with true_ = [quad_true]; false_ = [quad_false] }
+      sem.true_ <- [quad_true]; 
+      sem.false_ <- [quad_false];
+      sem
   | E_Differ (sem, fi, e1, e2)   ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_SNEqual (interOfExpr e1).place (interOfExpr e2).place
@@ -191,7 +208,9 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      { sem with true_ = [quad_true]; false_ = [quad_false] }
+      sem.true_ <- [quad_true]; 
+      sem.false_ <- [quad_false];
+      sem
   | E_Equal (sem, fi, e1, e2)    ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_Equal (interOfExpr e1).place (interOfExpr e2).place
@@ -200,7 +219,9 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      { sem with true_ = [quad_true]; false_ = [quad_false] }
+      sem.true_ <- [quad_true]; 
+      sem.false_ <- [quad_false];
+      sem
   | E_NEqual (sem, fi, e1, e2)   ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_NEqual (interOfExpr e1).place (interOfExpr e2).place
@@ -209,7 +230,9 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      { sem with true_ = [quad_true]; false_ = [quad_false] }
+      sem.true_ <- [quad_true]; 
+      sem.false_ <- [quad_false];
+      sem
   | E_Lt (sem, fi, e1, e2)       ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_Lt (interOfExpr e1).place (interOfExpr e2).place
@@ -218,7 +241,9 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      { sem with true_ = [quad_true]; false_ = [quad_false] }
+      sem.true_ <- [quad_true]; 
+      sem.false_ <- [quad_false];
+      sem
   | E_Gt (sem, fi, e1, e2)       ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_Gt (interOfExpr e1).place (interOfExpr e2).place
@@ -227,7 +252,9 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      { sem with true_ = [quad_true]; false_ = [quad_false] }
+      sem.true_ <- [quad_true]; 
+      sem.false_ <- [quad_false];
+      sem
   | E_Leq (sem, fi, e1, e2)      ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_Leq (interOfExpr e1).place (interOfExpr e2).place
@@ -236,7 +263,9 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      { sem with true_ = [quad_true]; false_ = [quad_false] }
+      sem.true_ <- [quad_true]; 
+      sem.false_ <- [quad_false];
+      sem
   | E_Geq (sem, fi, e1, e2)      ->
       let quad_true = nextQuad () in
       let q = genQuad I.O_Geq (interOfExpr e1).place (interOfExpr e2).place
@@ -245,21 +274,25 @@ and interOfExpr = function
       let quad_false = nextQuad () in
       let q = genQuad I.O_Jump I.Empty I.Empty I.Backpatch in
       add_quad q;
-      { sem with true_ = [quad_true]; false_ = [quad_false] }
+      sem.true_ <- [quad_true]; 
+      sem.false_ <- [quad_false];
+      sem
   (* Logical Operators *)
   | E_Not (sem, fi, e)           ->
       let inter_e = interOfExpr e in
-      { sem with true_ = inter_e.false_; false_ = inter_e.true_ }
+      sem.true_ <- inter_e.false_; 
+      sem.false_ <- inter_e.true_;
+      sem 
   | E_Andlogic (sem, fi, e1, e2) ->
       backpatch (interOfExpr e1).true_ (nextQuad ());
-      { sem with
-          true_ = (interOfExpr e2).true_;
-          false_ = merge [(interOfExpr e1).false_; (interOfExpr e2).false_] }
+      sem.true_ <- (interOfExpr e2).true_;
+      sem.false_ <- merge [(interOfExpr e1).false_; (interOfExpr e2).false_];
+      sem
   | E_Orlogic (sem, fi, e1, e2)  ->
       backpatch (interOfExpr e1).false_ (nextQuad ());
-      { sem with
-          true_ = merge [(interOfExpr e1).true_; (interOfExpr e2).true_];
-          false_ = (interOfExpr e2).false_ }
+      sem.true_ <- merge [(interOfExpr e1).true_; (interOfExpr e2).true_];
+      sem.false_ <- (interOfExpr e2).false_;
+      sem
   (* Imperative Commands *)
   | E_Block (sem, fi, e)     -> sem
   | E_Semicolon (sem, fi, e1, e2)  -> sem
@@ -269,7 +302,8 @@ and interOfExpr = function
       backpatch (interOfExpr e2).next q;
       let quad = genQuad I.O_Jump I.Empty I.Empty (I.Label q) in
       add_quad quad;
-      { sem with next = (interOfExpr e1).false_ }
+      sem.next <- (interOfExpr e1).false_;
+      sem
   | E_For (sem, fi,ti, e1, e2, e) -> (* FIXME: is it correct? *)
       let cond_q = nextQuad ()
       and cond_true = (interOfExpr e2).true_
@@ -281,7 +315,8 @@ and interOfExpr = function
       backpatch cond_true body_fst_quad;
       let q2 = genQuad I.O_Jump I.Empty I.Empty (I.Label simple_quad) in
       add_quad q2;
-      { sem with next = cond_false }
+      sem.next <- cond_false;
+      sem
   (* Decomposition of User Defined Types *)
   | E_Match (sem, fi, e, clauses)   ->
       error fi 3 "user defined data types are not supported"
@@ -302,9 +337,11 @@ and interOfExpr = function
           add_quad q;
           backpatch cond_sem.false_ (nextQuad ());
           let l2 = stmt2_sem.next in
-          { sem with next = merge [l1; stmt1_sem.next; l2] }
+          sem.next <- merge [l1; stmt1_sem.next; l2];
+          sem
       | None    -> (* no else stmt *)
-          { sem with next = merge [l1; stmt1_sem.next; l2] }
+          sem.next <- merge [l1; stmt1_sem.next; l2];
+          sem
       end
   (* Array Elements and Dimensions *)
   | E_Dim (sem, fi, i)      -> sem
