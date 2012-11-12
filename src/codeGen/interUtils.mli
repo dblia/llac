@@ -120,5 +120,4 @@ val str_of_pm       : pass_mode_t -> string ;;
 val str_of_operand  : operand_t -> string ;;
 
 val print_quad  : out_channel -> quadruple_t -> unit ;;
-val print_quads : out_channel -> unit ;;
 val print_quads_to_file : out_channel -> unit ;;

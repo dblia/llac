@@ -1,4 +1,3 @@
-
 open Printf
 
 open Identifier
@@ -139,6 +138,8 @@ let typeArr = function
 
 (* Quad storage and handling functions *)
 let quad_list = ref []
+let var_list = ref []
+let func_list = ref []
 
 let get_quads () =
   List.rev !quad_list
@@ -212,13 +213,10 @@ let str_of_operand = function
   | Pointer (en ,_)  -> "[" ^ (id_name en.entry_id)  ^ "]"
 
 let print_quad channel q =
-  fprintf channel "%d: %s, %s, %s, %s\n"
+  fprintf channel "%d:\t%s, %s, %s, %s\n"
   q.label (str_of_operator q.op) (str_of_operand q.op1) (str_of_operand q.op2)
   (str_of_operand q.op3)
 
-let print_quads channel =
-  List.iter (print_quad channel) (get_quads ())
-
 let print_quads_to_file channel =
-  Pervasives.ignore (List.map (print_quad channel) (get_quads ()))
+  Pervasives.ignore (List.map (print_quad channel) (List.rev !func_list))
 
