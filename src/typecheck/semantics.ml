@@ -61,6 +61,7 @@ let library_functions = [
 (* auxilary variable used for the uniqueness of the standard's library
  * parameters *)
 let cnt = ref 0
+let forwards = ref []
 
 (* auxilary function that insters Standard Library funtions in the Main's scope *)
 let function_create (id, args, typ) =
@@ -135,9 +136,10 @@ and typeOfLetdef = function
    * body of the block. So we do NOT make it hidden from the function body.
    * rec_flag := true *)
   | L_LetRec (sem, fi, vl) -> (* vl: vardefs connected with 'and' keyword *)
+      forwards := [];
       openScope(); (* scope for the definition only *)
       let find_forwards = function
-          VAR_Id (sem, info, varl, e) when varl != [] ->
+          VAR_Id (sem, info, varl, e) as v when varl != [] ->
             let fn =
               try newFunction info sem.entry.entry_id true
               with Exit _ -> raise Terminate
@@ -146,11 +148,24 @@ and typeOfLetdef = function
             openScope(); (* new scope for the args of forward functions *)
             List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
             closeScope();
-            endFunctionHeader fn sem.expr_type;
-        | _ -> ()
+            forwards := v :: !forwards;
+            endFunctionHeader fn sem.expr_type
+        | VAR_Id (sem, info, varl, e) ->
+            (* add a new_variable Entry to the current scope *)
+            P.ignore (newVariable fi sem.entry.entry_id sem.expr_type true);
+            (* now we hide the definitions while we're processing the body *)
+            (* function body must conforms with the type declared *)
+            if not (equalType sem.expr_type (typeOfExpr e).expr_type) then (
+              let str = "type mismatch in definition\n" in
+              let str_ = "the type of constant does not match the declared \
+                        type:" in
+              error_args fi (str ^ str_) sem.entry.entry_id;
+              raise (Exit 3))
+            (* now we unhide the scope if we've hidden it before *)
+        | _ -> raise Terminate
       in
       List.iter (fun x -> P.ignore (find_forwards x)) vl;  (* first traversal *)
-      List.iter (fun x -> typeOfVardef true x) vl         (* second traversal *)
+      List.iter (fun x -> typeOfVardef true x) !forwards         (* second traversal *)
 
 
 and typeOfTypedef = function
@@ -167,7 +182,6 @@ and typeOfVardef rec_flag = function
         match varl with
         | [] -> (* var list empty, so we found a variable definition *)
             (* add a new_variable Entry to the current scope *)
-            Printf.printf "var name: %s\n" (id_name sem.entry.entry_id);
             P.ignore (newVariable fi sem.entry.entry_id sem.expr_type true);
             (* now we hide the definitions while we're processing the body *)
             if not rec_flag then hideScope (!currentScope) true;
@@ -190,7 +204,8 @@ and typeOfVardef rec_flag = function
             | _ -> (* add a new_function Entry to the current scope *)
               let fn =
                 try newFunction fi sem.entry.entry_id true
-                with Exit _ -> raise Terminate
+                with Exit _ -> 
+                  raise Terminate
               in
               (* in case of let we hide the definition from the body *)
               if not rec_flag then hideScope (!currentScope) true;
@@ -323,8 +338,7 @@ and typeOfExpr = function
         if (equalType (typeOfExpr e2).expr_type TY_Int)
         then (sem.expr_type <- TY_Int; sem)
         else error fi 3 "Type mismatch, TY_Int expected"
-      else (Printf.printf "name: %s\n" (id_name (typeOfExpr e1).entry.entry_id);
-            error fi 3 "Type mismatch, TY_Int expected!!")
+      else error fi 3 "Type mismatch, TY_Int expected!!"
   | E_Minus (sem, fi, e1, e2)  ->
       if (equalType (typeOfExpr e1).expr_type TY_Int) then
         if (equalType (typeOfExpr e2).expr_type TY_Int)
