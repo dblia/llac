@@ -39,9 +39,9 @@ let main =
     let ast = Parser.program Lexer.lexer lexbuf in
     (* Pp_ast.pp_prog ast; *)
     Semantics.typeOf ast;
-    Intermediate.interOf ast;
+    (*Intermediate.interOf ast;
     let acc = separate_quads (get_quads ()) in
-    print_quads_to_file2 (open_out "myfoo.qua") acc;
+    print_quads_to_file2 (open_out "myfoo.qua") acc;*)
     exit 0
   with 
       Parsing.Parse_error ->

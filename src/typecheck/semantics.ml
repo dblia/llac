@@ -91,7 +91,7 @@ let new_parameter f = function
       begin
         match sem.expr_type with
         | TY_None -> error fi 3 "No type inferer support, you must provide a type"
-        | _t -> 
+        | _t ->
             sem.entry <- newParameter fi sem.entry.entry_id _t PASS_BY_VALUE f true
       end
   | _ -> (* FIXME: currying (function parameters).
@@ -147,11 +147,12 @@ and typeOfLetdef = function
    * In a let rec block the variable/function defined should BE visible by the
    * body of the block. So we do NOT make it hidden from the function body.
    * rec_flag := true *)
-  | L_LetRec (sem, fi, vl) -> (* vl: vardefs connected with 'and' keyword *)
+  | L_LetRec (sem_, fi, vl) -> (* vl: vardefs connected with 'and' keyword *)
       forward_functions := [];
       openScope(); (* scope for the definition only *)
       let find_forwards = function
-          VAR_Id (sem_, info, varl, e) as v when varl != [] ->
+        (* forward function declaration found *)
+          VAR_Id (sem, info, varl, e) as v when varl != [] ->
             let fn =
               try newFunction info sem.entry.entry_id true
               with Exit _ -> raise Terminate
@@ -161,20 +162,17 @@ and typeOfLetdef = function
             List.iter (fun x -> P.ignore (new_parameter fn x)) varl;
             closeScope();
             endFunctionHeader fn sem.expr_type;
-            sem_.entry <- fn;
+            sem.entry <- fn;
             forward_functions := v :: !forward_functions
-        | VAR_Id (sem_, info, varl, e) ->
-            (* add a new_variable Entry to the current scope *)
-            sem_.entry <- newVariable fi sem.entry.entry_id sem.expr_type true;
-            (* now we hide the definitions while we're processing the body *)
-            (* function body must conforms with the type declared *)
+        (* forward variable declaration found *)
+        | VAR_Id (sem, info, varl, e) ->
+            sem.entry <- newVariable fi sem.entry.entry_id sem.expr_type true;
             if not (equalType sem.expr_type (typeOfExpr e).expr_type) then (
               let str = "type mismatch in definition\n" in
               let str_ = "the type of constant does not match the declared \
                         type:" in
               error_args fi (str ^ str_) sem.entry.entry_id;
               raise (Exit 3))
-            (* now we unhide the scope if we've hidden it before *)
         | _ -> raise Terminate
       in
       (* first traversal *)
