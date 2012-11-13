@@ -14,7 +14,6 @@ open Symbol
 open Types
 open Identifier
 
-
 let func_res = ref []
 
 (* prints the entry attributes of the sem_val given *)
@@ -40,13 +39,13 @@ and interOfLetdef = function
         match v with
         | VAR_Id (_, _, [], _) as x ->
             Pervasives.ignore (interOfVardef x)
-        | VAR_Id (_, _, lst, _) as x ->
-            let sem_ = interOfVardef x in
-            let name = id_name sem_.entry.entry_id
+        | VAR_Id (sem, _, lst, _) as x ->
+            Pervasives.ignore (interOfVardef x);
+            let name = id_name sem.entry.entry_id
             and res = List.hd !func_res in
             add_quad
               (genQuad I.O_Assign res.place I.Empty (I.Result res.expr_type));
-            backpatch sem_.next (nextQuad ());
+            backpatch sem.next (nextQuad ());
             add_quad (genQuad I.O_Endu (I.String name) I.Empty I.Empty)
         | _ -> error fi 4 "not var or func type"
       in List.iter (fun x -> var_or_func x) vl

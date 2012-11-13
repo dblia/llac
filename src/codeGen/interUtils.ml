@@ -42,7 +42,7 @@ type operand_t =
   | Pointer of Symbol.entry * Types.ty
 
 type quadruple_t = {
-  label : int;
+  mutable label : int;
   op    : operator_t;
   mutable op1 : operand_t;
   mutable op2 : operand_t;
@@ -138,8 +138,6 @@ let typeArr = function
 
 (* Quad storage and handling functions *)
 let quad_list = ref []
-let var_list = ref []
-let func_list = ref []
 
 let get_quads () =
   List.rev !quad_list
@@ -200,7 +198,7 @@ let str_of_operand = function
   | Int i            -> string_of_int i
   | Float f          -> string_of_float f
   | Char c           -> "'" ^ Char.escaped c ^ "'"
-  | String s         -> "" ^ s ^ "" 
+  | String s         -> "" ^ s ^ ""
   | Invalid          -> "invalid"
   | Label i          -> string_of_int i
   | Pass pm          -> str_of_pm pm
@@ -217,6 +215,43 @@ let print_quad channel q =
   q.label (str_of_operator q.op) (str_of_operand q.op1) (str_of_operand q.op2)
   (str_of_operand q.op3)
 
-let print_quads_to_file channel =
-  Pervasives.ignore (List.map (print_quad channel) (List.rev !func_list))
+let print_quads_to_file channel  acc =
+  Pervasives.ignore (List.map (print_quad channel) acc)
+
+let print_quads_to_file2 channel acc =
+  let lab : int ref = ref 1 in
+  let print_quad_ channel q =
+    q.label <- !lab;
+    lab := !lab + 1;
+    let op = str_of_operator q.op in
+    fprintf channel "%d:\t%s, %s, %s, %s\n"
+    q.label op (str_of_operand q.op1) (str_of_operand q.op2) 
+    (str_of_operand q.op3);
+    if op = "endu" then fprintf channel "\n" else ()
+  in
+  Pervasives.ignore (List.map (print_quad_ channel) acc)
+
+let separate_quads lst =
+  (* lst : quad_list 
+   * acc : accumulator for the _outer scope and the final result
+   * acc1: accumulator for a new function structural unit found 
+   * acc2: accumulator for the functions structural units *)
+  let rec quads_sep lst acc acc1 acc2 flag =
+  match lst with
+  | [] -> List.append acc2 acc
+  | (hd :: tl) ->
+      (* find a unit's (not _outer's) start *)
+      if not flag && ((str_of_operator hd.op) = "unit") &&
+         ((str_of_operand hd.op1) <> "_outer")
+      then quads_sep tl acc (hd :: acc1) acc2 true
+      (* find a unit's (not _outer's) end *)
+      else if flag && ((str_of_operator hd.op) = "endu") &&
+              ((str_of_operand hd.op1) <> "_outer")
+      then quads_sep tl acc [] (List.append acc2 (List.rev (hd :: acc1))) false
+      (* we are in a unit's body (not _outer's) *)
+      else if flag then quads_sep tl acc (hd :: acc1) acc2 true
+      (* we are in the _outer scope *)
+      else quads_sep tl (List.append acc [hd]) [] acc2 false
+  in 
+  quads_sep lst [] [] [] false
 

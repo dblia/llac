@@ -1,1 +1,5 @@
+let y : int = 6
+
+let main (x : int) : int = x + y
+
 let foo (x : int) : int = x + 1

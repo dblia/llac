@@ -41,7 +41,7 @@ type operand_t =
 
 (* quad type definition *)
 type quadruple_t = {
-  label : int;
+  mutable label : int;
   op    : operator_t;
   mutable op1 : operand_t;
   mutable op2 : operand_t;
@@ -119,5 +119,10 @@ val str_of_operator : operator_t -> string ;;
 val str_of_pm       : pass_mode_t -> string ;;
 val str_of_operand  : operand_t -> string ;;
 
-val print_quad  : out_channel -> quadruple_t -> unit ;;
-val print_quads_to_file : out_channel -> unit ;;
+val print_quad : out_channel -> quadruple_t -> unit ;;
+(* Prints the quads to the file given *)
+val print_quads_to_file  : out_channel -> quadruple_t list -> unit ;;
+(* Prints the quads to the file given, but with labels in incremental order *)
+val print_quads_to_file2 : out_channel -> quadruple_t list -> unit ;;
+(* Separates the quad list depenging on the structural units *)
+val separate_quads : quadruple_t list -> quadruple_t list ;;
