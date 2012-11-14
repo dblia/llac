@@ -66,11 +66,14 @@ type sem_val = {
 }
 
 (* Auxilary subroutines for quadruples handling *)
+(************************************************)
+
 (* Returns the number of the next quad *)
 val nextQuad : unit -> int ;;
 
 (* Generates new quad and increases quadNext number *)
-val genQuad : operator_t -> operand_t -> operand_t -> operand_t -> quadruple_t ;;
+val genQuad : operator_t -> operand_t -> operand_t -> operand_t -> 
+              quadruple_t ;;
 
 (* Generates and returns a new temporary variable *)
 val newTemp : Error.finfo -> Types.ty -> Symbol.entry ;;
@@ -78,8 +81,7 @@ val newTemp : Error.finfo -> Types.ty -> Symbol.entry ;;
 (* Creates a new quad list by merging the lists [l1;l2;....;ln] given *)
 val merge : 'a list list -> 'a list ;;
 
-(* Auxilary function used by paramType and paramMode that returns a
- * parameter_info struct *)
+(* Used by paramType and paramMode that returns a parameter_info struct *)
 val entry_parameter_info : Symbol.entry -> int -> Symbol.parameter_info ;;
 
 (* Returns the the type of the n-th parameter of the entry given *)
@@ -101,6 +103,8 @@ val typePtr : Types.ty -> Types.ty ;;
 val typeArr : Types.ty -> Types.ty ;;
 
 (* Quad storage and handling functions *)
+(***************************************)
+
 (* List of quadruples *)
 val quad_list : quadruple_t list ref ;;
 
@@ -115,14 +119,22 @@ val add_quad : quadruple_t -> unit ;;
 val backpatch : int list -> int -> unit ;;
 
 (* Auxilary functions for debbuging *)
+(************************************)
 val str_of_operator : operator_t -> string ;;
 val str_of_pm       : pass_mode_t -> string ;;
 val str_of_operand  : operand_t -> string ;;
 
+(* Prints the quad given *)
 val print_quad : out_channel -> quadruple_t -> unit ;;
 (* Prints the quads to the file given *)
 val print_quads_to_file  : out_channel -> quadruple_t list -> unit ;;
 (* Prints the quads to the file given, but with labels in incremental order *)
 val print_quads_to_file2 : out_channel -> quadruple_t list -> unit ;;
+(* Prints the entry attributes of the sem_val struct given *)
+val pp_print : string -> sem_val -> unit ;;
+
+(* Support functions *)
+(*********************)
+
 (* Separates the quad list depenging on the structural units *)
 val separate_quads : quadruple_t list -> quadruple_t list ;;

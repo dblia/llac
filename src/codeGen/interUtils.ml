@@ -255,3 +255,10 @@ let separate_quads lst =
   in 
   quads_sep lst [] [] [] false
 
+(* prints the entry attributes of the sem_val given *)
+let pp_print id sem =
+  Printf.printf "%s: %s, %s, %d, " (id_name sem.entry.entry_id) id
+  (str_of_entry_info sem.entry.entry_info)
+  (sem.entry.entry_scope.sco_nesting);
+  pretty_type Format.std_formatter sem.expr_type;
+  Format.print_newline()

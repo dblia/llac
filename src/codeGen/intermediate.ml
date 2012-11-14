@@ -14,15 +14,11 @@ open Symbol
 open Types
 open Identifier
 
+(* Used for getting the return stmt of a function:
+ * we put in it all the sem_val structs of the valued expressions. The last
+ * valued expression putted in before creating the final function quad, that is
+ * <endu, name, _, _>, is the return function's stmt. *)
 let func_res = ref []
-
-(* prints the entry attributes of the sem_val given *)
-let pp_print id sem =
-  Printf.printf "%s: %s, %s, %d, " (id_name sem.entry.entry_id) id
-  (str_of_entry_info sem.entry.entry_info)
-  (sem.entry.entry_scope.sco_nesting);
-  pretty_type Format.std_formatter sem.expr_type;
-  Format.print_newline()
 
 let rec interOf = function
     PROGRAM (ldfs, tdfs) ->
@@ -35,10 +31,12 @@ let rec interOf = function
 and interOfLetdef = function
   (* vl: vardefs connected with 'and' keyword *)
     L_Let (sem, fi, vl)    ->
-      let var_or_func v = 
+      let var_or_func v =
         match v with
+        (* variable definition *)
         | VAR_Id (_, _, [], _) as x ->
             Pervasives.ignore (interOfVardef x)
+        (* function definition *)
         | VAR_Id (sem, _, lst, _) as x ->
             Pervasives.ignore (interOfVardef x);
             let name = id_name sem.entry.entry_id
@@ -72,7 +70,7 @@ and interOfVardef = function
             let name = id_name sem.entry.entry_id in
             add_quad (genQuad I.O_Unit (I.String name) I.Empty I.Empty);
             interOfExpr e
-        | _ -> error fi 4 "unknown file info"
+        | _ -> error fi 4 "wrong file info"
       end
   | VAR_MutId (sem, fi, exprl) -> sem
 
