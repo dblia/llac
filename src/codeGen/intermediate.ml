@@ -24,7 +24,7 @@ let rec interOf = function
     PROGRAM (ldfs, tdfs) ->
       add_quad (genQuad I.O_Unit (I.String "_outer") I.Empty I.Empty);
       List.iter (fun x -> interOfLetdef x) ldfs;
-      backpatch (List.hd !func_res).next (nextQuad ());
+      (*backpatch (List.hd !func_res).next (nextQuad ());*)
       add_quad (genQuad I.O_Endu (I.String "_outer") I.Empty I.Empty);
       List.iter (fun x -> interOfTypedef x) tdfs
 
@@ -39,14 +39,13 @@ and interOfLetdef = function
         (* function definition *)
         | VAR_Id (sem, _, lst, _) as x ->
             Pervasives.ignore (interOfVardef x);
-            let name = id_name sem.entry.entry_id
-            and res = List.hd !func_res in
-            (* if res.place = Invalid we have a unit function, so no return
-             * stmt required *)
-            if res.place = I.Invalid then ()
-            else add_quad (genQuad I.O_Assign res.place I.Empty 
-                                  (I.Result res.expr_type));
-            backpatch sem.next (nextQuad ());
+            let name = id_name sem.entry.entry_id in
+            if sem.place = I.Invalid
+            then add_quad (genQuad I.O_Assign (List.hd !func_res).place I.Empty
+                                  (I.Result sem.expr_type))
+            else add_quad (genQuad I.O_Assign sem.place I.Empty
+                                  (I.Result sem.expr_type));
+            (*backpatch sem.next (nextQuad ());*)
             add_quad (genQuad I.O_Endu (I.String name) I.Empty I.Empty)
         | _ -> error fi 4 "not var or func type"
       in List.iter (fun x -> var_or_func x) vl
@@ -66,32 +65,42 @@ and interOfVardef = function
         match sem.entry.entry_info with
         | ENTRY_variable _ ->
             let inter_e = interOfExpr e in
-            pp_print "variable" sem;
-            if sem.val_type <> Cond 
+            if sem.val_type <> Cond
             then begin
               if inter_e.place = I.Invalid then ()
-              else add_quad (genQuad I.O_Assign inter_e.place I.Empty 
+              else add_quad (genQuad I.O_Assign inter_e.place I.Empty
                                   (I.Entry sem.entry))
             end
             else begin
               let w = I.Entry (newTemp fi sem.expr_type) in
               backpatch inter_e.true_ (nextQuad ());
               add_quad (genQuad I.O_Assign I.True I.Empty w);
-              add_quad (genQuad I.O_Jump I.Empty I.Empty 
+              add_quad (genQuad I.O_Jump I.Empty I.Empty
                                (I.Label (nextQuad () + 2)));
               backpatch inter_e.false_ (nextQuad ());
               add_quad (genQuad I.O_Assign I.False I.Empty w);
               sem.place <- w;
-              add_quad (genQuad I.O_Assign sem.place I.Empty 
-                                 (I.Entry sem.entry));
+              add_quad (genQuad I.O_Assign sem.place I.Empty
+                                 (I.Entry sem.entry))
             end;
             sem
         | ENTRY_function _ ->
             let name = id_name sem.entry.entry_id in
             add_quad (genQuad I.O_Unit (I.String name) I.Empty I.Empty);
-            let i = interOfExpr e in
-            pp_print "function" sem;
-            i
+            let inter_e = interOfExpr e in
+            if sem.val_type <> Cond then printf "Wrong\n"
+            else begin
+              let w = I.Entry (newTemp fi sem.expr_type) in
+              let q = nextQuad () in
+              backpatch inter_e.true_ q;
+              add_quad (genQuad I.O_Assign I.True I.Empty w);
+              add_quad (genQuad I.O_Jump I.Empty I.Empty
+                               (I.Label (nextQuad () + 2)));
+              backpatch inter_e.false_ (nextQuad ());
+              add_quad (genQuad I.O_Assign I.False I.Empty w);
+              sem.place <- w
+            end;
+            sem
         | _ -> error fi 4 "wrong file info"
       end
   | VAR_MutId (sem, fi, exprl) -> sem
@@ -103,14 +112,14 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_True (sem, info)    ->
-      if sem.val_type <> I.Cond then ()
+      if sem.val_type <> I.Cond then printf "wrong\n"
       else (sem.true_ <- [nextQuad ()];
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch));
       sem.place <- I.True;
       func_res := sem :: !func_res;
       sem
   | E_False (sem, info)   ->
-      if sem.val_type <> I.Cond then ()
+      if sem.val_type <> I.Cond then printf "wrong:false\n"
       else (sem.false_ <- [nextQuad ()];
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch));
       sem.place <- I.False;
@@ -138,6 +147,13 @@ and interOfExpr = function
         match sem.entry.entry_info with
         | ENTRY_parameter _ | ENTRY_variable _ ->
             sem.place <- I.Entry sem.entry;
+            if sem.val_type <> Cond then ()
+            else begin
+              sem.true_ <- [nextQuad ()];
+              add_quad (genQuad I.O_Ifjump sem.place I.Empty I.Backpatch);
+              sem.false_ <- [nextQuad ()];
+              add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch)
+            end;
             func_res := sem :: !func_res;
             sem
         | ENTRY_function _ -> raise (Exit 4)

@@ -138,4 +138,5 @@ val pp_print : string -> sem_val -> unit ;;
 (*********************)
 
 (* Separates the quad list depenging on the structural units *)
+val label_change   : quadruple_t -> int -> quadruple_t ;;
 val separate_quads : quadruple_t list -> quadruple_t list ;;
