@@ -16,7 +16,7 @@
   open InterUtils
 
   (* default entry type for initialization *)
-  let dummy_entry id = { 
+  let dummy_entry id = {
     entry_id = Identifier.id_make id;
     entry_scope = !currentScope;
     entry_info = ENTRY_none;
@@ -181,9 +181,22 @@ vardefs:
 
 vardef:
     T_LitId formals T_Eq expr
-      { VAR_Id (dummy_sem $1.v, $1.i, $2, $4) }
+      {
+        let expr_ = $4 in
+        if ((get_sem_expr expr_).val_type = Cond) then
+          VAR_Id ({(dummy_sem $1.v) with val_type = Cond}, $1.i, $2, expr_)
+        else
+          VAR_Id (dummy_sem $1.v, $1.i, $2, expr_)
+      }
   | T_LitId formals T_Colon typee T_Eq expr
-      { VAR_Id ({(dummy_sem $1.v) with expr_type = $4}, $1.i, $2, $6) }
+      {
+        let expr_ = $6 in
+        if ((get_sem_expr expr_).val_type = Cond) then
+          VAR_Id ({(dummy_sem $1.v) with expr_type = $4; val_type = Cond}, 
+                   $1.i, $2, expr_)
+        else
+          VAR_Id ({(dummy_sem $1.v) with expr_type = $4}, $1.i, $2, expr_)
+      }
   | T_Mutable T_LitId
       { VAR_MutId (dummy_sem $2.v, $2.i, None) }
   | T_Mutable T_LitId T_Colon typee
@@ -230,7 +243,7 @@ param:
     T_LitId
       { VAR_Id (dummy_sem $1.v, $1.i, [], E_Unit (dummy_sem "", dummyinfo)) }
   | T_LParen T_LitId T_Colon typee T_RParen
-      { VAR_Id ({(dummy_sem $2.v) with expr_type = $4}, $2.i, [], 
+      { VAR_Id ({(dummy_sem $2.v) with expr_type = $4}, $2.i, [],
           E_Unit (dummy_sem "", dummyinfo)) }
 
 typees:
@@ -319,9 +332,9 @@ expr:
       { E_Geq (dummy_sem "", $2, $1, $3) }
   /* (* Logical Operators *) */
   | expr T_Andlogic expr
-      { E_Andlogic (dummy_sem "", $2, $1, $3) }
+      { E_Andlogic ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   | expr T_Orlogic expr
-      { E_Orlogic (dummy_sem "", $2, $1, $3) }
+      { E_Orlogic ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   | expr T_Assign expr
       { E_Assign (dummy_sem "", $2, $1, $3) }
   | expr T_Semicolon expr
@@ -336,7 +349,7 @@ expr:
   | T_FMinus expr %prec UFMINUS
       { E_UFMinus (dummy_sem "", $1, $2) }
   | T_Not expr %prec NOT
-      { E_Not (dummy_sem "", $1, $2) }
+      { E_Not ({(dummy_sem "") with val_type = Cond}, $1, $2) }
   | T_New typee
       { E_New ({(dummy_sem "") with expr_type = $2}, $1) }
   | T_Delete expr %prec DELETE
@@ -386,9 +399,11 @@ expr__:
   | T_LitConstr
       { E_LitConstr (dummy_sem $1.v, $1.i) }
   | T_True
-      { E_True ({(dummy_sem "") with expr_type = TY_Bool}, $1) }
+      { E_True (
+        {(dummy_sem "") with expr_type = TY_Bool; val_type = Rval}, $1) }
   | T_False
-      { E_False ({(dummy_sem "") with expr_type = TY_Bool}, $1) }
+      { E_False (
+        {(dummy_sem "") with expr_type = TY_Bool; val_type = Rval}, $1) }
   | T_LitChar
       { E_LitChar ({(dummy_sem "") with expr_type = TY_Char}, $1.i, $1.v) }
   | T_LitInt
@@ -396,7 +411,8 @@ expr__:
   | T_LitFloat
       { E_LitFloat ({(dummy_sem "") with expr_type = TY_Float}, $1.i, $1.v) }
   | T_LitString
-      { E_LitString ({(dummy_sem "") with expr_type = TY_Array(1, TY_Char)}, $1.i, $1.v) }
+      { E_LitString (
+        {(dummy_sem "") with expr_type = TY_Array(1, TY_Char)}, $1.i, $1.v) }
   | T_LParen T_RParen
       { E_Unit ({(dummy_sem "") with expr_type = TY_Unit}, dummyinfo) }
   | T_LParen expr T_RParen

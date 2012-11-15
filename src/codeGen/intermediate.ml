@@ -34,15 +34,18 @@ and interOfLetdef = function
       let var_or_func v =
         match v with
         (* variable definition *)
-        | VAR_Id (_, _, [], _) as x ->
+        | VAR_Id (sem, fi, [], _) as x ->
             Pervasives.ignore (interOfVardef x)
         (* function definition *)
         | VAR_Id (sem, _, lst, _) as x ->
             Pervasives.ignore (interOfVardef x);
             let name = id_name sem.entry.entry_id
             and res = List.hd !func_res in
-            add_quad
-              (genQuad I.O_Assign res.place I.Empty (I.Result res.expr_type));
+            (* if res.place = Invalid we have a unit function, so no return
+             * stmt required *)
+            if res.place = I.Invalid then ()
+            else add_quad (genQuad I.O_Assign res.place I.Empty 
+                                  (I.Result res.expr_type));
             backpatch sem.next (nextQuad ());
             add_quad (genQuad I.O_Endu (I.String name) I.Empty I.Empty)
         | _ -> error fi 4 "not var or func type"
@@ -62,10 +65,26 @@ and interOfVardef = function
       begin
         match sem.entry.entry_info with
         | ENTRY_variable _ ->
-           let sem1 = interOfExpr e in
-           add_quad (genQuad I.O_Assign sem1.place I.Empty (I.Entry sem.entry));
-           sem.next <- [];
-           sem
+            let inter_e = interOfExpr e in
+            if sem.val_type <> Cond 
+            then begin
+              if inter_e.place = I.Invalid then ()
+              else add_quad (genQuad I.O_Assign inter_e.place I.Empty 
+                                  (I.Entry sem.entry))
+            end
+            else begin
+              let w = I.Entry (newTemp fi sem.expr_type) in
+              backpatch inter_e.true_ (nextQuad ());
+              add_quad (genQuad I.O_Assign I.True I.Empty w);
+              add_quad (genQuad I.O_Jump I.Empty I.Empty 
+                               (I.Label (nextQuad () + 2)));
+              backpatch inter_e.false_ (nextQuad ());
+              add_quad (genQuad I.O_Assign I.False I.Empty w);
+              sem.place <- w;
+              add_quad (genQuad I.O_Assign sem.place I.Empty 
+                                 (I.Entry sem.entry));
+            end;
+            sem
         | ENTRY_function _ ->
             let name = id_name sem.entry.entry_id in
             add_quad (genQuad I.O_Unit (I.String name) I.Empty I.Empty);
@@ -81,11 +100,18 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_True (sem, info)    ->
+      if sem.val_type <> I.Cond then ()
+      else (sem.true_ <- [nextQuad ()];
+      add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch));
       sem.place <- I.True;
       func_res := sem :: !func_res;
       sem
   | E_False (sem, info)   ->
+      if sem.val_type <> I.Cond then ()
+      else (sem.false_ <- [nextQuad ()];
+      add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch));
       sem.place <- I.False;
+      func_res := sem :: !func_res;
       sem
   | E_LitInt (sem, info, i)   ->
       sem.place <- I.Int i;
@@ -141,6 +167,7 @@ and interOfExpr = function
   | E_Assign (sem, fi, e1, e2)  ->
       let sem1 = interOfExpr e1
       and sem2 = interOfExpr e2 in
+      sem1.place <- I.Pointer (sem1.entry, sem1.expr_type);
       add_quad (genQuad I.O_Assign sem2.place I.Empty sem1.place);
       sem.next <- [];
       func_res := sem :: !func_res;

@@ -53,7 +53,7 @@ type quadruple_t = {
   * analysis of llamac project. The sem_val struct consists of the information
   * about the expression (value_type and expr_type) and about the intermediate
   * code to be generated (PLACE, NEXT, TRUE and FALSE attribute variables ). *)
-type value_type = Lval | Rval | Dummy
+type value_type = Lval | Rval | Cond | Dummy
 
 type sem_val = {
   mutable entry     : Symbol.entry;
@@ -121,8 +121,9 @@ val backpatch : int list -> int -> unit ;;
 (* Auxilary functions for debbuging *)
 (************************************)
 val str_of_operator : operator_t -> string ;;
-val str_of_pm       : pass_mode_t -> string ;;
 val str_of_operand  : operand_t -> string ;;
+val str_of_pm       : pass_mode_t -> string ;;
+val str_of_val_type : value_type -> string ;;
 
 (* Prints the quad given *)
 val print_quad : out_channel -> quadruple_t -> unit ;;

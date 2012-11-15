@@ -50,7 +50,7 @@ type quadruple_t = {
 }
 
 (* Semantics value struct: *)
-type value_type = Lval | Rval | Dummy
+type value_type = Lval | Rval | Cond | Dummy
 
 type sem_val = {
   mutable entry     : Symbol.entry;
@@ -210,6 +210,12 @@ let str_of_operand = function
   | Result _         -> "$$"
   | Pointer (en ,_)  -> "[" ^ (id_name en.entry_id)  ^ "]"
 
+let str_of_val_type = function
+    Lval -> "LVal"
+  | Rval -> "RVal"
+  | Cond -> "Cond"
+  | Dummy -> "Dummy"
+
 let print_quad channel q =
   fprintf channel "%d:\t%s, %s, %s, %s\n"
   q.label (str_of_operator q.op) (str_of_operand q.op1) (str_of_operand q.op2)
@@ -257,8 +263,8 @@ let separate_quads lst =
 
 (* prints the entry attributes of the sem_val given *)
 let pp_print id sem =
-  Printf.printf "%s: %s, %s, %d, " (id_name sem.entry.entry_id) id
-  (str_of_entry_info sem.entry.entry_info)
-  (sem.entry.entry_scope.sco_nesting);
+  Printf.printf "%s:\t%s,\t%s,\t%s,\t%s,\t%d,\t" (id_name sem.entry.entry_id) id
+  (str_of_entry_info sem.entry.entry_info) (str_of_val_type sem.val_type)
+  (str_of_operand sem.place) (sem.entry.entry_scope.sco_nesting);
   pretty_type Format.std_formatter sem.expr_type;
   Format.print_newline()

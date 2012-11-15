@@ -328,7 +328,6 @@ open Format
 
 let show_offsets = true
 
-
 let str_of_entry_info = function
     ENTRY_none        -> "ENTRY_none"
   | ENTRY_variable _  -> "ENTRY_variable"

@@ -263,8 +263,8 @@ and typeOfVardef rec_flag = function
 and typeOfExpr = function
   (* Constants Operators *)
     E_Unit (sem, info)        -> sem.val_type <- I.Rval; sem
-  | E_True (sem, info)        -> sem.val_type <- I.Rval; sem
-  | E_False (sem, info)       -> sem.val_type <- I.Rval; sem
+  | E_True (sem, info)        -> sem
+  | E_False (sem, info)       -> sem
   | E_LitInt (sem, info, _)   -> sem.val_type <- I.Rval; sem
   | E_LitChar (sem, info, _)  -> sem.val_type <- I.Rval; sem
   | E_LitFloat (sem, info, _) -> sem.val_type <- I.Rval; sem
@@ -467,18 +467,24 @@ and typeOfExpr = function
       else error fi 3 "Type mismatch - not simple type"
   (* Logical Operators *)
   | E_Not (sem, fi, e)       ->
-      if (equalType (typeOfExpr e).expr_type TY_Bool)
+      let sem_ = typeOfExpr e in
+      sem_.val_type <- Cond;
+      if (equalType sem_.expr_type TY_Bool)
       then (sem.expr_type <- TY_Bool; sem)
       else error fi 3 "Type mismatch, TY_Bool expected"
   | E_Andlogic (sem, fi, e1, e2)    ->
-      if (equalType (typeOfExpr e1).expr_type TY_Bool) then
-        if (equalType (typeOfExpr e2).expr_type TY_Bool)
+      let sem1 = typeOfExpr e1
+      and sem2 = typeOfExpr e2 in
+      if (equalType sem1.expr_type TY_Bool) then
+        if (equalType sem2.expr_type TY_Bool)
         then (sem.expr_type <- TY_Bool; sem)
         else error fi 3 "Type mismatch, TY_Bool expected"
       else error fi 3 "Type mismatch, TY_Bool expected"
   | E_Orlogic (sem, fi, e1, e2)     ->
-      if (equalType (typeOfExpr e1).expr_type TY_Bool) then
-        if (equalType (typeOfExpr e2).expr_type TY_Bool)
+      let sem1 = typeOfExpr e1
+      and sem2 = typeOfExpr e2 in
+      if (equalType sem1.expr_type TY_Bool) then
+        if (equalType sem2.expr_type TY_Bool)
         then (sem.expr_type <- TY_Bool; sem)
         else error fi 3 "Type mismatch, TY_Bool expected"
       else error fi 3 "Type mismatch, TY_Bool expected"
@@ -509,21 +515,6 @@ and typeOfExpr = function
       else error fi 3 "Type mismatch, TY_Int expected"
   (* Decomposition of User Defined Types *)
   | E_Match (sem, fi, e, clauses)   ->
-      (*
-      let ex_type = typeOfExpr e in
-      let res_type = ref TY_Unit  in
-      let check_clauses typ_ clause =
-        match clause with
-        | P_Clause (info, pat, ex) ->
-            openScope();
-            if equalType (typeOfPattern pat) ex_type then
-              (res_type := typeOfExpr ex; closeScope())
-            else error info 3 "Wrong pattern type";
-        | _ -> error fi 3 "Not clause form"
-      in
-      List.iter (fun cl -> check_clauses ex_type cl) clauses;
-      !res_type
-      *)
       error fi 3 "user defined data types are not supported"
   (* Local definitions *)
   | E_LetIn (sem, fi, ld, e)        -> (* local declarations *)
@@ -533,7 +524,9 @@ and typeOfExpr = function
       sem
   (* If statement *)
   | E_IfStmt (sem, fi, e, e1, _e2)   ->
-      if isBool (typeOfExpr e).expr_type then
+      let sem_ = typeOfExpr e in
+      sem_.val_type <- Cond;
+      if isBool sem_.expr_type then
         let sem1 = typeOfExpr e1 in
         begin
           match _e2 with

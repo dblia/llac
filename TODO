@@ -1,3 +1,8 @@
+-- intermediate
+
+return stmt (res.place = Invalid) ?
+****distinction between true expr and true cond (and, or, not, ifthenelse)
+
 -- error handling
 
 syntax error can improved?
