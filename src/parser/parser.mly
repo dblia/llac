@@ -314,22 +314,22 @@ expr:
   | expr T_Pow expr
       { E_Pow (dummy_sem "", $2, $1, $3) }
   | expr T_Eq expr
-      { E_Eq (dummy_sem "", $2, $1, $3) }
+      { E_Eq ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   | expr T_Differ expr
-      { E_Differ (dummy_sem "", $2, $1, $3) }
+      { E_Differ ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   /* (* Relational Operators *) */
   | expr T_Equal expr
-      { E_Equal (dummy_sem "", $2, $1, $3) }
+      { E_Equal ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   | expr T_NEqual expr
-      { E_NEqual (dummy_sem "", $2, $1, $3) }
+      { E_NEqual ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   | expr T_Lt expr
-      { E_Lt (dummy_sem "", $2, $1, $3) }
+      { E_Lt ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   | expr T_Gt expr
-      { E_Gt (dummy_sem "", $2, $1, $3) }
+      { E_Gt ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   | expr T_Leq expr
-      { E_Leq (dummy_sem "", $2, $1, $3) }
+      { E_Leq ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   | expr T_Geq expr
-      { E_Geq (dummy_sem "", $2, $1, $3) }
+      { E_Geq ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   /* (* Logical Operators *) */
   | expr T_Andlogic expr
       { E_Andlogic ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }

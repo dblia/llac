@@ -66,6 +66,7 @@ and interOfVardef = function
         match sem.entry.entry_info with
         | ENTRY_variable _ ->
             let inter_e = interOfExpr e in
+            pp_print "variable" sem;
             if sem.val_type <> Cond 
             then begin
               if inter_e.place = I.Invalid then ()
@@ -88,7 +89,9 @@ and interOfVardef = function
         | ENTRY_function _ ->
             let name = id_name sem.entry.entry_id in
             add_quad (genQuad I.O_Unit (I.String name) I.Empty I.Empty);
-            interOfExpr e
+            let i = interOfExpr e in
+            pp_print "function" sem;
+            i
         | _ -> error fi 4 "wrong file info"
       end
   | VAR_MutId (sem, fi, exprl) -> sem
