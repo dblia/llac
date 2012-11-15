@@ -372,15 +372,19 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_Andlogic (sem, fi, e1, e2) ->
-      backpatch (interOfExpr e1).true_ (nextQuad ());
-      sem.true_ <- (interOfExpr e2).true_;
-      sem.false_ <- merge [(interOfExpr e1).false_; (interOfExpr e2).false_];
+      let sem1 = interOfExpr e1 in
+      backpatch sem1.true_ (nextQuad ());
+      let sem2 = interOfExpr e2 in
+      sem.true_ <- sem2.true_;
+      sem.false_ <- merge [sem1.false_; sem2.false_];
       func_res := sem :: !func_res;
       sem
   | E_Orlogic (sem, fi, e1, e2)  ->
-      backpatch (interOfExpr e1).false_ (nextQuad ());
-      sem.true_ <- merge [(interOfExpr e1).true_; (interOfExpr e2).true_];
-      sem.false_ <- (interOfExpr e2).false_;
+      let sem1 = interOfExpr e1 in
+      backpatch sem1.false_ (nextQuad ());
+      let sem2 = interOfExpr e2 in
+      sem.true_ <- merge [sem1.true_; sem2.true_];
+      sem.false_ <- sem2.false_;
       func_res := sem :: !func_res;
       sem
   (* Imperative Commands *)

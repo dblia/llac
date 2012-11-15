@@ -475,6 +475,8 @@ and typeOfExpr = function
   | E_Andlogic (sem, fi, e1, e2)    ->
       let sem1 = typeOfExpr e1
       and sem2 = typeOfExpr e2 in
+      sem1.val_type <- Cond;
+      sem2.val_type <- Cond;
       if (equalType sem1.expr_type TY_Bool) then
         if (equalType sem2.expr_type TY_Bool)
         then (sem.expr_type <- TY_Bool; sem)
@@ -483,6 +485,8 @@ and typeOfExpr = function
   | E_Orlogic (sem, fi, e1, e2)     ->
       let sem1 = typeOfExpr e1
       and sem2 = typeOfExpr e2 in
+      sem1.val_type <- Cond;
+      sem2.val_type <- Cond;
       if (equalType sem1.expr_type TY_Bool) then
         if (equalType sem2.expr_type TY_Bool)
         then (sem.expr_type <- TY_Bool; sem)
