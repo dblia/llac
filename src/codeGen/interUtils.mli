@@ -129,7 +129,6 @@ val str_of_val_type : value_type -> string ;;
 val print_quad : out_channel -> quadruple_t -> unit ;;
 (* Prints the quads to the file given *)
 val print_quads_to_file  : out_channel -> quadruple_t list -> unit ;;
-(* Prints the quads to the file given, but with labels in incremental order *)
 val print_quads_to_file2 : out_channel -> quadruple_t list -> unit ;;
 (* Prints the entry attributes of the sem_val struct given *)
 val pp_print : string -> sem_val -> unit ;;
@@ -139,4 +138,6 @@ val pp_print : string -> sem_val -> unit ;;
 
 (* Separates the quad list depenging on the structural units *)
 val label_change   : quadruple_t -> int -> quadruple_t ;;
+val labels_rebuilt : quadruple_t list -> quadruple_t list -> int ->
+                     quadruple_t list ;;
 val separate_quads : quadruple_t list -> quadruple_t list ;;

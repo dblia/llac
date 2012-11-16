@@ -238,19 +238,30 @@ let print_quads_to_file2 channel acc =
   Pervasives.ignore (List.map (print_quad_ channel) acc)
 
 let label_change quad cnt =
+  let lab = quad.label in
   match quad.op3 with
-  | Label i -> {quad with op3 = Label (i - cnt)}
-  | _  -> quad
+  | Label i -> 
+      { quad with label = lab; op3 = Label (i - lab + cnt) }
+  | _  -> 
+      { quad with label = lab }
+
+let rec labels_rebuilt lst acc cnt = 
+  match lst with
+  | [] -> List.rev acc
+  | (hd :: tl) ->
+      let newq = label_change hd cnt in
+      labels_rebuilt tl (newq :: acc) (cnt + 1)
 
 let separate_quads lst =
-  let cnt : int ref = ref 0 in
   (* lst : quad_list
    * acc : accumulator for the _outer scope and the final result
    * acc1: accumulator for a new function structural unit found
    * acc2: accumulator for the functions structural units *)
   let rec quads_sep lst acc acc1 acc2 flag =
   match lst with
-  | [] -> List.append acc2 acc
+  | [] -> 
+      let res = List.append acc2 acc in
+      labels_rebuilt res [] 1
   | (hd :: tl) ->
       (* find a unit's (not _outer's) start *)
       if not flag && ((str_of_operator hd.op) = "unit") &&
@@ -261,15 +272,9 @@ let separate_quads lst =
               ((str_of_operand hd.op1) <> "_outer")
       then quads_sep tl acc [] (List.append acc2 (List.rev (hd :: acc1))) false
       (* we are in a unit's body (not _outer's) *)
-      else if flag then (
-        let newq = label_change hd !cnt in
-        quads_sep tl acc (newq :: acc1) acc2 true
-      )
+      else if flag then quads_sep tl acc (hd :: acc1) acc2 true
       (* we are in the _outer scope *)
-      else (
-        cnt := !cnt + 1;
-        quads_sep tl (List.append acc [hd]) [] acc2 false
-      )
+      else quads_sep tl (List.append acc [hd]) [] acc2 false
   in
   quads_sep lst [] [] [] false
 

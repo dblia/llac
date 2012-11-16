@@ -545,8 +545,10 @@ and typeOfExpr = function
               if (equalType sem1.expr_type TY_Unit) 
               then (sem.expr_type <- sem1.expr_type; sem)
               else 
-                let fi1 = get_info_expr e1 in
-                error fi1 3 "This expression should have type unit"
+                let fi1 = get_info_expr e1 
+                and str1 = "the expression after 'then' is not of type "
+                and str2 = "unit and there is no 'else'" in
+                error fi1 3 (str1 ^ str2) 
         end
       else
         let fi1 = get_info_expr e in

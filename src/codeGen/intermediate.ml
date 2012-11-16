@@ -24,7 +24,6 @@ let rec interOf = function
     PROGRAM (ldfs, tdfs) ->
       add_quad (genQuad I.O_Unit (I.String "_outer") I.Empty I.Empty);
       List.iter (fun x -> interOfLetdef x) ldfs;
-      (*backpatch (List.hd !func_res).next (nextQuad ());*)
       add_quad (genQuad I.O_Endu (I.String "_outer") I.Empty I.Empty);
       List.iter (fun x -> interOfTypedef x) tdfs
 
@@ -40,12 +39,14 @@ and interOfLetdef = function
         | VAR_Id (sem, _, lst, _) as x ->
             Pervasives.ignore (interOfVardef x);
             let name = id_name sem.entry.entry_id in
-            if sem.place = I.Invalid
-            then add_quad (genQuad I.O_Assign (List.hd !func_res).place I.Empty
-                                  (I.Result sem.expr_type))
-            else add_quad (genQuad I.O_Assign sem.place I.Empty
-                                  (I.Result sem.expr_type));
-            (*backpatch sem.next (nextQuad ());*)
+            if sem.place <> I.Invalid then
+            add_quad (genQuad I.O_Assign sem.place I.Empty 
+                             (I.Result sem.expr_type))
+            else if (List.hd !func_res).place <> I.Invalid then
+            add_quad (genQuad I.O_Assign (List.hd !func_res).place I.Empty
+                             (I.Result sem.expr_type))
+            else ();
+            backpatch (List.hd !func_res).next (nextQuad ());
             add_quad (genQuad I.O_Endu (I.String name) I.Empty I.Empty)
         | _ -> error fi 4 "not var or func type"
       in List.iter (fun x -> var_or_func x) vl
@@ -88,7 +89,7 @@ and interOfVardef = function
             let name = id_name sem.entry.entry_id in
             add_quad (genQuad I.O_Unit (I.String name) I.Empty I.Empty);
             let inter_e = interOfExpr e in
-            if sem.val_type <> Cond then printf "Wrong\n"
+            if sem.val_type <> Cond then ()
             else begin
               let w = I.Entry (newTemp fi sem.expr_type) in
               let q = nextQuad () in
@@ -112,14 +113,14 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_True (sem, info)    ->
-      if sem.val_type <> I.Cond then printf "wrong\n"
+      if sem.val_type <> I.Cond then ()
       else (sem.true_ <- [nextQuad ()];
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch));
       sem.place <- I.True;
       func_res := sem :: !func_res;
       sem
   | E_False (sem, info)   ->
-      if sem.val_type <> I.Cond then printf "wrong:false\n"
+      if sem.val_type <> I.Cond then ()
       else (sem.false_ <- [nextQuad ()];
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch));
       sem.place <- I.False;
@@ -440,25 +441,26 @@ and interOfExpr = function
   | E_LetIn (sem, fi, ld, e)        -> sem (* local declarations *)
   (* If statement *)
   | E_IfStmt (sem, fi, e, e1, _e2)  ->
-      let cond_sem = interOfExpr e in
-      let stmt1_sem = interOfExpr e1 in
-      backpatch cond_sem.true_ (nextQuad ());
-      let l1 = cond_sem.false_ in
-      let l2 = [] in begin
-      match _e2 with
-      | Some e2 -> (* else stmt *)
-          let stmt2_sem = interOfExpr e2 in
-          let l1 = [nextQuad ()] in
-          add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
-          backpatch cond_sem.false_ (nextQuad ());
-          let l2 = stmt2_sem.next in
-          sem.next <- merge [l1; stmt1_sem.next; l2];
-          func_res := sem :: !func_res;
-          sem
-      | None    -> (* no else stmt *)
-          sem.next <- merge [l1; stmt1_sem.next; l2];
-          func_res := sem :: !func_res;
-          sem
+      let cond = interOfExpr e in
+      backpatch cond.true_ (nextQuad ());
+      let l1 = cond.false_
+      and l2 = [] in begin
+        match _e2 with
+        | Some e2 ->
+            let l1 = [nextQuad ()] in
+            add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
+            backpatch cond.false_ (nextQuad ());
+            let stmt2 = interOfExpr e2 in
+            let l2 = stmt2.next
+            and stmt1 = interOfExpr e2 in
+            sem.next <- merge [l1; stmt1.next; l2];          
+            func_res := sem :: !func_res;
+            sem
+        | None -> 
+            let stmt1 = interOfExpr e1 in
+            sem.next <- merge [l1; stmt1.next; l2];          
+            func_res := sem :: !func_res;
+            sem
       end
   (* Array Elements and Dimensions *)
   | E_Dim (sem, fi, i)      -> sem
