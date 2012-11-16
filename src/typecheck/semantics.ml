@@ -535,13 +535,18 @@ and typeOfExpr = function
         begin
           match _e2 with
           | Some e2 ->
-              if (equalType sem1.expr_type (typeOfExpr e2).expr_type)
-              then let sem = sem1 in sem
+              let sem2 = typeOfExpr e2 in
+              if (equalType sem1.expr_type sem2.expr_type)
+              then (sem.expr_type <- sem1.expr_type; sem)
               else
                 let fi2 = get_info_expr e2 in
                 error fi2 3 "This expression has wrong type"
           | None -> (* FIXME: should be TY_Unit (check p.12) *)
-              let sem = sem1 in sem
+              if (equalType sem1.expr_type TY_Unit) 
+              then (sem.expr_type <- sem1.expr_type; sem)
+              else 
+                let fi1 = get_info_expr e1 in
+                error fi1 3 "This expression should have type unit"
         end
       else
         let fi1 = get_info_expr e in
