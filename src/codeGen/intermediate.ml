@@ -31,7 +31,6 @@ let rec interOf = function
     PROGRAM (ldfs, tdfs) ->
       add_quad (genQuad I.O_Unit (I.String "_outer") I.Empty I.Empty);
       List.iter (fun x -> interOfLetdef x) ldfs;
-      backpatch (List.hd !func_res).next (nextQuad () - 1);
       add_quad (genQuad I.O_Endu (I.String "_outer") I.Empty I.Empty);
       List.iter (fun x -> interOfTypedef x) tdfs
 
@@ -43,6 +42,10 @@ and interOfLetdef = function
         (* variable definition *)
         | VAR_Id (sem, fi, [], _) as x ->
             Pervasives.ignore (interOfVardef x);
+            if !if_flag_unit 
+            then backpatch (List.hd !func_res).next (nextQuad ())
+            else (if_flag_unit := true; (* flag reset *)
+            backpatch (List.hd !func_res).next (nextQuad () - 1))
         (* function definition *)
         | VAR_Id (sem, _, lst, _) as x ->
             Pervasives.ignore (interOfVardef x);
@@ -56,7 +59,8 @@ and interOfLetdef = function
             else ();
             if !if_flag_unit 
             then backpatch (List.hd !func_res).next (nextQuad ())
-            else backpatch (List.hd !func_res).next (nextQuad () - 1);
+            else (if_flag_unit := true; (* flag reset *)
+            backpatch (List.hd !func_res).next (nextQuad () - 1));
             add_quad (genQuad I.O_Endu (I.String name) I.Empty I.Empty)
         | _ -> error fi 4 "not var or func type"
       in List.iter (fun x -> var_or_func x) vl
