@@ -20,10 +20,18 @@ open Identifier
  * <endu, name, _, _>, is the return function's stmt. *)
 let func_res = ref []
 
+(* Used for bug fixing in case of if-stmt where it's return type is not TY_Unit:
+ * It has been noticed that in those cases the backpatch function putted an
+ * value increased by one value in jump quadruples. By this value we are able to
+ * now if we came from an if-stmt that returns a value and we decrease the
+ * number by one as needed to be *)
+let if_flag_unit = ref true
+
 let rec interOf = function
     PROGRAM (ldfs, tdfs) ->
       add_quad (genQuad I.O_Unit (I.String "_outer") I.Empty I.Empty);
       List.iter (fun x -> interOfLetdef x) ldfs;
+      backpatch (List.hd !func_res).next (nextQuad () - 1);
       add_quad (genQuad I.O_Endu (I.String "_outer") I.Empty I.Empty);
       List.iter (fun x -> interOfTypedef x) tdfs
 
@@ -34,19 +42,21 @@ and interOfLetdef = function
         match v with
         (* variable definition *)
         | VAR_Id (sem, fi, [], _) as x ->
-            Pervasives.ignore (interOfVardef x)
+            Pervasives.ignore (interOfVardef x);
         (* function definition *)
         | VAR_Id (sem, _, lst, _) as x ->
             Pervasives.ignore (interOfVardef x);
             let name = id_name sem.entry.entry_id in
             if sem.place <> I.Invalid then
-            add_quad (genQuad I.O_Assign sem.place I.Empty 
+            add_quad (genQuad I.O_Assign sem.place I.Empty
                              (I.Result sem.expr_type))
             else if (List.hd !func_res).place <> I.Invalid then
             add_quad (genQuad I.O_Assign (List.hd !func_res).place I.Empty
                              (I.Result sem.expr_type))
             else ();
-            backpatch (List.hd !func_res).next (nextQuad ());
+            if !if_flag_unit 
+            then backpatch (List.hd !func_res).next (nextQuad ())
+            else backpatch (List.hd !func_res).next (nextQuad () - 1);
             add_quad (genQuad I.O_Endu (I.String name) I.Empty I.Empty)
         | _ -> error fi 4 "not var or func type"
       in List.iter (fun x -> var_or_func x) vl
@@ -68,7 +78,7 @@ and interOfVardef = function
             let inter_e = interOfExpr e in
             if sem.val_type <> Cond
             then begin
-              if inter_e.place = I.Invalid then ()
+              if inter_e.expr_type = TY_Unit then ()
               else add_quad (genQuad I.O_Assign inter_e.place I.Empty
                                   (I.Entry sem.entry))
             end
@@ -192,14 +202,14 @@ and interOfExpr = function
       sem.next <- [];
       func_res := sem :: !func_res;
       sem
-  | E_Deref  (sem, fi, e)       -> (* FIXME: type should be ref? *)
+  | E_Deref (sem, fi, e)       ->
       let w = newTemp fi sem.expr_type in
       add_quad (genQuad I.O_Assign (interOfExpr e).place I.Empty (I.Entry w));
       sem.place <- I.Pointer (w, sem.expr_type);
       func_res := sem :: !func_res;
       sem
   (* FIXME: Memory Dynamic Allocation *)
-  | E_New    (sem, fi)          ->
+  | E_New (sem, fi)          ->
       let size = sizeOfType sem.expr_type in
       add_quad (genQuad I.O_Par (I.Int size) (I.Pass V) I.Empty);
       add_quad (genQuad I.O_Par sem.place (I.Pass RET) I.Empty);
@@ -214,7 +224,7 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   (* Binary Integer Arithmetic Operators *)
-  | E_Plus  (sem, fi, e1, e2)   ->
+  | E_Plus (sem, fi, e1, e2)   ->
       let w = I.Entry (newTemp fi sem.expr_type)
       and sem1 = interOfExpr e1
       and sem2 = interOfExpr e2 in
@@ -440,28 +450,53 @@ and interOfExpr = function
   (* Local definitions *)
   | E_LetIn (sem, fi, ld, e)        -> sem (* local declarations *)
   (* If statement *)
-  | E_IfStmt (sem, fi, e, e1, _e2)  ->
+  | E_IfStmt (sem, fi, e, e1, _e2)  -> begin
       let cond = interOfExpr e in
       backpatch cond.true_ (nextQuad ());
       let l1 = cond.false_
-      and l2 = [] in begin
-        match _e2 with
-        | Some e2 ->
-            let l1 = [nextQuad ()] in
-            add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
-            backpatch cond.false_ (nextQuad ());
-            let stmt2 = interOfExpr e2 in
-            let l2 = stmt2.next
-            and stmt1 = interOfExpr e2 in
-            sem.next <- merge [l1; stmt1.next; l2];          
-            func_res := sem :: !func_res;
-            sem
-        | None -> 
-            let stmt1 = interOfExpr e1 in
-            sem.next <- merge [l1; stmt1.next; l2];          
-            func_res := sem :: !func_res;
-            sem
-      end
+      and stmt1 = interOfExpr e1 in
+      match sem.expr_type with
+      | TY_Unit -> (* if-stmt is of unit type *)
+        let l2 = [] in begin
+          match _e2 with
+          | Some e2 -> (* if-then-else case *)
+              let l1 = [nextQuad ()] in
+              add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
+              backpatch cond.false_ (nextQuad ());
+              let stmt2 = interOfExpr e2 in
+              let l2 = stmt2.next in
+              sem.next <- merge [l1; stmt1.next; l2];
+              func_res := sem :: !func_res;
+              sem
+          | None -> (* if-then case *)
+              sem.next <- merge [l1; stmt1.next; l2];
+              func_res := sem :: !func_res;
+              sem
+        end
+      | _ -> (* if-stmt returns a value *)
+        let w = I.Entry (newTemp fi stmt1.expr_type) in 
+        add_quad (genQuad I.O_Assign stmt1.place I.Empty w);
+        let l2 = [] in begin
+          match _e2 with
+          | Some e2 -> (* if-then-else case *)
+              let l1 = [nextQuad ()] in
+              add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
+              backpatch cond.false_ (nextQuad ());
+              let stmt2 = interOfExpr e2 in
+              add_quad (genQuad I.O_Assign stmt2.place I.Empty w);
+              let l2 = stmt2.next in
+              sem.next <- merge [l1; stmt1.next; l2];
+              sem.place <- w;
+              func_res := sem :: !func_res;
+              if_flag_unit := false;
+              sem
+          | None -> (* if-then case *)
+              sem.next <- merge [l1; stmt1.next; l2];
+              func_res := sem :: !func_res;
+              if_flag_unit := false;
+              sem
+        end
+  end
   (* Array Elements and Dimensions *)
   | E_Dim (sem, fi, i)      -> sem
   | E_ArrayEl (sem, fi, el) -> sem
@@ -469,19 +504,4 @@ and interOfExpr = function
   | E_Call (sem, fi, el)    -> sem
   | E_ConstrCall (sem, fi,el) ->  (* TODO: not supported yet *)
       error fi 3 "user defined data types are not supported"
-
-
-and interOfPattern = function
-    P_True (sem, fi)            -> sem
-  | P_False (sem, fi)           -> sem
-  | P_LitId (sem, fi)           -> sem
-  | P_LitChar (sem, fi, c)      -> sem
-  | P_LitFloat (sem, fi, f)     -> sem
-  | P_Plus (sem, fi, _)         -> sem
-  | P_FPlus (sem, fi, _)        -> sem
-  | P_Minus (sem, fi, _)        -> sem
-  | P_FMinus  (sem, fi, _)      -> sem
-  | P_LitConstr (sem, fi, patl) -> (* TODO: not supported yet *)
-      error fi 3 "user defined data types are not supported"
-  | _                           -> err "Wrong pattern form"
 ;;

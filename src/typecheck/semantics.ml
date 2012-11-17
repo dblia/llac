@@ -541,14 +541,14 @@ and typeOfExpr = function
               else
                 let fi2 = get_info_expr e2 in
                 error fi2 3 "This expression has wrong type"
-          | None -> (* FIXME: should be TY_Unit (check p.12) *)
-              if (equalType sem1.expr_type TY_Unit) 
+          | None ->
+              if (equalType sem1.expr_type TY_Unit)
               then (sem.expr_type <- sem1.expr_type; sem)
-              else 
-                let fi1 = get_info_expr e1 
+              else
+                let fi1 = get_info_expr e1
                 and str1 = "the expression after 'then' is not of type "
                 and str2 = "unit and there is no 'else'" in
-                error fi1 3 (str1 ^ str2) 
+                error fi1 3 (str1 ^ str2)
         end
       else
         let fi1 = get_info_expr e in
