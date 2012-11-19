@@ -344,7 +344,7 @@ and typeOfExpr = function
       else error fi 3 "Type mismatch, cannot allocate TY_Array or TY_Function."
   | E_Delete (sem, fi, e)      -> (* FIXME: check that mem was allocated dynamically *)
       if isRef (typeOfExpr e).expr_type
-      then (sem.expr_type <- TY_Int; sem)
+      then (sem.expr_type <- TY_Unit; sem)
       else error fi 3 "Type mismatch, only TY_Ref can be unallocated."
   (* Binary Integer Arithmetic Operators *)
   | E_Plus (sem, fi, e1, e2)   ->

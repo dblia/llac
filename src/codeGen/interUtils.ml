@@ -204,8 +204,8 @@ let str_of_operand = function
   | Pass pm          -> str_of_pm pm
   | Backpatch        -> "*"
   | Empty            -> "-"
-  | New              -> "new"
-  | Delete           -> "delete"
+  | New              -> "_new"
+  | Delete           -> "_delete"
   | Entry en         -> id_name en.entry_id
   | Result _         -> "$$"
   | Pointer (en ,_)  -> "[" ^ (id_name en.entry_id)  ^ "]"

@@ -214,15 +214,17 @@ and interOfExpr = function
       sem
   (* FIXME: Memory Dynamic Allocation *)
   | E_New (sem, fi)          ->
-      let size = sizeOfType sem.expr_type in
+      let size = sizeOfType sem.expr_type
+      and w = I.Entry (newTemp fi sem.expr_type) in
       add_quad (genQuad I.O_Par (I.Int size) (I.Pass V) I.Empty);
-      add_quad (genQuad I.O_Par sem.place (I.Pass RET) I.Empty);
+      add_quad (genQuad I.O_Par w (I.Pass RET) I.Empty);
       add_quad (genQuad I.O_Call I.Empty I.Empty I.New);
       sem.next <- [];
+      sem.place <- w;
       func_res := sem :: !func_res;
       sem
   | E_Delete (sem, fi, e)       -> (* FIXME: check that mem was allocated dynamically *)
-      add_quad (genQuad I.O_Par (interOfExpr e).place (I.Pass R) I.Empty);
+      add_quad (genQuad I.O_Par (interOfExpr e).place (I.Pass V) I.Empty);
       add_quad (genQuad I.O_Call I.Empty I.Empty I.Delete);
       sem.next <- [];
       func_res := sem :: !func_res;
