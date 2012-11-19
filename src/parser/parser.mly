@@ -349,7 +349,7 @@ expr:
   | T_FMinus expr %prec UFMINUS
       { E_UFMinus (dummy_sem "", $1, $2) }
   | T_Not expr %prec NOT
-      { E_Not ({(dummy_sem "") with val_type = Cond}, $1, $2) }
+      { E_Not ({(dummy_sem "not") with val_type = Cond}, $1, $2) }
   | T_New typee
       { E_New ({(dummy_sem "") with expr_type = $2}, $1) }
   | T_Delete expr %prec DELETE
@@ -400,10 +400,10 @@ expr__:
       { E_LitConstr (dummy_sem $1.v, $1.i) }
   | T_True
       { E_True (
-        {(dummy_sem "") with expr_type = TY_Bool; val_type = Rval}, $1) }
+        {(dummy_sem "") with expr_type = TY_Bool}, $1) }
   | T_False
       { E_False (
-        {(dummy_sem "") with expr_type = TY_Bool; val_type = Rval}, $1) }
+        {(dummy_sem "") with expr_type = TY_Bool}, $1) }
   | T_LitChar
       { E_LitChar ({(dummy_sem "") with expr_type = TY_Char}, $1.i, $1.v) }
   | T_LitInt

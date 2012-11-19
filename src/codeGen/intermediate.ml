@@ -83,9 +83,9 @@ and interOfVardef = function
         match sem.entry.entry_info with
         | ENTRY_variable _ ->
             let inter_e = interOfExpr e in
-            if sem.val_type <> Cond
+            if inter_e.val_type <> Cond
             then begin
-              if inter_e.expr_type = TY_Unit then ()
+              if inter_e.expr_type = TY_Unit || inter_e.place = I.Unit then ()
               else add_quad (genQuad I.O_Assign inter_e.place I.Empty
                                   (I.Entry sem.entry))
             end
@@ -106,7 +106,7 @@ and interOfVardef = function
             let name = id_name sem.entry.entry_id in
             add_quad (genQuad I.O_Unit (I.String name) I.Empty I.Empty);
             let inter_e = interOfExpr e in
-            if sem.val_type <> Cond then ()
+            if inter_e.val_type <> Cond then ()
             else begin
               let w = I.Entry (newTemp fi sem.expr_type) in
               let q = nextQuad () in
@@ -441,29 +441,60 @@ and interOfExpr = function
   (* Imperative Commands *)
   | E_Block (sem, fi, e)     -> sem
   | E_Semicolon (sem, fi, e1, e2)  ->
-      Pervasives.ignore (interOfExpr e1);
-      sem.place <- (interOfExpr e2).place;
+      let inter_e1 = interOfExpr e1 in
+      printf "name: %s\n" (id_name inter_e1.entry.entry_id);
+      if (id_name inter_e1.entry.entry_id = "not") then (
+        let w = I.Entry (newTemp fi inter_e1.expr_type) in
+        backpatch inter_e1.true_ (nextQuad ());
+        add_quad (genQuad I.O_Assign I.True I.Empty w);
+        add_quad (genQuad I.O_Jump I.Empty I.Empty (I.Label (nextQuad() + 2)));
+        backpatch inter_e1.false_ (nextQuad ());
+        add_quad (genQuad I.O_Assign I.False I.Empty w);
+      )
+      else if inter_e1.val_type = Cond then (
+        backpatch inter_e1.true_ (nextQuad ());
+        backpatch inter_e1.false_ (nextQuad ());
+      );
+      let inter_e2 = interOfExpr e2 in
+      if inter_e2.val_type = Cond then (
+        sem.val_type <- inter_e2.val_type;
+        sem.true_ <- inter_e2.true_;
+        sem.false_ <- inter_e2.false_
+      );
+      sem.place <- inter_e2.place;
       func_res := sem :: !func_res;
       sem
   | E_While (sem, fi, e1, e2)      ->
       let q = nextQuad ()
       and inter_e1 = interOfExpr e1 in
       backpatch inter_e1.true_ (nextQuad ());
-      backpatch (interOfExpr e2).next q;
+      let inter_e2 = interOfExpr e2 in
+      backpatch inter_e2.next (nextQuad ());
       add_quad (genQuad I.O_Jump I.Empty I.Empty (I.Label q));
       sem.next <- inter_e1.false_;
       func_res := sem :: !func_res;
       sem
   | E_For (sem, fi, ti, e1, e2, e) -> (* FIXME: is it correct? *)
-      let cond_q = nextQuad ()
-      and cond_true = (interOfExpr e2).true_
-      and cond_false = (interOfExpr e2).false_
-      and simple_quad = nextQuad ()
-      and body_fst_quad = nextQuad () + 1 in
+      let inter_e1 = interOfExpr e1
+      and varId = I.String (id_name sem.entry.entry_id) in
+      add_quad (genQuad I.O_Assign inter_e1.place I.Empty varId); 
+      let inter_e2 = interOfExpr e2 in
+      let w = I.Entry (newTemp fi inter_e2.expr_type) in
+      add_quad (genQuad I.O_Assign inter_e2.place I.Empty w);
+      let cond_q = nextQuad () in
+      printf "%d\n" cond_q;
+      if (ti == UPTO) then (
+        add_quad (genQuad I.O_Gt varId w I.Backpatch);
+        Pervasives.ignore (interOfExpr e);
+        add_quad (genQuad I.O_Plus varId (I.Int 1) varId)
+      )
+      else ( 
+        add_quad (genQuad I.O_Lt varId w I.Backpatch);
+        Pervasives.ignore (interOfExpr e);
+        add_quad (genQuad I.O_Minus varId (I.Int 1) varId)
+      );
       add_quad (genQuad I.O_Jump I.Empty I.Empty (I.Label cond_q));
-      backpatch cond_true body_fst_quad;
-      add_quad (genQuad I.O_Jump I.Empty I.Empty (I.Label simple_quad));
-      sem.next <- cond_false;
+      backpatch [cond_q] (nextQuad ());
       func_res := sem :: !func_res;
       sem
   (* Decomposition of User Defined Types *)

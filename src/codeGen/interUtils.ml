@@ -151,7 +151,7 @@ let backpatch l z =
       match quad.op3 with
       | Backpatch -> quad.op3 <- Label z
       | _ ->
-          printf "backapatch: invalid backpatch request";
+          printf "backapatch: invalid backpatch request\n";
           raise (Exit 4)
   in
   List.iter iter !quad_list
