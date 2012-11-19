@@ -202,10 +202,19 @@ and interOfExpr = function
       sem
   (* References and assigments *)
   | E_Assign (sem, fi, e1, e2)  ->
-      let sem1 = interOfExpr e1
-      and sem2 = interOfExpr e2 in
-      sem1.place <- I.Pointer (sem1.entry, sem1.expr_type);
-      add_quad (genQuad I.O_Assign sem2.place I.Empty sem1.place);
+      let inter_e1 = interOfExpr e1
+      and inter_e2 = interOfExpr e2 in
+      if inter_e2.val_type = Cond then (
+        let w = I.Entry (newTemp fi inter_e2.expr_type) in
+        backpatch inter_e2.true_ (nextQuad ());
+        add_quad (genQuad I.O_Assign I.True I.Empty w);
+        add_quad (genQuad I.O_Jump I.Empty I.Empty (I.Label (nextQuad() + 2)));
+        backpatch inter_e2.false_ (nextQuad ());
+        add_quad (genQuad I.O_Assign I.False I.Empty w);
+        inter_e2.place <- w;
+      );
+      inter_e1.place <- I.Pointer (inter_e1.entry, inter_e1.expr_type);
+      add_quad (genQuad I.O_Assign inter_e2.place I.Empty inter_e1.place);
       sem.next <- [];
       func_res := sem :: !func_res;
       sem
@@ -328,9 +337,9 @@ and interOfExpr = function
       sem
   (* Structural and Natural Equality Operators *)
   | E_Eq (sem, fi, e1, e2)       ->
-      let quad_true = nextQuad ()
-      and sem1 = interOfExpr e1
-      and sem2 = interOfExpr e2 in
+      let sem1 = interOfExpr e1
+      and sem2 = interOfExpr e2
+      and quad_true = nextQuad () in
       add_quad (genQuad I.O_SEqual sem1.place sem2.place I.Backpatch);
       let quad_false = nextQuad () in
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
@@ -339,9 +348,9 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_Differ (sem, fi, e1, e2)   ->
-      let quad_true = nextQuad ()
-      and sem1 = interOfExpr e1
-      and sem2 = interOfExpr e2 in
+      let sem1 = interOfExpr e1
+      and sem2 = interOfExpr e2
+      and quad_true = nextQuad () in
       add_quad (genQuad I.O_SNEqual sem1.place sem2.place I.Backpatch);
       let quad_false = nextQuad () in
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
@@ -350,9 +359,9 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_Equal (sem, fi, e1, e2)    ->
-      let quad_true = nextQuad ()
-      and sem1 = interOfExpr e1
-      and sem2 = interOfExpr e2 in
+      let sem1 = interOfExpr e1
+      and sem2 = interOfExpr e2
+      and quad_true = nextQuad () in
       add_quad (genQuad I.O_Equal sem1.place sem2.place I.Backpatch);
       let quad_false = nextQuad () in
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
@@ -361,9 +370,9 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_NEqual (sem, fi, e1, e2)   ->
-      let quad_true = nextQuad ()
-      and sem1 = interOfExpr e1
-      and sem2 = interOfExpr e2 in
+      let sem1 = interOfExpr e1
+      and sem2 = interOfExpr e2
+      and quad_true = nextQuad () in
       add_quad (genQuad I.O_NEqual sem1.place sem2.place I.Backpatch);
       let quad_false = nextQuad () in
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
@@ -372,9 +381,9 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_Lt (sem, fi, e1, e2)       ->
-      let quad_true = nextQuad ()
-      and sem1 = interOfExpr e1
-      and sem2 = interOfExpr e2 in
+      let sem1 = interOfExpr e1
+      and sem2 = interOfExpr e2
+      and quad_true = nextQuad () in
       add_quad (genQuad I.O_Lt sem1.place sem2.place I.Backpatch);
       let quad_false = nextQuad () in
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
@@ -383,9 +392,9 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_Gt (sem, fi, e1, e2)       ->
-      let quad_true = nextQuad ()
-      and sem1 = interOfExpr e1
-      and sem2 = interOfExpr e2 in
+      let sem1 = interOfExpr e1
+      and sem2 = interOfExpr e2
+      and quad_true = nextQuad () in
       add_quad (genQuad I.O_Gt sem1.place sem2.place I.Backpatch);
       let quad_false = nextQuad () in
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
@@ -394,9 +403,9 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_Leq (sem, fi, e1, e2)      ->
-      let quad_true = nextQuad ()
-      and sem1 = interOfExpr e1
-      and sem2 = interOfExpr e2 in
+      let sem1 = interOfExpr e1
+      and sem2 = interOfExpr e2
+      and quad_true = nextQuad () in
       add_quad (genQuad I.O_Leq sem1.place sem2.place I.Backpatch);
       let quad_false = nextQuad () in
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
@@ -405,9 +414,9 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_Geq (sem, fi, e1, e2)      ->
-      let quad_true = nextQuad ()
-      and sem1 = interOfExpr e1
-      and sem2 = interOfExpr e2 in
+      let sem1 = interOfExpr e1
+      and sem2 = interOfExpr e2
+      and quad_true = nextQuad () in
       add_quad (genQuad I.O_Geq sem1.place sem2.place I.Backpatch);
       let quad_false = nextQuad () in
       add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
@@ -439,7 +448,14 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   (* Imperative Commands *)
-  | E_Block (sem, fi, e)     -> sem
+  | E_Block (sem, fi, e)     ->
+      let inter_e = interOfExpr e in
+      let l = inter_e.next in
+      backpatch l (nextQuad ());
+      sem.next <- l;
+      sem.place <- inter_e.place;
+      func_res := sem :: !func_res;
+      sem
   | E_Semicolon (sem, fi, e1, e2)  ->
       let inter_e1 = interOfExpr e1 in
       if (id_name inter_e1.entry.entry_id = "not") then (

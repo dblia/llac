@@ -332,9 +332,9 @@ expr:
       { E_Geq ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   /* (* Logical Operators *) */
   | expr T_Andlogic expr
-      { E_Andlogic ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
+      { E_Andlogic ({(dummy_sem "andlogic") with val_type = Cond}, $2, $1, $3) }
   | expr T_Orlogic expr
-      { E_Orlogic ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
+      { E_Orlogic ({(dummy_sem "orlogic") with val_type = Cond}, $2, $1, $3) }
   | expr T_Assign expr
       { E_Assign (dummy_sem "", $2, $1, $3) }
   | expr T_Semicolon expr
@@ -351,9 +351,9 @@ expr:
   | T_Not expr %prec NOT
       { E_Not ({(dummy_sem "not") with val_type = Cond}, $1, $2) }
   | T_New typee
-      { E_New ({(dummy_sem "") with expr_type = $2}, $1) }
+      { E_New ({(dummy_sem "new") with expr_type = $2}, $1) }
   | T_Delete expr %prec DELETE
-      { E_Delete (dummy_sem "", $1, $2)  }
+      { E_Delete (dummy_sem "delete", $1, $2)  }
   /* (* If Stmt *) */
   | T_If expr T_Then expr
       { E_IfStmt (dummy_sem "", $1, $2, $4, None) }
