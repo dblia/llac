@@ -442,7 +442,6 @@ and interOfExpr = function
   | E_Block (sem, fi, e)     -> sem
   | E_Semicolon (sem, fi, e1, e2)  ->
       let inter_e1 = interOfExpr e1 in
-      printf "name: %s\n" (id_name inter_e1.entry.entry_id);
       if (id_name inter_e1.entry.entry_id = "not") then (
         let w = I.Entry (newTemp fi inter_e1.expr_type) in
         backpatch inter_e1.true_ (nextQuad ());
@@ -482,7 +481,6 @@ and interOfExpr = function
       let w = I.Entry (newTemp fi inter_e2.expr_type) in
       add_quad (genQuad I.O_Assign inter_e2.place I.Empty w);
       let cond_q = nextQuad () in
-      printf "%d\n" cond_q;
       if (ti == UPTO) then (
         add_quad (genQuad I.O_Gt varId w I.Backpatch);
         Pervasives.ignore (interOfExpr e);
