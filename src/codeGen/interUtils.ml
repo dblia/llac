@@ -286,3 +286,7 @@ let pp_print id sem =
   (str_of_operand sem.place) (sem.entry.entry_scope.sco_nesting);
   pretty_type Format.std_formatter sem.expr_type;
   Format.print_newline()
+
+let isPointer = function
+    Pointer _ -> true
+  | _ -> false

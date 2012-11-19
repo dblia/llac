@@ -50,6 +50,8 @@ and interOfLetdef = function
         | VAR_Id (sem, _, lst, _) as x ->
             Pervasives.ignore (interOfVardef x);
             let name = id_name sem.entry.entry_id in
+            pp_print "outer" (List.hd !func_res);
+            pp_print "outer_sem" sem;
             if (equalType sem.expr_type TY_Unit) then ()
             else (
               if sem.place <> I.Invalid then
@@ -106,6 +108,7 @@ and interOfVardef = function
             let name = id_name sem.entry.entry_id in
             add_quad (genQuad I.O_Unit (I.String name) I.Empty I.Empty);
             let inter_e = interOfExpr e in
+            pp_print "inter" inter_e;
             if inter_e.val_type <> Cond then ()
             else begin
               let w = I.Entry (newTemp fi sem.expr_type) in
@@ -118,6 +121,7 @@ and interOfVardef = function
               add_quad (genQuad I.O_Assign I.False I.Empty w);
               sem.place <- w
             end;
+            pp_print "inter_sem" sem;
             sem
         | _ -> error fi 4 "wrong file info"
       end
@@ -204,6 +208,8 @@ and interOfExpr = function
   | E_Assign (sem, fi, e1, e2)  ->
       let inter_e1 = interOfExpr e1
       and inter_e2 = interOfExpr e2 in
+      pp_print "sem1_assign" inter_e1;
+      pp_print "sem2_assign" inter_e2;
       if inter_e2.val_type = Cond then (
         let w = I.Entry (newTemp fi inter_e2.expr_type) in
         backpatch inter_e2.true_ (nextQuad ());
@@ -213,7 +219,8 @@ and interOfExpr = function
         add_quad (genQuad I.O_Assign I.False I.Empty w);
         inter_e2.place <- w;
       );
-      inter_e1.place <- I.Pointer (inter_e1.entry, inter_e1.expr_type);
+      if isPointer inter_e1.place then () (* case of array_el *)
+      else inter_e1.place <- I.Pointer (inter_e1.entry, inter_e1.expr_type);
       add_quad (genQuad I.O_Assign inter_e2.place I.Empty inter_e1.place);
       sem.next <- [];
       func_res := sem :: !func_res;
@@ -575,7 +582,15 @@ and interOfExpr = function
   end
   (* Array Elements and Dimensions *)
   | E_Dim (sem, fi, i)      -> sem
-  | E_ArrayEl (sem, fi, el) -> sem
+  | E_ArrayEl (sem, fi, el) ->
+      printf "List [el] length: %d\n" (List.length el);
+      let w = newTemp fi sem.expr_type
+      and temp = (interOfExpr (List.hd el)).place
+      and name = I.String (id_name sem.entry.entry_id) in
+      add_quad (genQuad I.O_Array name temp (I.Entry w));
+      sem.place <- I.Pointer (w, sem.expr_type);
+      func_res := sem :: !func_res;
+      sem
   (* Function and Constructor call *)
   | E_Call (sem, fi, el)    -> sem
   | E_ConstrCall (sem, fi,el) ->  (* TODO: not supported yet *)

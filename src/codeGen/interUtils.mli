@@ -141,3 +141,6 @@ val label_change   : quadruple_t -> int -> quadruple_t ;;
 val labels_rebuilt : quadruple_t list -> quadruple_t list -> int ->
                      quadruple_t list ;;
 val separate_quads : quadruple_t list -> quadruple_t list ;;
+
+(* checks if the operand given is of type Pointer *)
+val isPointer : operand_t -> bool ;;
