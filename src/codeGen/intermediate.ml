@@ -50,13 +50,16 @@ and interOfLetdef = function
         | VAR_Id (sem, _, lst, _) as x ->
             Pervasives.ignore (interOfVardef x);
             let name = id_name sem.entry.entry_id in
-            if sem.place <> I.Invalid then
-            add_quad (genQuad I.O_Assign sem.place I.Empty
-                             (I.Result sem.expr_type))
-            else if (List.hd !func_res).place <> I.Invalid then
-            add_quad (genQuad I.O_Assign (List.hd !func_res).place I.Empty
-                             (I.Result sem.expr_type))
-            else ();
+            if (equalType sem.expr_type TY_Unit) then ()
+            else (
+              if sem.place <> I.Invalid then
+              add_quad (genQuad I.O_Assign sem.place I.Empty
+                               (I.Result sem.expr_type))
+              else if (List.hd !func_res).place <> I.Invalid then
+              add_quad (genQuad I.O_Assign (List.hd !func_res).place I.Empty
+                               (I.Result sem.expr_type))
+              else ()
+            );
             if !if_flag_unit 
             then backpatch (List.hd !func_res).next (nextQuad ())
             else (if_flag_unit := true; (* flag reset *)
@@ -207,9 +210,21 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_Deref (sem, fi, e)       ->
-      let w = newTemp fi sem.expr_type in
-      add_quad (genQuad I.O_Assign (interOfExpr e).place I.Empty (I.Entry w));
+      let w = newTemp fi sem.expr_type
+      and inter_e = interOfExpr e in
+      add_quad (genQuad I.O_Assign inter_e.place I.Empty (I.Entry w));
       sem.place <- I.Pointer (w, sem.expr_type);
+      if sem.val_type <> Cond then ()
+      else ( (* when deref used as litid *)
+        inter_e.place <- I.Entry w;
+        inter_e.true_ <- [nextQuad ()];
+        add_quad (genQuad I.O_Ifjump sem.place I.Empty I.Backpatch);
+        inter_e.false_ <- [nextQuad ()];
+        add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch);
+        func_res := inter_e :: (List.tl !func_res);
+      );
+      sem.true_ <- inter_e.true_;
+      sem.false_ <- inter_e.false_;
       func_res := sem :: !func_res;
       sem
   (* FIXME: Memory Dynamic Allocation *)
@@ -223,7 +238,7 @@ and interOfExpr = function
       sem.place <- w;
       func_res := sem :: !func_res;
       sem
-  | E_Delete (sem, fi, e)       -> (* FIXME: check that mem was allocated dynamically *)
+  | E_Delete (sem, fi, e) ->
       add_quad (genQuad I.O_Par (interOfExpr e).place (I.Pass V) I.Empty);
       add_quad (genQuad I.O_Call I.Empty I.Empty I.Delete);
       sem.next <- [];
@@ -431,14 +446,15 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_While (sem, fi, e1, e2)      ->
-      let q = nextQuad () in
-      backpatch (interOfExpr e1).true_ (nextQuad ());
+      let q = nextQuad ()
+      and inter_e1 = interOfExpr e1 in
+      backpatch inter_e1.true_ (nextQuad ());
       backpatch (interOfExpr e2).next q;
       add_quad (genQuad I.O_Jump I.Empty I.Empty (I.Label q));
-      sem.next <- (interOfExpr e1).false_;
+      sem.next <- inter_e1.false_;
       func_res := sem :: !func_res;
       sem
-  | E_For (sem, fi,ti, e1, e2, e) -> (* FIXME: is it correct? *)
+  | E_For (sem, fi, ti, e1, e2, e) -> (* FIXME: is it correct? *)
       let cond_q = nextQuad ()
       and cond_true = (interOfExpr e2).true_
       and cond_false = (interOfExpr e2).false_
@@ -510,4 +526,19 @@ and interOfExpr = function
   | E_Call (sem, fi, el)    -> sem
   | E_ConstrCall (sem, fi,el) ->  (* TODO: not supported yet *)
       error fi 3 "user defined data types are not supported"
+
+and interOfPattern = function
+    P_True (sem, fi)            -> sem
+  | P_False (sem, fi)           -> sem
+  | P_LitId (sem, fi)           -> sem
+  | P_LitChar (sem, fi, c)      -> sem
+  | P_LitFloat (sem, fi, f)     -> sem
+  | P_Plus (sem, fi, _)         -> sem
+  | P_FPlus (sem, fi, _)        -> sem
+  | P_Minus (sem, fi, _)        -> sem
+  | P_FMinus  (sem, fi, _)      -> sem
+  | P_LitConstr (sem, fi, patl) -> (* TODO: not supported yet *)
+      error fi 3 "user defined data types are not supported"
+  | _                 -> err "Wrong pattern form"
+
 ;;

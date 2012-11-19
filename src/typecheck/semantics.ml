@@ -498,7 +498,9 @@ and typeOfExpr = function
       P.ignore(typeOfExpr e1);
       let sem = typeOfExpr e2 in sem
   | E_While (sem, fi, e1, e2)       ->
-      if isBool (typeOfExpr e1).expr_type then
+      let sem1 = typeOfExpr e1 in
+      sem1.val_type <- Cond;
+      if isBool sem1.expr_type then
         if isUnit (typeOfExpr e2).expr_type then
           (sem.expr_type <- TY_Unit; sem)
         else error fi 3 "Type mismatch, TY_Unit expected"
