@@ -453,6 +453,11 @@ and interOfExpr = function
       let l = inter_e.next in
       backpatch l (nextQuad ());
       sem.next <- l;
+      if inter_e.val_type = Cond then (
+        sem.val_type <- inter_e.val_type;
+        sem.true_ <- inter_e.true_;
+        sem.false_ <- inter_e.false_
+      );
       sem.place <- inter_e.place;
       func_res := sem :: !func_res;
       sem
@@ -474,7 +479,11 @@ and interOfExpr = function
       if inter_e2.val_type = Cond then (
         sem.val_type <- inter_e2.val_type;
         sem.true_ <- inter_e2.true_;
-        sem.false_ <- inter_e2.false_
+        sem.false_ <- inter_e2.false_;
+        if (id_name inter_e2.entry.entry_id = "not") 
+        then 
+          let entry = { sem.entry with entry_id = id_make "not" }
+          in sem.entry <- entry;
       );
       sem.place <- inter_e2.place;
       func_res := sem :: !func_res;
