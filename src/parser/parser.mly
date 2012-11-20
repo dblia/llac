@@ -323,13 +323,13 @@ expr:
   | expr T_NEqual expr
       { E_NEqual ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
   | expr T_Lt expr
-      { E_Lt ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
+      { E_Lt ({(dummy_sem "Lt") with val_type = Cond}, $2, $1, $3) }
   | expr T_Gt expr
-      { E_Gt ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
+      { E_Gt ({(dummy_sem "Gt") with val_type = Cond}, $2, $1, $3) }
   | expr T_Leq expr
-      { E_Leq ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
+      { E_Leq ({(dummy_sem "Leq") with val_type = Cond}, $2, $1, $3) }
   | expr T_Geq expr
-      { E_Geq ({(dummy_sem "") with val_type = Cond}, $2, $1, $3) }
+      { E_Geq ({(dummy_sem "Geq") with val_type = Cond}, $2, $1, $3) }
   /* (* Logical Operators *) */
   | expr T_Andlogic expr
       { E_Andlogic ({(dummy_sem "andlogic") with val_type = Cond}, $2, $1, $3) }
@@ -356,9 +356,9 @@ expr:
       { E_Delete (dummy_sem "delete", $1, $2)  }
   /* (* If Stmt *) */
   | T_If expr T_Then expr
-      { E_IfStmt (dummy_sem "", $1, $2, $4, None) }
+      { E_IfStmt (dummy_sem "IfStmt", $1, $2, $4, None) }
   | T_If expr T_Then expr T_Else expr
-      { E_IfStmt (dummy_sem "", $1, $2, $4, Some $6) }
+      { E_IfStmt (dummy_sem "IfStmt", $1, $2, $4, Some $6) }
   /* (*   *) */
   | T_Dim T_LitId
       { E_Dim (dummy_sem $2.v, $2.i, None) }
@@ -400,21 +400,21 @@ expr__:
       { E_LitConstr (dummy_sem $1.v, $1.i) }
   | T_True
       { E_True (
-        {(dummy_sem "") with expr_type = TY_Bool}, $1) }
+        {(dummy_sem "true") with expr_type = TY_Bool}, $1) }
   | T_False
       { E_False (
-        {(dummy_sem "") with expr_type = TY_Bool}, $1) }
+        {(dummy_sem "false") with expr_type = TY_Bool}, $1) }
   | T_LitChar
-      { E_LitChar ({(dummy_sem "") with expr_type = TY_Char}, $1.i, $1.v) }
+      { E_LitChar ({(dummy_sem "char") with expr_type = TY_Char}, $1.i, $1.v) }
   | T_LitInt
-      { E_LitInt ({(dummy_sem "") with expr_type = TY_Int}, $1.i, $1.v) }
+      { E_LitInt ({(dummy_sem "int") with expr_type = TY_Int}, $1.i, $1.v) }
   | T_LitFloat
-      { E_LitFloat ({(dummy_sem "") with expr_type = TY_Float}, $1.i, $1.v) }
+      { E_LitFloat ({(dummy_sem "float") with expr_type = TY_Float}, $1.i, $1.v) }
   | T_LitString
       { E_LitString (
-        {(dummy_sem "") with expr_type = TY_Array(1, TY_Char)}, $1.i, $1.v) }
+        {(dummy_sem "string") with expr_type = TY_Array(1, TY_Char)}, $1.i, $1.v) }
   | T_LParen T_RParen
-      { E_Unit ({(dummy_sem "") with expr_type = TY_Unit}, dummyinfo) }
+      { E_Unit ({(dummy_sem "unit") with expr_type = TY_Unit}, dummyinfo) }
   | T_LParen expr T_RParen
       { $2 }
   | T_LitId T_LBrack expr_comma_list T_RBrack /* (* array_el *) */

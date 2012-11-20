@@ -42,7 +42,7 @@ and interOfLetdef = function
         (* variable definition *)
         | VAR_Id (sem, fi, [], _) as x ->
             Pervasives.ignore (interOfVardef x);
-            if !if_flag_unit 
+            if !if_flag_unit
             then backpatch (List.hd !func_res).next (nextQuad ())
             else (if_flag_unit := true; (* flag reset *)
             backpatch (List.hd !func_res).next (nextQuad () - 1))
@@ -60,7 +60,7 @@ and interOfLetdef = function
                                (I.Result sem.expr_type))
               else ()
             );
-            if !if_flag_unit 
+            if !if_flag_unit
             then backpatch (List.hd !func_res).next (nextQuad ())
             else (if_flag_unit := true; (* flag reset *)
             backpatch (List.hd !func_res).next (nextQuad () - 1));
@@ -85,7 +85,7 @@ and interOfVardef = function
             let inter_e = interOfExpr e in
             if inter_e.val_type <> Cond
             then begin
-              if inter_e.expr_type = TY_Unit || inter_e.place = I.Unit then ()
+              if sem.expr_type = TY_Unit || inter_e.place = I.Unit then ()
               else add_quad (genQuad I.O_Assign inter_e.place I.Empty
                                   (I.Entry sem.entry))
             end
@@ -213,8 +213,7 @@ and interOfExpr = function
         add_quad (genQuad I.O_Assign I.False I.Empty w);
         inter_e2.place <- w;
       );
-      if isPointer inter_e1.place then () (* case of array_el *)
-      else inter_e1.place <- I.Pointer (inter_e1.entry, inter_e1.expr_type);
+      inter_e1.place <- I.Pointer (inter_e1.entry, inter_e1.expr_type);
       add_quad (genQuad I.O_Assign inter_e2.place I.Empty inter_e1.place);
       sem.next <- [];
       func_res := sem :: !func_res;
@@ -472,6 +471,9 @@ and interOfExpr = function
         backpatch inter_e1.false_ (nextQuad ());
         add_quad (genQuad I.O_Assign I.False I.Empty w);
       )
+      else if (id_name inter_e1.entry.entry_id = "IfStmt") then (
+        backpatch inter_e1.next (nextQuad ())
+      )
       else if inter_e1.val_type = Cond then (
         backpatch inter_e1.true_ (nextQuad ());
         backpatch inter_e1.false_ (nextQuad ());
@@ -481,12 +483,13 @@ and interOfExpr = function
         sem.val_type <- inter_e2.val_type;
         sem.true_ <- inter_e2.true_;
         sem.false_ <- inter_e2.false_;
-        if (id_name inter_e2.entry.entry_id = "not") 
-        then 
+        if (id_name inter_e2.entry.entry_id = "not")
+        then
           let entry = { sem.entry with entry_id = id_make "not" }
           in sem.entry <- entry;
       );
       sem.place <- inter_e2.place;
+      sem.next <- inter_e2.next;
       func_res := sem :: !func_res;
       sem
   | E_While (sem, fi, e1, e2)      ->
@@ -502,7 +505,7 @@ and interOfExpr = function
   | E_For (sem, fi, ti, e1, e2, e) -> (* FIXME: is it correct? *)
       let inter_e1 = interOfExpr e1
       and varId = I.String (id_name sem.entry.entry_id) in
-      add_quad (genQuad I.O_Assign inter_e1.place I.Empty varId); 
+      add_quad (genQuad I.O_Assign inter_e1.place I.Empty varId);
       let inter_e2 = interOfExpr e2 in
       let w = I.Entry (newTemp fi inter_e2.expr_type) in
       add_quad (genQuad I.O_Assign inter_e2.place I.Empty w);
@@ -510,14 +513,19 @@ and interOfExpr = function
       if (ti == UPTO) then (
         add_quad (genQuad I.O_Gt varId w I.Backpatch);
         Pervasives.ignore (interOfExpr e);
+        if !if_flag_unit
+        then backpatch (List.hd !func_res).next (nextQuad ())
+        else (if_flag_unit := true; (* flag reset *)
+        backpatch (List.hd !func_res).next (nextQuad () - 1));
         add_quad (genQuad I.O_Plus varId (I.Int 1) varId)
       )
-      else ( 
+      else (
         add_quad (genQuad I.O_Lt varId w I.Backpatch);
         Pervasives.ignore (interOfExpr e);
         add_quad (genQuad I.O_Minus varId (I.Int 1) varId)
       );
       add_quad (genQuad I.O_Jump I.Empty I.Empty (I.Label cond_q));
+      printf "next: %d\n" cond_q;
       backpatch [cond_q] (nextQuad ());
       func_res := sem :: !func_res;
       sem
@@ -551,7 +559,7 @@ and interOfExpr = function
               sem
         end
       | _ -> (* if-stmt returns a value *)
-        let w = I.Entry (newTemp fi stmt1.expr_type) in 
+        let w = I.Entry (newTemp fi stmt1.expr_type) in
         add_quad (genQuad I.O_Assign stmt1.place I.Empty w);
         let l2 = [] in begin
           match _e2 with
@@ -581,16 +589,18 @@ and interOfExpr = function
       and temp = (interOfExpr (List.hd el)).place
       and name = I.String (id_name sem.entry.entry_id) in
       add_quad (genQuad I.O_Array name temp (I.Entry w));
-      let rec multidim_array w_ els = 
+      let rec multidim_array w_ els =
         match els with
         | [] -> w_
         | (hd :: tl) ->
+            printf "mpika se multi dim\n";
             let new_w = newTemp fi sem.expr_type
             and temp = (interOfExpr hd).place in
             add_quad (genQuad I.O_Array (I.Entry w_) temp (I.Entry new_w));
             multidim_array new_w tl
       in
-      sem.place <- I.Pointer (multidim_array w (List.tl el), sem.expr_type);
+      sem.entry <- multidim_array w (List.tl el);
+      sem.place <- I.Entry sem.entry;
       func_res := sem :: !func_res;
       sem
   (* Function and Constructor call *)
