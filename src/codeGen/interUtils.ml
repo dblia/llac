@@ -12,7 +12,7 @@ type operator_t =
   | O_SEqual | O_SNEqual | O_Equal | O_NEqual | O_Gt | O_Lt | O_Geq | O_Leq
   | O_Andlogic | O_Orlogic | O_Not
   | O_Assign
-  | O_Array
+  | O_Array | O_Dim
   | O_Jump | O_Ifjump | O_Label
   | O_Call | O_Par | O_Ret
 
@@ -179,6 +179,7 @@ let str_of_operator = function
   | O_Not      -> "not"
   | O_Assign   -> ":="
   | O_Array    -> "array"
+  | O_Dim      -> "dim"
   | O_Jump     -> "jump"
   | O_Ifjump   -> "ifb"
   | O_Label    -> "label"
@@ -252,31 +253,55 @@ let rec labels_rebuilt lst acc cnt =
       let newq = label_change hd cnt in
       labels_rebuilt tl (newq :: acc) (cnt + 1)
 
+let add_to_pos lst pos elem = 
+  let rec add l p e acc = 
+    match p with
+    | 1 -> (List.rev acc) @ [List.hd l @ [e]] @ (List.tl l)
+    | _ as x -> add (List.tl l) (x - 1) e ((List.hd l) :: acc)
+  in add lst pos elem []
+
 let separate_quads lst =
-  (* lst : quad_list
-   * acc : accumulator for the _outer scope and the final result
-   * acc1: accumulator for a new function structural unit found
-   * acc2: accumulator for the functions structural units *)
+  let cnt : int ref = ref 0 in
+  (* lst : quad_list (list)
+   * acc : accumulator for the _outer scope and the final result (list)
+   * acc1: accumulator for a new function structural unit found (list of lists)
+   * acc2: accumulator for the functions structural units  (list) *)
   let rec quads_sep lst acc acc1 acc2 flag =
   match lst with
   | [] -> 
-      let res = List.append acc2 acc in
+      let res = acc2 @ acc in
       labels_rebuilt res [] 1
   | (hd :: tl) ->
       (* find a unit's (not _outer's) start *)
-      if not flag && ((str_of_operator hd.op) = "unit") &&
+      if ((str_of_operator hd.op) = "unit") &&
          ((str_of_operand hd.op1) <> "_outer")
-      then quads_sep tl acc (hd :: acc1) acc2 true
+      then (
+        cnt := !cnt + 1;
+        let new_val = add_to_pos (acc1 @ [[]]) !cnt hd in
+        quads_sep tl acc new_val acc2 true
+      )
       (* find a unit's (not _outer's) end *)
       else if flag && ((str_of_operator hd.op) = "endu") &&
-              ((str_of_operand hd.op1) <> "_outer")
-      then quads_sep tl acc [] (List.append acc2 (List.rev (hd :: acc1))) false
+              ((str_of_operand hd.op1) <> "_outer") then (
+        let new_val = add_to_pos acc1 !cnt hd in
+        cnt := !cnt - 1;
+        if !cnt > 0 then quads_sep tl acc new_val acc2 true
+        else
+          let new_acc1 = List.tl new_val @ [List.hd new_val] in
+          let new_acc2 = acc2 @ List.flatten new_acc1 in
+          quads_sep tl acc [[]] new_acc2 false
+      )
       (* we are in a unit's body (not _outer's) *)
-      else if flag then quads_sep tl acc (hd :: acc1) acc2 true
+      else if flag then (
+        let new_val = add_to_pos acc1 !cnt hd in
+        quads_sep tl acc new_val acc2 true
+      )
       (* we are in the _outer scope *)
-      else quads_sep tl (List.append acc [hd]) [] acc2 false
+      else (
+        quads_sep tl (acc @ [hd]) [[]] acc2 false
+      )
   in
-  quads_sep lst [] [] [] false
+  quads_sep lst [] [[]] [] false
 
 (* prints the entry attributes of the sem_val given *)
 let pp_print id sem =

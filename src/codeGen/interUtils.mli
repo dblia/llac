@@ -8,7 +8,7 @@ type operator_t =
   | O_SEqual | O_SNEqual | O_Equal | O_NEqual | O_Gt | O_Lt | O_Geq | O_Leq
   | O_Andlogic | O_Orlogic | O_Not
   | O_Assign
-  | O_Array
+  | O_Array | O_Dim
   | O_Jump | O_Ifjump | O_Label
   | O_Call | O_Par | O_Ret
 
@@ -140,6 +140,8 @@ val pp_print : string -> sem_val -> unit ;;
 val label_change   : quadruple_t -> int -> quadruple_t ;;
 val labels_rebuilt : quadruple_t list -> quadruple_t list -> int ->
                      quadruple_t list ;;
+val add_to_pos : quadruple_t list list -> int -> quadruple_t ->
+                 quadruple_t list list ;;
 val separate_quads : quadruple_t list -> quadruple_t list ;;
 
 (* checks if the operand given is of type Pointer *)

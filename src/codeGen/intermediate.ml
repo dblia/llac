@@ -533,7 +533,9 @@ and interOfExpr = function
   | E_Match (sem, fi, e, clauses)   ->
       error fi 3 "user defined data types are not supported"
   (* Local definitions *)
-  | E_LetIn (sem, fi, ld, e)        -> sem (* local declarations *)
+  | E_LetIn (sem, fi, ld, e)        ->
+      interOfLetdef ld;
+      interOfExpr e
   (* If statement *)
   | E_IfStmt (sem, fi, e, e1, _e2)  -> begin
       let cond = interOfExpr e in
@@ -583,7 +585,13 @@ and interOfExpr = function
         end
   end
   (* Array Elements and Dimensions *)
-  | E_Dim (sem, fi, i)      -> sem
+  | E_Dim (sem, fi, i)      ->
+      let w = I.Entry (newTemp fi sem.expr_type)
+      and name = I.String (id_name sem.entry.entry_id) in
+      add_quad (genQuad I.O_Dim name (I.Int (get i)) w);
+      sem.place <- w;
+      func_res := sem :: !func_res;
+      sem
   | E_ArrayEl (sem, fi, el) ->
       let w = newTemp fi sem.expr_type
       and temp = (interOfExpr (List.hd el)).place
