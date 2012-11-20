@@ -36,7 +36,8 @@ let rec interOf = function
 
 and interOfLetdef = function
   (* vl: vardefs connected with 'and' keyword *)
-    L_Let (sem, fi, vl)    ->
+    L_Let (sem, fi, vl)
+  | L_LetRec (sem, fi, vl) ->
       let var_or_func v =
         match v with
         (* variable definition *)
@@ -67,7 +68,6 @@ and interOfLetdef = function
             add_quad (genQuad I.O_Endu (I.String name) I.Empty I.Empty)
         | _ -> error fi 4 "not var or func type"
       in List.iter (fun x -> var_or_func x) vl
-  | L_LetRec (sem, fi, vl) -> ()
 
 and interOfTypedef = function
     TD_Type (sem, fi, tl)    ->  (* TODO: Not supported yet *)
@@ -156,7 +156,8 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   | E_LitString (sem, fi, s)  ->
-      sem.place <- I.String s;
+      let new_s = "\"" ^ (String.escaped s) ^ "\"" in
+      sem.place <- I.String new_s;
       func_res := sem :: !func_res;
       sem
   (* Names (constants, functions, parameters, constructors, expressions) *)
@@ -612,7 +613,17 @@ and interOfExpr = function
       func_res := sem :: !func_res;
       sem
   (* Function and Constructor call *)
-  | E_Call (sem, fi, el)    -> sem
+  | E_Call (sem, fi, el)    ->
+      List.iter (fun x -> 
+        add_quad (genQuad I.O_Par (interOfExpr x).place (I.Pass V) I.Empty)) el;
+      let w = I.Entry (newTemp fi sem.expr_type)
+      and name = I.String (id_name sem.entry.entry_id) in
+      if (equalType sem.expr_type TY_Unit) then ()
+      else add_quad (genQuad I.O_Par w (I.Pass RET) I.Empty);
+      add_quad (genQuad I.O_Call I.Empty I.Empty name);
+      sem.place <- w;
+      func_res := sem :: !func_res;
+      sem
   | E_ConstrCall (sem, fi,el) ->  (* TODO: not supported yet *)
       error fi 3 "user defined data types are not supported"
 

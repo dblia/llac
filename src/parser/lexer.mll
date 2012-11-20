@@ -69,6 +69,11 @@
         stringEnd := x + 1
       end
 
+  let escape_table = 
+    let tbl = Hashtbl.create 8 in
+      List.iter (fun (key, data) ->
+        Hashtbl.add tbl key data) [('n',10);('t',9);('r',13);('0',0);
+                                   ('\\',92);('\'',39);('\"',34);(' ',32)]; tbl
 }
 
 (* Definition Section *)
@@ -83,7 +88,7 @@ let constr = lbig(letter|digit|"_")* (* Cunstructor names *)
 let hex = digit | ['a'-'f' 'A'-'F']  (* Hex numbers *)
 let xnn = "x" hex hex                (* Char with nn ASCII code in hex *)
 let esc = xnn | ['n' 't' 'r' '0' '\\' '\'' '"']              (* Escape chars *)
-let chars = ( [^ '\'' '"' '\\' '\t' '\n' '\r' '\x00'] | "\\"esc ) (* fixed *)
+let chars = '\\' esc | ' ' (* fixed *)
 
 let whiteSet = [' ' '\t' '\n' '\r']    (* White Spaces *)
 let white  = whiteSet # ['\n']         (* Ignore white spaces *)
@@ -167,8 +172,12 @@ rule lexer = parse
   | cnames as name     { T_LitId {i = add_info lexbuf; v = name} }
   | constr as con      { T_LitConstr {i = add_info lexbuf; v = con} }
   (* Characters and strings *)
+  | "'" ([^'\\' '"' '\'']) "'"
+    { T_LitChar {i = add_info lexbuf; v = Lexing.lexeme_char lexbuf 1 }}
   | "'" chars "'" 
-    { T_LitChar {i = add_info lexbuf; v = Lexing.lexeme_char lexbuf 1}}
+    { let ch_int = Hashtbl.find escape_table (Lexing.lexeme_char lexbuf 2) in
+      let ch = char_of_int ch_int in
+      T_LitChar {i = add_info lexbuf; v = ch}}
   | '\'' xnn '\'' as c {
     let ch = String.sub c 1 4 in ch.[0] <- '0';
     let chr = char_of_int (int_of_string ch) in
@@ -206,6 +215,6 @@ and escaped_parse = parse
   | '0'  { Char.chr 0 }
   | '\\' { '\\' }
   | '\'' { '\'' }
-  | '"'  { '"' }
+  | '"'  { '\034' }
   | _ as err { Printf.printf "Invalid character: '%c' (ascii: %d)\n" err
                (Char.code err);  error (add_info lexbuf) 1 "" }
