@@ -18,19 +18,29 @@ open Identifier
  * we put in it all the sem_val structs of the valued expressions. The last
  * valued expression putted in before creating the final function quad, that is
  * <endu, name, _, _>, is the return function's stmt. *)
-let func_res = ref []
+let func_res : sem_val list ref = ref []
 
 (* Used for bug fixing in case of if-stmt where it's return type is not TY_Unit:
  * It has been noticed that in those cases the backpatch function putted an
  * value increased by one value in jump quadruples. By this value we are able to
  * now if we came from an if-stmt that returns a value and we decrease the
  * number by one as needed to be *)
-let if_flag_unit = ref true
+let if_flag_unit : bool ref = ref true
+
+(* Used for identifying the proper scope position where the mutable array's
+ * _delete call should be made.
+ *)
+let current_scope : string ref = ref "_outer"
+
+(* A list of tuples containing the scope and the name of the mutable array *)
+let mutables : (string * string) list ref = ref []
 
 let rec interOf = function
     PROGRAM (ldfs, tdfs) ->
       add_quad (genQuad I.O_Unit (I.String "_outer") I.Empty I.Empty);
+      current_scope := "_outer";
       List.iter (fun x -> interOfLetdef x) ldfs;
+      mutables := add_mutables_delete (List.rev !mutables) "_outer";
       add_quad (genQuad I.O_Endu (I.String "_outer") I.Empty I.Empty);
       List.iter (fun x -> interOfTypedef x) tdfs
 
@@ -64,8 +74,45 @@ and interOfLetdef = function
             if !if_flag_unit
             then backpatch (List.hd !func_res).next (nextQuad ())
             else (if_flag_unit := true; (* flag reset *)
+            printf "letrec: %d\n" (nextQuad()-1);
             backpatch (List.hd !func_res).next (nextQuad () - 1));
+            mutables := add_mutables_delete (List.rev !mutables) name;
             add_quad (genQuad I.O_Endu (I.String name) I.Empty I.Empty)
+        (* mutables *)
+        | VAR_MutId (sem, fi, exprl) ->
+            begin
+              match exprl with
+              | None -> (* simple variable definition *)
+                begin
+                  match sem.entry.entry_info with
+                  | ENTRY_variable _ ->
+                      sem.place <- I.Entry sem.entry;
+                      if sem.val_type <> Cond then ()
+                      else begin
+                        sem.true_ <- [nextQuad ()];
+                        add_quad (genQuad I.O_Ifjump sem.place I.Empty I.Backpatch);
+                        sem.false_ <- [nextQuad ()];
+                        add_quad (genQuad I.O_Jump I.Empty I.Empty I.Backpatch)
+                      end;
+                      func_res := sem :: !func_res;
+                  | _ -> pp_print "error" sem; raise Terminate
+                end
+              | Some es -> (* array variable definition *)
+                List.iter (fun x -> add_quad (
+                  genQuad I.O_Par (interOfExpr x).place (I.Pass V) I.Empty)) es;
+                let size = sizeOfType sem.expr_type in
+                add_quad (genQuad I.O_Par (I.Int size) (I.Pass V) I.Empty);
+                let length = List.length es in
+                add_quad (genQuad I.O_Par (I.Int length) (I.Pass V) I.Empty);
+                let name = id_name sem.entry.entry_id in
+                add_quad (genQuad I.O_Par (I.String name) (I.Pass RET) I.Empty);
+                add_quad (genQuad I.O_Call I.Empty I.Empty 
+                                 (I.String "_make_array"));
+                printf "(%s, %s)\n" !current_scope name;
+                pp_print "mutables" sem;
+                mutables := (!current_scope, name) :: !mutables; 
+                func_res := sem :: !func_res
+            end
         | _ -> error fi 4 "not var or func type"
       in List.iter (fun x -> var_or_func x) vl
 
@@ -105,6 +152,7 @@ and interOfVardef = function
         | ENTRY_function _ ->
             let name = id_name sem.entry.entry_id in
             add_quad (genQuad I.O_Unit (I.String name) I.Empty I.Empty);
+            current_scope := name;
             let inter_e = interOfExpr e in
             if inter_e.val_type <> Cond then ()
             else begin
@@ -121,7 +169,6 @@ and interOfVardef = function
             sem
         | _ -> error fi 4 "wrong file info"
       end
-  | VAR_MutId (sem, fi, exprl) -> sem
 
 and interOfExpr = function
   (* Constants Operators *)
@@ -164,7 +211,7 @@ and interOfExpr = function
   | E_LitId (sem, fi)    ->
       begin (* FIXME: what about ENTRY_FUNCTION call, Lval check *)
         match sem.entry.entry_info with
-        | ENTRY_parameter _ | ENTRY_variable _ ->
+        | ENTRY_parameter _ | ENTRY_variable _ | ENTRY_function _ ->
             sem.place <- I.Entry sem.entry;
             if sem.val_type <> Cond then ()
             else begin
@@ -175,7 +222,6 @@ and interOfExpr = function
             end;
             func_res := sem :: !func_res;
             sem
-        | ENTRY_function _ -> raise (Exit 4)
         | _ -> raise Terminate
       end
   | E_LitConstr (sem, fi) -> (* TODO: not supported yet *)
@@ -475,6 +521,9 @@ and interOfExpr = function
       else if (id_name inter_e1.entry.entry_id = "IfStmt") then (
         backpatch inter_e1.next (nextQuad ())
       )
+      else if (id_name inter_e1.entry.entry_id = "while") then (
+        backpatch inter_e1.next (nextQuad ())
+      )
       else if inter_e1.val_type = Cond then (
         backpatch inter_e1.true_ (nextQuad ());
         backpatch inter_e1.false_ (nextQuad ());
@@ -526,7 +575,6 @@ and interOfExpr = function
         add_quad (genQuad I.O_Minus varId (I.Int 1) varId)
       );
       add_quad (genQuad I.O_Jump I.Empty I.Empty (I.Label cond_q));
-      printf "next: %d\n" cond_q;
       backpatch [cond_q] (nextQuad ());
       func_res := sem :: !func_res;
       sem
@@ -535,7 +583,9 @@ and interOfExpr = function
       error fi 3 "user defined data types are not supported"
   (* Local definitions *)
   | E_LetIn (sem, fi, ld, e)        ->
+      let name =  !current_scope in
       interOfLetdef ld;
+      current_scope := name;
       interOfExpr e
   (* If statement *)
   | E_IfStmt (sem, fi, e, e1, _e2)  -> begin
@@ -602,7 +652,6 @@ and interOfExpr = function
         match els with
         | [] -> w_
         | (hd :: tl) ->
-            printf "mpika se multi dim\n";
             let new_w = newTemp fi sem.expr_type
             and temp = (interOfExpr hd).place in
             add_quad (genQuad I.O_Array (I.Entry w_) temp (I.Entry new_w));
@@ -614,8 +663,10 @@ and interOfExpr = function
       sem
   (* Function and Constructor call *)
   | E_Call (sem, fi, el)    ->
-      List.iter (fun x -> 
-        add_quad (genQuad I.O_Par (interOfExpr x).place (I.Pass V) I.Empty)) el;
+      List.iter (fun x ->
+        let inter_e = interOfExpr x in
+        if (equalType inter_e.expr_type TY_Unit) then ()
+        else add_quad (genQuad I.O_Par inter_e.place (I.Pass V) I.Empty)) el;
       let w = I.Entry (newTemp fi sem.expr_type)
       and name = I.String (id_name sem.entry.entry_id) in
       if (equalType sem.expr_type TY_Unit) then ()

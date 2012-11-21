@@ -372,7 +372,7 @@ expr:
   | T_Begin expr T_End
       { E_Block (dummy_sem "", $1, $2) }
   | T_While expr T_Do expr T_Done
-      { E_While (dummy_sem "", $1, $2, $4) }
+      { E_While (dummy_sem "while", $1, $2, $4) }
   | T_For T_LitId T_Eq expr T_To expr T_Do expr T_Done
       { E_For (dummy_sem $2.v, $2.i, UPTO, $4, $6, $8) }
   | T_For T_LitId T_Eq expr T_Downto expr T_Do expr T_Done

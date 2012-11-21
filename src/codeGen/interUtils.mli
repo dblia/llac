@@ -146,3 +146,5 @@ val separate_quads : quadruple_t list -> quadruple_t list ;;
 
 (* checks if the operand given is of type Pointer *)
 val isPointer : operand_t -> bool ;;
+val add_mutables_delete : (string * string) list -> string ->
+                          (string * string) list ;;

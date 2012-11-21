@@ -248,7 +248,7 @@ and typeOfVardef rec_flag = function
             match exprl with
               None -> (* simple variable definition *)
                 (* add a new_variable Entry to the current scope *)
-                P.ignore (newVariable fi sem.entry.entry_id (TY_Ref type_) true)
+                sem.entry <- newVariable fi sem.entry.entry_id (TY_Ref type_) true
             | Some es -> (* array variable definition *)
                 (* es types must be integers *)
                 let check_array_dim sem_ex =
@@ -256,7 +256,7 @@ and typeOfVardef rec_flag = function
                   else error fi 3 "Array exprs should be integers.\n"
                 in
                 List.iter (fun x -> check_array_dim (typeOfExpr x)) es;
-                P.ignore (newVariable fi sem.entry.entry_id
+                sem.entry <- (newVariable fi sem.entry.entry_id
                 (TY_Array (List.length es, type_)) true)
       end
 

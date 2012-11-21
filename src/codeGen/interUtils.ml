@@ -315,3 +315,22 @@ let pp_print id sem =
 let isPointer = function
     Pointer _ -> true
   | _ -> false
+
+let add_mutables_delete lst name = 
+  let rec add l n acc = 
+    match l with
+    | [] -> acc
+    | ((scope, arr) :: tl) ->
+        if name = "_outer" then (
+          add_quad (genQuad O_Par (String arr) (Pass V) Empty);
+          add_quad (genQuad O_Call Empty Empty (String "_delete"));
+          add tl n acc
+        )
+        else if scope <> name then add tl n ((scope, arr) :: acc)
+        else (
+          add_quad (genQuad O_Par (String arr) (Pass V) Empty);
+          add_quad (genQuad O_Call Empty Empty (String "_delete"));
+          add tl n acc
+        )
+  in
+  add lst name []
