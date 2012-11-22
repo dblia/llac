@@ -137,12 +137,14 @@ val pp_print : string -> sem_val -> unit ;;
 (*********************)
 
 (* Separates the quad list depenging on the structural units *)
-val label_change   : quadruple_t -> int -> quadruple_t ;;
-val labels_rebuilt : quadruple_t list -> quadruple_t list -> int ->
-                     quadruple_t list ;;
+val label_change   : quadruple_t -> (int, int) Hashtbl.t -> int -> quadruple_t ;;
+val labels_rebuilt : quadruple_t list -> quadruple_t list -> 
+                     (int, int) Hashtbl.t -> int -> quadruple_t list ;;
 val add_to_pos : quadruple_t list list -> int -> quadruple_t ->
                  quadruple_t list list ;;
 val separate_quads : quadruple_t list -> quadruple_t list ;;
 
 (* checks if the operand given is of type Pointer *)
 val isPointer : operand_t -> bool ;;
+val add_mutables_delete : (string * string) list -> string ->
+                          (string * string) list ;;

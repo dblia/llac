@@ -238,20 +238,29 @@ let print_quads_to_file2 channel acc =
   in
   Pervasives.ignore (List.map (print_quad_ channel) acc)
 
-let label_change quad cnt =
-  let lab = quad.label in
+let label_change quad hash cnt =
   match quad.op3 with
-  | Label i -> 
-      { quad with label = lab; op3 = Label (i - lab + cnt) }
-  | _  -> 
-      { quad with label = lab }
+  | Label i ->
+      let new_label = Hashtbl.find hash i in
+      let rec search value lst =
+        match lst with
+        | [] -> false
+        | (hd :: tl) ->
+            let name = str_of_operator hd.op in
+            if hd.label == value && name = "unit" then true
+            else search value tl
+      in
+      let boolean = search i (get_quads ()) in
+      if boolean then { quad with op3 = Label (i - quad.label + cnt) }
+      else { quad with op3 = Label new_label }
+  | _  -> quad
 
-let rec labels_rebuilt lst acc cnt = 
+let rec labels_rebuilt lst acc hash cnt = 
   match lst with
   | [] -> List.rev acc
   | (hd :: tl) ->
-      let newq = label_change hd cnt in
-      labels_rebuilt tl (newq :: acc) (cnt + 1)
+      let newq = label_change hd hash cnt in
+      labels_rebuilt tl (newq :: acc) hash (cnt + 1)
 
 let add_to_pos lst pos elem = 
   let rec add l p e acc = 
@@ -270,7 +279,16 @@ let separate_quads lst =
   match lst with
   | [] -> 
       let res = acc2 @ acc in
-      labels_rebuilt res [] 1
+      let hash = Hashtbl.create (List.length res) in
+      let rec hash_build lst cnt = 
+        match lst with
+        | [] -> ()
+        | (hd :: tl) ->
+            Hashtbl.add hash hd.label cnt;
+            hash_build tl (cnt + 1)
+      in
+      hash_build res 1;
+      labels_rebuilt res [] hash 1
   | (hd :: tl) ->
       (* find a unit's (not _outer's) start *)
       if ((str_of_operator hd.op) = "unit") &&
@@ -315,3 +333,22 @@ let pp_print id sem =
 let isPointer = function
     Pointer _ -> true
   | _ -> false
+
+let add_mutables_delete lst name = 
+  let rec add l n acc = 
+    match l with
+    | [] -> acc
+    | ((scope, arr) :: tl) ->
+        if name = "_outer" then (
+          add_quad (genQuad O_Par (String arr) (Pass V) Empty);
+          add_quad (genQuad O_Call Empty Empty (String "_delete"));
+          add tl n acc
+        )
+        else if scope <> name then add tl n ((scope, arr) :: acc)
+        else (
+          add_quad (genQuad O_Par (String arr) (Pass V) Empty);
+          add_quad (genQuad O_Call Empty Empty (String "_delete"));
+          add tl n acc
+        )
+  in
+  add lst name []
