@@ -1,0 +1,6 @@
+This folder contains the result of the comparison (diff) between my output
+quads and nickie's quads.
+
+The files have many differences in temporary variable numbers and in some jumps
+caused by optimizations made by nickie's compiler. All the .diff files have been
+checked line-by-line and are correct.
