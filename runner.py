@@ -7,8 +7,8 @@ import unittest
 from subprocess import call
 
 exe  = "/home/jimmisbl/Desktop/llac/main.native"
-fdir = '/home/jimmisbl/Desktop/llac/testsuite/should_fail/'
-pdir = '/home/jimmisbl/Desktop/llac/testsuite/should_compile/'
+fdir = '/home/jimmisbl/Desktop/llac/testsuite/up_to_semantic/should_fail/'
+pdir = '/home/jimmisbl/Desktop/llac/testsuite/up_to_semantic/should_compile/'
 
 class ParametrizedTestCase(unittest.TestCase):
     """ Any TestCase classes that want to be parametrized 
@@ -51,6 +51,7 @@ if __name__ == '__main__':
     suite = unittest.TestSuite()
     ffail = os.listdir(fdir)
     fpass = os.listdir(pdir)
+    print "Semantic check"
     [suite.addTest(ParametrizedTestCase.parametrize(ShouldFail, x)) for x in ffail]
     [suite.addTest(ParametrizedTestCase.parametrize(ShouldCompile, x)) for x in fpass]
     unittest.TextTestRunner(verbosity=2).run(suite)
