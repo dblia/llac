@@ -192,7 +192,7 @@ vardef:
       {
         let expr_ = $6 in
         if ((get_sem_expr expr_).val_type = Cond) then
-          VAR_Id ({(dummy_sem $1.v) with expr_type = $4; val_type = Cond}, 
+          VAR_Id ({(dummy_sem $1.v) with expr_type = $4; val_type = Cond},
                    $1.i, $2, expr_)
         else
           VAR_Id ({(dummy_sem $1.v) with expr_type = $4}, $1.i, $2, expr_)

@@ -15,10 +15,12 @@ OCAMLOPT = ocamlopt $(OCAMLOPT_FLAGS)
 OCAMLDEP = ocamldep
 
 EXE_FILE = llama$(EXE)
-ML_FILES = error.ml ast.ml pp_ast.ml hashcons.ml identifier.ml types.ml \
-		   symbol.ml typecheck.ml lexer.ml parser.ml ../../main.ml
-MLI_FILES = error.mli ast.mli pp_ast.mli hashcons.mli identifier.mli types.mli \
-			symbol.mli typecheck.mli lexer.mli parser.mli
+ML_FILES = ast.ml hashcons.ml identifier.ml error.ml types.ml \
+		   symbol.ml lexer.ml parser.ml interUtils.ml semantics.ml \
+		   intermediate.ml main.ml
+MLI_FILES = ast.mli hashcons.mli identifier.mli error.mli types.mli \
+			symbol.mli lexer.mli parser.mli interUtils.mli semantics.mli \
+			intermediate.mli 
 CMO_FILES = $(patsubst %.ml,%.cmo,$(ML_FILES))
 CMI_FILES = $(patsubst %.ml,%.cmi,$(ML_FILES))
 CMX_FILES = $(patsubst %.ml,%.cmx,$(ML_FILES))
@@ -58,7 +60,7 @@ lexer.ml: lexer.mll
 
 -include .depend
 
-depend: $(ML_FILES) $(MLI_FILES) extend.cmo
+depend: $(ML_FILES) $(MLI_FILES) extend.cmo 
 	$(OCAMLDEP) $(CAMLP5_FLAGS) \
           $(filter-out extend.cmo,$^) > .depend
 
