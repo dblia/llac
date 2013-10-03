@@ -1,24 +1,27 @@
--- intermediate
+General
+++++++++
 
-return stmt (res.place = Invalid) ?
-****distinction between true expr and true cond (and, or, not, ifthenelse)
+- Create a master Makefile to handle the sub-Makefiles.
+- Currently stopping the lexing when a false token found, fix it.
 
--- error handling
+Intermediate
+++++++++++++++
 
-syntax error can improved?
+- Checkout: return stmt (res.place = Invalid).
+- Distinction between <true expr> and <true cond>: (and, or, not, ifthenelse).
 
-add error and warning counters
+Error handling
++++++++++++++++
 
-add pretty_printing with args
+- Improve syntax error format.
+- Add error and warning counters.
+- Add pretty_printing with args.
+- Improve symbol.ml printing info.
 
-improve symbol.ml printing info
+Bugs
++++++
 
---check what happens in the following example
-
-let rec a (x : int) : int = a1 + 1
-and a1 : int = 2
-
--- a master Makefile to handle the sub-Makefiles
--- currently stopping the lexing when a false token found.
-   i should change this
-
+- Checkout the following example:
+  
+  let rec a (x : int) : int = a1 + 1
+  and a1 : int = 2
