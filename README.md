@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 The Llama Compiler
 ==========================
 
@@ -34,9 +33,3 @@ References
 
  [1] http://courses.softlab.ntua.gr/compilers/ Course's Home Page
  [2] http://courses.softlab.ntua.gr/compilers/2012a/llama2012.pdf Llama language
-=======
-llac
-====
-
-A compiler for llama language written in OCaml
->>>>>>> a988bc61fc494fa23d950312e998bbe2be9ed5ab
