@@ -22,19 +22,19 @@ let parseArgs () =
     None -> err "You must specify an input file"
   | Some(s) -> s
 
-let openfile infile = 
+let openfile infile =
   let rec trynext l = match l with
         [] -> err ("Could not find " ^ infile)
-      | (d::rest) -> 
+      | (d::rest) ->
           let name = if d = "" then infile else (d ^ "/" ^ infile) in
           try open_in name
             with Sys_error m -> trynext rest
   in trynext !searchpath
 
-let main = 
+let main =
   let inFile = parseArgs() in
   let pi = openfile inFile in
-  let lexbuf = Lexer.create inFile pi in 
+  let lexbuf = Lexer.create inFile pi in
   try
     let ast = Parser.program Lexer.lexer lexbuf in
     (* Pp_ast.pp_prog ast; *)
@@ -43,7 +43,7 @@ let main =
     let acc = separate_quads (get_quads ()) in
     print_quads_to_file2 (open_out "myfoo.qua") acc;*)
     exit 0
-  with 
+  with
       Parsing.Parse_error ->
         error (Lexer.add_info lexbuf) 0 "  syntax error";
     | Error.Exit(1) ->
@@ -55,4 +55,3 @@ let main =
     | Terminate ->
         err "Oops!! Somenthing went wrong!"
 ;;
-

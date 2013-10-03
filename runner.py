@@ -6,12 +6,13 @@ import unittest
 
 from subprocess import call
 
-exe  = "/home/jimmisbl/Desktop/llac/main.native"
-fdir = '/home/jimmisbl/Desktop/llac/testsuite/up_to_semantic/should_fail/'
-pdir = '/home/jimmisbl/Desktop/llac/testsuite/up_to_semantic/should_compile/'
+# FIXME: Replace hardcoded paths
+exe  = "~/llac/main.native"
+fdir = '~/llac/testsuite/up_to_semantic/should_fail/'
+pdir = '~/llac/testsuite/up_to_semantic/should_compile/'
 
 class ParametrizedTestCase(unittest.TestCase):
-    """ Any TestCase classes that want to be parametrized 
+    """ Any TestCase classes that want to be parametrized
         should inherit from this class.
     """
     def __init__(self, methodName='runTest', param=None):

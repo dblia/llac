@@ -1,6 +1,11 @@
+===================
+  llac TODO file
+===================
+
 General
 ++++++++
 
+- Replace the hardcoded paths in runner.py.
 - Create a master Makefile to handle the sub-Makefiles.
 - Currently stopping the lexing when a false token found, fix it.
 
@@ -22,6 +27,6 @@ Bugs
 +++++
 
 - Checkout the following example:
-  
+
   let rec a (x : int) : int = a1 + 1
   and a1 : int = 2
